@@ -28,6 +28,7 @@ public sealed record LeftoverCandidate(
     bool IsUserData,
     bool IsSelectedByDefault)
 {
+    public string ReasonKey { get; init; } = string.Empty;
     public string SizeText => SizeBytes is null ? "Not measured" : FormatSize(SizeBytes.Value);
 
     private static string FormatSize(long bytes)

@@ -37,7 +37,12 @@ public sealed class QuarantineService
         }
     }
 
-    public async Task<string> MoveAsync(string sourcePath, string applicationName, CancellationToken cancellationToken = default)
+    public async Task<string> MoveAsync(
+        string sourcePath,
+        string applicationName,
+        string operationText = "Quarantine",
+        string resultText = "Moved to local quarantine",
+        CancellationToken cancellationToken = default)
     {
         if (!pathPolicy.TryValidate(sourcePath, out var source, out var reason))
         {
@@ -73,7 +78,7 @@ public sealed class QuarantineService
             }
             Directory.Move(source, payload);
             await database.RecordQuarantineAsync(operationId, source, payload, applicationName, cancellationToken);
-            await database.RecordOperationAsync(applicationName, "Quarantine", "Moved to local quarantine", cancellationToken);
+            await database.RecordOperationAsync(applicationName, operationText, resultText, cancellationToken);
             return operationId;
         }
         catch
@@ -88,7 +93,11 @@ public sealed class QuarantineService
         }
     }
 
-    public async Task RestoreAsync(QuarantineEntry entry, CancellationToken cancellationToken = default)
+    public async Task RestoreAsync(
+        QuarantineEntry entry,
+        string operationText = "Restore",
+        string resultText = "Restored from local quarantine",
+        CancellationToken cancellationToken = default)
     {
         var payload = Path.GetFullPath(entry.QuarantinePath);
         var original = Path.GetFullPath(entry.OriginalPath);
@@ -112,7 +121,7 @@ public sealed class QuarantineService
         }
         Directory.Move(payload, original);
         await database.RemoveQuarantineAsync(entry.OperationId, cancellationToken);
-        await database.RecordOperationAsync(entry.ApplicationName, "Restore", "Restored from local quarantine", cancellationToken);
+        await database.RecordOperationAsync(entry.ApplicationName, operationText, resultText, cancellationToken);
         RemoveOperationDirectory(Path.GetDirectoryName(payload)!);
     }
 

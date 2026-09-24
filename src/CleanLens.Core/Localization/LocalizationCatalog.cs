@@ -1,0 +1,355 @@
+using System.Globalization;
+using System.ComponentModel;
+
+namespace CleanLens.Core.Localization;
+
+public sealed class LocalizationCatalog : INotifyPropertyChanged
+{
+    private static readonly IReadOnlyDictionary<string, IReadOnlyDictionary<string, string>> Dictionaries =
+        new Dictionary<string, IReadOnlyDictionary<string, string>>(StringComparer.OrdinalIgnoreCase)
+        {
+            ["en"] = new Dictionary<string, string>(StringComparer.Ordinal)
+            {
+                ["AppName"] = "CleanLens", ["ProductSubtitle"] = "WINDOWS CLEANUP", ["Principle"] = "SHOW FIRST. DELETE SECOND.", ["ActionFailed"] = "The action could not be completed: {0}",
+                ["HistoryAllApps"] = "All applications", ["HistoryInventoryScan"] = "Inventory scan",
+                ["HistoryOfficialUninstall"] = "Official uninstall started", ["HistoryProcessStarted"] = "Started process {0}.",
+                ["HistoryLaunchedByWindows"] = "The registered uninstaller was launched by Windows.",
+                ["HistoryQuarantine"] = "Quarantine", ["HistoryMovedQuarantine"] = "Moved to local quarantine",
+                ["HistoryRestore"] = "Restore", ["HistoryRestored"] = "Restored from local quarantine",
+                ["Language"] = "Language", ["NotScannedYet"] = "Not scanned yet", ["SelectDetailsHint"] = "Select an application to inspect its registered details.",
+                ["Version"] = "Version {0}", ["InstallLocation"] = "Install location: {0}", ["InstallDateUnknown"] = "Install date not reported",
+                ["SizeNotReported"] = "Not reported", ["EstimatedSize"] = "Estimated size · {0}", ["NotReported"] = "Not reported",
+                ["SizeUnavailable"] = "Size unavailable",
+                ["CategoryApplicationData"] = "Application data", ["CategoryProgramData"] = "ProgramData",
+                ["ConfidenceLow"] = "Low", ["ConfidenceMedium"] = "Medium", ["ConfidenceHigh"] = "High",
+                ["CandidatePublisherProductPath"] = "Exact publisher and product directory components match the registered application identity under a standard application-data root.",
+                ["CandidateProductFolderAfterUninstall"] = "Exact product folder under a standard application-data root after the registered uninstall entry disappeared. Review the path before moving it.",
+                ["Overview"] = "Overview", ["Applications"] = "Applications", ["LeftoverReview"] = "Leftover review", ["History"] = "History", ["Quarantine"] = "Quarantine",
+                ["Workspace"] = "WORKSPACE", ["LocalOnly"] = "Local only · no telemetry", ["LocalTagline"] = "Review every path before it leaves your PC.",
+                ["ScanApplications"] = "Scan applications", ["OverviewSubtitle"] = "See what is installed. Review every cleanup candidate before moving it.",
+                ["ApplicationsSubtitle"] = "Installed applications reported by the Windows uninstall registry.",
+                ["InstalledApps"] = "INSTALLED APPS", ["ReportedAppSize"] = "REPORTED APP SIZE", ["CandidatesFound"] = "CANDIDATES FOUND",
+                ["ReportedEstimateNote"] = "Registry estimates only; missing sizes are excluded.",
+                ["AllApplications"] = "All applications", ["WithoutUninstaller"] = "Without uninstaller", ["UnknownPublisher"] = "Unknown publisher",
+                ["SearchTooltip"] = "Search name, publisher, version, install path or executable",
+                ["HeaderApplication"] = "APPLICATION", ["HeaderPublisher"] = "PUBLISHER", ["HeaderVersion"] = "VERSION", ["HeaderSize"] = "SIZE · EST.",
+                ["SelectApplication"] = "Select an application", ["PublisherNotListed"] = "Publisher not listed",
+                ["ApplicationDetails"] = "APPLICATION DETAILS", ["AdvancedDetails"] = "Advanced details",
+                ["UninstallCommand"] = "Uninstall command", ["RegistryIdentity"] = "Registry identity",
+                ["PersonalDataOut"] = "PERSONAL DATA STAYS OUT OF SCOPE",
+                ["PersonalDataMessage"] = "Documents, projects, saves and other user files are not included in this scan.",
+                ["RunUninstaller"] = "Run registered uninstaller", ["ReviewLeftovers"] = "Review associated leftovers",
+                ["LeftoverSubtitle"] = "Candidate review is available after CleanLens starts an uninstaller and a fresh scan confirms the app is no longer registered.",
+                ["LeftoverConfirmedSubtitle"] = "{0} is no longer registered. Review every candidate before moving it.",
+                ["ScanSelectedApplication"] = "Scan selected application", ["MoveToQuarantine"] = "Move selected folder to quarantine",
+                ["HeaderPath"] = "PATH", ["HeaderSizeSimple"] = "SIZE", ["HeaderType"] = "TYPE", ["HeaderConfidence"] = "CONFIDENCE", ["HeaderReason"] = "REASON",
+                ["HistoryTitle"] = "Local operation history", ["QuarantinedFolders"] = "Quarantined folders", ["RestoreSelected"] = "Restore selected",
+                ["SafetyTitle"] = "A careful tool for powerful changes",
+                ["SafetyBody"] = "CleanLens can start a registered uninstaller and move selected application data. Deep cleanup can affect software you still need. Personal files are not scanned or selected automatically.",
+                ["SafetyCheck"] = "I understand that cleanup can move application data and that restore may not work if the original path is occupied.",
+                ["Continue"] = "Continue", ["SafetyRequired"] = "Accept the safety notice before starting an uninstaller.",
+                ["SelectFirst"] = "Select an application first.", ["NoUninstaller"] = "Windows has no registered uninstaller command for this application.",
+                ["QuietOnly"] = "Windows lists only a quiet uninstall command for this application. CleanLens will not start a silent uninstall.",
+                ["ReviewUninstallerTitle"] = "Review official uninstaller",
+                ["ReviewUninstallerMessage"] = "CleanLens will start the registered uninstaller for {0}.\n\nCommand:\n{1}\n\nThis command comes from local application metadata and may remove data outside CleanLens. Review its executable and arguments before continuing.",
+                ["UninstallerErrorTitle"] = "Could not start the registered uninstaller.",
+                ["UninstallerError"] = "Could not start the registered uninstaller.\n\n{0}",
+                ["ReviewUnavailableTitle"] = "Review unavailable", ["SafetyNoticeTitle"] = "Safety notice",
+                ["StatusInitial"] = "Scan applications to read the Windows uninstall registry.",
+                ["StatusScanningApps"] = "Scanning registered Windows applications…",
+                ["StatusScanComplete"] = "Scan complete · {0} applications read from registered uninstall entries.",
+                ["StatusUninstallRemoved"] = "Scan complete · {0} no longer appears in registered uninstall entries. Associated folder review is available.",
+                ["StatusUninstallStillListed"] = "Scan complete · {0} applications found. The selected application is still registered, so cleanup candidates remain unavailable.",
+                ["StatusScanFailed"] = "Scan failed: {0}",
+                ["StatusScanBeforeReview"] = "Run the registered uninstaller, then scan applications again. Candidate review is available only after the selected app is no longer registered.",
+                ["StatusCheckingData"] = "Checking exact application-data paths…",
+                ["StatusNoCandidates"] = "No exact application-data candidates matched. This is not a full system or registry scan.",
+                ["StatusCandidates"] = "{0} candidate folder(s) found. None are selected automatically.",
+                ["StatusLeftoverScanFailed"] = "Leftover scan failed: {0}",
+                ["StatusSelectApp"] = "Select an application first.",
+                ["StatusSafetyRequired"] = "Accept the safety notice before continuing.",
+                ["StatusSelectReviewedFolder"] = "Select a reviewed leftover folder first.",
+                ["StatusLowConfidence"] = "Low-confidence or personal-data candidates cannot be moved to quarantine.",
+                ["StatusQuarantined"] = "Folder moved to local quarantine. Its contents were not deleted.",
+                ["StatusRestored"] = "Folder restored to its original path.",
+                ["StatusRestoreRequired"] = "Accept the safety notice and select a quarantine record first.",
+                ["StatusHistoryUnavailable"] = "Local history is unavailable: {0}",
+                ["StatusOfficialStarted"] = "Official uninstaller launched. When it finishes, scan applications and then review associated leftovers.",
+                ["StatusReadRegistered"] = "Read {0} registered uninstall entries.",
+                ["ApplicationsPage"] = "Applications",
+                ["HistoryPage"] = "Local actions recorded by CleanLens on this device.",
+                ["QuarantinePage"] = "Restore moved folders while their original paths remain available.",
+                ["SafetyDialogTitle"] = "CleanLens", ["MachineRegistry"] = "machine", ["UserRegistry"] = "user",
+                ["View32"] = "32-bit view", ["View64"] = "64-bit view"
+            },
+            ["it"] = new Dictionary<string, string>(StringComparer.Ordinal)
+            {
+                ["AppName"] = "CleanLens", ["ProductSubtitle"] = "PULIZIA WINDOWS", ["Principle"] = "MOSTRA PRIMA. ELIMINA DOPO.", ["ActionFailed"] = "Impossibile completare l'operazione: {0}",
+                ["HistoryAllApps"] = "Tutte le applicazioni", ["HistoryInventoryScan"] = "Scansione inventario",
+                ["HistoryOfficialUninstall"] = "Avvio disinstallatore ufficiale", ["HistoryProcessStarted"] = "Avviato processo {0}.",
+                ["HistoryLaunchedByWindows"] = "Windows ha avviato il disinstallatore registrato.",
+                ["HistoryQuarantine"] = "Quarantena", ["HistoryMovedQuarantine"] = "Spostata nella quarantena locale",
+                ["HistoryRestore"] = "Ripristino", ["HistoryRestored"] = "Ripristinata dalla quarantena locale",
+                ["Language"] = "Lingua", ["NotScannedYet"] = "Non ancora scansionato", ["SelectDetailsHint"] = "Seleziona un'applicazione per consultarne i dettagli registrati.",
+                ["Version"] = "Versione {0}", ["InstallLocation"] = "Percorso d'installazione: {0}", ["InstallDateUnknown"] = "Data d'installazione non indicata",
+                ["SizeNotReported"] = "Non indicata", ["EstimatedSize"] = "Dimensione stimata · {0}", ["NotReported"] = "Non indicato",
+                ["SizeUnavailable"] = "Dimensione non disponibile",
+                ["CategoryApplicationData"] = "Dati applicazione", ["CategoryProgramData"] = "ProgramData",
+                ["ConfidenceLow"] = "Bassa", ["ConfidenceMedium"] = "Media", ["ConfidenceHigh"] = "Alta",
+                ["CandidatePublisherProductPath"] = "Le cartelle esatte di editore e prodotto corrispondono all'identità registrata nei percorsi standard dei dati applicativi.",
+                ["CandidateProductFolderAfterUninstall"] = "Cartella esatta del prodotto in un percorso standard dopo la rimozione della voce di disinstallazione. Controlla il percorso prima di spostarlo.",
+                ["Overview"] = "Panoramica", ["Applications"] = "Applicazioni", ["LeftoverReview"] = "Revisione residui", ["History"] = "Cronologia", ["Quarantine"] = "Quarantena",
+                ["Workspace"] = "AREA DI LAVORO", ["LocalOnly"] = "Solo locale · nessuna telemetria", ["LocalTagline"] = "Controlla ogni percorso prima di spostarlo.",
+                ["ScanApplications"] = "Scansiona applicazioni", ["OverviewSubtitle"] = "Scopri cosa è installato. Controlla ogni elemento prima di spostarlo.",
+                ["ApplicationsSubtitle"] = "Applicazioni registrate nell'elenco di disinstallazione di Windows.",
+                ["InstalledApps"] = "APP INSTALLATE", ["ReportedAppSize"] = "DIMENSIONE SEGNALATA", ["CandidatesFound"] = "CANDIDATI TROVATI",
+                ["ReportedEstimateNote"] = "Stime dal Registro; le dimensioni mancanti sono escluse.",
+                ["AllApplications"] = "Tutte le applicazioni", ["WithoutUninstaller"] = "Senza disinstallatore", ["UnknownPublisher"] = "Editore sconosciuto",
+                ["SearchTooltip"] = "Cerca nome, editore, versione, percorso o eseguibile",
+                ["HeaderApplication"] = "APPLICAZIONE", ["HeaderPublisher"] = "EDITORE", ["HeaderVersion"] = "VERSIONE", ["HeaderSize"] = "DIM. · STIMA",
+                ["SelectApplication"] = "Seleziona un'applicazione", ["PublisherNotListed"] = "Editore non indicato",
+                ["ApplicationDetails"] = "DETTAGLI APPLICAZIONE", ["AdvancedDetails"] = "Dettagli avanzati",
+                ["UninstallCommand"] = "Comando di disinstallazione", ["RegistryIdentity"] = "Identità nel Registro",
+                ["PersonalDataOut"] = "I DATI PERSONALI RESTANO ESCLUSI",
+                ["PersonalDataMessage"] = "Documenti, progetti, salvataggi e altri file personali non sono inclusi nella scansione.",
+                ["RunUninstaller"] = "Avvia il disinstallatore registrato", ["ReviewLeftovers"] = "Controlla i residui associati",
+                ["LeftoverSubtitle"] = "La revisione è disponibile dopo l'avvio del disinstallatore e una nuova scansione che conferma la rimozione dell'app.",
+                ["LeftoverConfirmedSubtitle"] = "{0} non risulta più registrata. Controlla i candidati prima di spostarli.",
+                ["ScanSelectedApplication"] = "Scansiona l'app selezionata", ["MoveToQuarantine"] = "Sposta la cartella selezionata in quarantena",
+                ["HeaderPath"] = "PERCORSO", ["HeaderSizeSimple"] = "DIM.", ["HeaderType"] = "TIPO", ["HeaderConfidence"] = "AFFIDABILITÀ", ["HeaderReason"] = "MOTIVO",
+                ["HistoryTitle"] = "Cronologia operazioni locale", ["QuarantinedFolders"] = "Cartelle in quarantena", ["RestoreSelected"] = "Ripristina selezionata",
+                ["SafetyTitle"] = "Uno strumento prudente per modifiche importanti",
+                ["SafetyBody"] = "CleanLens può avviare un disinstallatore registrato e spostare dati applicativi selezionati. La pulizia può interessare software che usi ancora. I file personali non vengono scansionati né selezionati automaticamente.",
+                ["SafetyCheck"] = "Ho capito che la pulizia può spostare dati applicativi e che il ripristino potrebbe non riuscire se il percorso originale è occupato.",
+                ["Continue"] = "Continua", ["SafetyRequired"] = "Accetta l'avviso di sicurezza prima di avviare un disinstallatore.",
+                ["SelectFirst"] = "Seleziona prima un'applicazione.", ["NoUninstaller"] = "Windows non ha registrato un comando di disinstallazione per questa applicazione.",
+                ["QuietOnly"] = "Windows indica solo un comando di disinstallazione silenziosa. CleanLens non avvierà una rimozione silenziosa.",
+                ["ReviewUninstallerTitle"] = "Controlla il disinstallatore ufficiale",
+                ["ReviewUninstallerMessage"] = "CleanLens avvierà il disinstallatore registrato per {0}.\n\nComando:\n{1}\n\nIl comando proviene dai metadati locali e può rimuovere dati fuori dal controllo di CleanLens. Controlla eseguibile e argomenti prima di continuare.",
+                ["UninstallerErrorTitle"] = "Impossibile avviare il disinstallatore registrato.",
+                ["UninstallerError"] = "Impossibile avviare il disinstallatore registrato.\n\n{0}",
+                ["ReviewUnavailableTitle"] = "Revisione non disponibile", ["SafetyNoticeTitle"] = "Avviso di sicurezza",
+                ["StatusInitial"] = "Scansiona le applicazioni per leggere il Registro di disinstallazione di Windows.",
+                ["StatusScanningApps"] = "Scansione delle applicazioni registrate…",
+                ["StatusScanComplete"] = "Scansione completata · {0} voci di disinstallazione registrate.",
+                ["StatusUninstallRemoved"] = "Scansione completata · {0} non risulta più registrata. Puoi controllare le cartelle associate.",
+                ["StatusUninstallStillListed"] = "Scansione completata · trovate {0} applicazioni. L'app selezionata è ancora registrata; la revisione è bloccata.",
+                ["StatusScanFailed"] = "Scansione non riuscita: {0}",
+                ["StatusScanBeforeReview"] = "Avvia il disinstallatore registrato e poi scansiona di nuovo. La revisione è disponibile solo dopo la rimozione dell'app dall'elenco.",
+                ["StatusCheckingData"] = "Controllo dei percorsi dati applicativi esatti…",
+                ["StatusNoCandidates"] = "Nessuna cartella dati esatta trovata. Non è una scansione completa del sistema o del Registro.",
+                ["StatusCandidates"] = "Trovate {0} cartelle candidate. Nessuna è selezionata automaticamente.",
+                ["StatusLeftoverScanFailed"] = "Scansione residui non riuscita: {0}",
+                ["StatusSelectApp"] = "Seleziona prima un'applicazione.",
+                ["StatusSafetyRequired"] = "Accetta l'avviso di sicurezza prima di continuare.",
+                ["StatusSelectReviewedFolder"] = "Seleziona prima una cartella esaminata.",
+                ["StatusLowConfidence"] = "I candidati a bassa affidabilità o personali non possono essere spostati in quarantena.",
+                ["StatusQuarantined"] = "Cartella spostata nella quarantena locale. I contenuti non sono stati eliminati.",
+                ["StatusRestored"] = "Cartella ripristinata nel percorso originale.",
+                ["StatusRestoreRequired"] = "Accetta l'avviso e seleziona prima una voce in quarantena.",
+                ["StatusHistoryUnavailable"] = "Cronologia locale non disponibile: {0}",
+                ["StatusOfficialStarted"] = "Disinstallatore avviato. Al termine, scansiona le applicazioni e controlla i residui.",
+                ["StatusReadRegistered"] = "Lette {0} voci di disinstallazione registrate.",
+                ["ApplicationsPage"] = "Applicazioni",
+                ["HistoryPage"] = "Operazioni locali registrate da CleanLens su questo dispositivo.",
+                ["QuarantinePage"] = "Ripristina le cartelle spostate se i percorsi originali sono liberi.",
+                ["SafetyDialogTitle"] = "CleanLens", ["MachineRegistry"] = "computer", ["UserRegistry"] = "utente",
+                ["View32"] = "vista a 32 bit", ["View64"] = "vista a 64 bit"
+            },
+            ["es"] = new Dictionary<string, string>(StringComparer.Ordinal)
+            {
+                ["AppName"] = "CleanLens", ["ProductSubtitle"] = "LIMPIEZA DE WINDOWS", ["Principle"] = "MUESTRA PRIMERO. ELIMINA DESPUÉS.", ["ActionFailed"] = "No se pudo completar la acción: {0}",
+                ["HistoryAllApps"] = "Todas las aplicaciones", ["HistoryInventoryScan"] = "Análisis del inventario",
+                ["HistoryOfficialUninstall"] = "Inicio del desinstalador oficial", ["HistoryProcessStarted"] = "Proceso iniciado: {0}.",
+                ["HistoryLaunchedByWindows"] = "Windows inició el desinstalador registrado.",
+                ["HistoryQuarantine"] = "Cuarentena", ["HistoryMovedQuarantine"] = "Movido a la cuarentena local",
+                ["HistoryRestore"] = "Restaurar", ["HistoryRestored"] = "Restaurado desde la cuarentena local",
+                ["Language"] = "Idioma", ["NotScannedYet"] = "Aún no analizado", ["SelectDetailsHint"] = "Selecciona una aplicación para ver sus detalles registrados.",
+                ["Version"] = "Versión {0}", ["InstallLocation"] = "Ruta de instalación: {0}", ["InstallDateUnknown"] = "Fecha de instalación no indicada",
+                ["SizeNotReported"] = "No indicado", ["EstimatedSize"] = "Tamaño estimado · {0}", ["NotReported"] = "No indicado",
+                ["SizeUnavailable"] = "Tamaño no disponible",
+                ["CategoryApplicationData"] = "Datos de la aplicación", ["CategoryProgramData"] = "ProgramData",
+                ["ConfidenceLow"] = "Baja", ["ConfidenceMedium"] = "Media", ["ConfidenceHigh"] = "Alta",
+                ["CandidatePublisherProductPath"] = "Las carpetas exactas del editor y del producto coinciden con la identidad registrada en una ubicación estándar de datos.",
+                ["CandidateProductFolderAfterUninstall"] = "Carpeta exacta del producto en una ubicación estándar después de quitar su entrada de desinstalación. Revisa la ruta antes de moverla.",
+                ["Overview"] = "Resumen", ["Applications"] = "Aplicaciones", ["LeftoverReview"] = "Revisar residuos", ["History"] = "Historial", ["Quarantine"] = "Cuarentena",
+                ["Workspace"] = "ESPACIO DE TRABAJO", ["LocalOnly"] = "Solo local · sin telemetría", ["LocalTagline"] = "Revisa cada ruta antes de moverla.",
+                ["ScanApplications"] = "Analizar aplicaciones", ["OverviewSubtitle"] = "Mira qué está instalado y revisa cada elemento antes de moverlo.",
+                ["ApplicationsSubtitle"] = "Aplicaciones registradas en la lista de desinstalación de Windows.",
+                ["InstalledApps"] = "APLICACIONES INSTALADAS", ["ReportedAppSize"] = "TAMAÑO REGISTRADO", ["CandidatesFound"] = "CANDIDATOS ENCONTRADOS",
+                ["ReportedEstimateNote"] = "Estimaciones del Registro; se excluyen tamaños sin informar.",
+                ["AllApplications"] = "Todas las aplicaciones", ["WithoutUninstaller"] = "Sin desinstalador", ["UnknownPublisher"] = "Editor desconocido",
+                ["SearchTooltip"] = "Buscar nombre, editor, versión, ruta o ejecutable",
+                ["HeaderApplication"] = "APLICACIÓN", ["HeaderPublisher"] = "EDITOR", ["HeaderVersion"] = "VERSIÓN", ["HeaderSize"] = "TAM. · EST.",
+                ["SelectApplication"] = "Selecciona una aplicación", ["PublisherNotListed"] = "Editor no indicado",
+                ["ApplicationDetails"] = "DETALLES DE LA APLICACIÓN", ["AdvancedDetails"] = "Detalles avanzados",
+                ["UninstallCommand"] = "Comando de desinstalación", ["RegistryIdentity"] = "Identidad del Registro",
+                ["PersonalDataOut"] = "LOS DATOS PERSONALES QUEDAN FUERA",
+                ["PersonalDataMessage"] = "Documentos, proyectos, partidas y otros archivos personales no se incluyen en este análisis.",
+                ["RunUninstaller"] = "Iniciar desinstalador registrado", ["ReviewLeftovers"] = "Revisar datos asociados",
+                ["LeftoverSubtitle"] = "La revisión está disponible después de iniciar el desinstalador y confirmar en otro análisis que la app ya no está registrada.",
+                ["LeftoverConfirmedSubtitle"] = "{0} ya no aparece registrado. Revisa cada candidato antes de moverlo.",
+                ["ScanSelectedApplication"] = "Analizar la aplicación seleccionada", ["MoveToQuarantine"] = "Mover la carpeta seleccionada a cuarentena",
+                ["HeaderPath"] = "RUTA", ["HeaderSizeSimple"] = "TAMAÑO", ["HeaderType"] = "TIPO", ["HeaderConfidence"] = "CONFIANZA", ["HeaderReason"] = "MOTIVO",
+                ["HistoryTitle"] = "Historial local de operaciones", ["QuarantinedFolders"] = "Carpetas en cuarentena", ["RestoreSelected"] = "Restaurar seleccionada",
+                ["SafetyTitle"] = "Una herramienta prudente para cambios importantes",
+                ["SafetyBody"] = "CleanLens puede iniciar un desinstalador registrado y mover datos seleccionados. La limpieza podría afectar a software que aún necesitas. Los archivos personales no se analizan ni se seleccionan automáticamente.",
+                ["SafetyCheck"] = "Entiendo que la limpieza puede mover datos de aplicaciones y que quizá no se puedan restaurar si la ruta original está ocupada.",
+                ["Continue"] = "Continuar", ["SafetyRequired"] = "Acepta el aviso de seguridad antes de iniciar un desinstalador.",
+                ["SelectFirst"] = "Selecciona una aplicación primero.", ["NoUninstaller"] = "Windows no tiene un comando de desinstalación registrado para esta aplicación.",
+                ["QuietOnly"] = "Windows solo indica un comando de desinstalación silenciosa. CleanLens no iniciará una desinstalación silenciosa.",
+                ["ReviewUninstallerTitle"] = "Revisar desinstalador oficial",
+                ["ReviewUninstallerMessage"] = "CleanLens iniciará el desinstalador registrado de {0}.\n\nComando:\n{1}\n\nEste comando proviene de los metadatos locales y puede borrar datos fuera del control de CleanLens. Revisa el ejecutable y los argumentos antes de continuar.",
+                ["UninstallerErrorTitle"] = "No se pudo iniciar el desinstalador registrado.",
+                ["UninstallerError"] = "No se pudo iniciar el desinstalador registrado.\n\n{0}",
+                ["ReviewUnavailableTitle"] = "Revisión no disponible", ["SafetyNoticeTitle"] = "Aviso de seguridad",
+                ["StatusInitial"] = "Analiza las aplicaciones para leer el Registro de desinstalación de Windows.",
+                ["StatusScanningApps"] = "Analizando las aplicaciones registradas…",
+                ["StatusScanComplete"] = "Análisis completo · {0} entradas de desinstalación registradas.",
+                ["StatusUninstallRemoved"] = "Análisis completo · {0} ya no aparece registrado. Puedes revisar las carpetas asociadas.",
+                ["StatusUninstallStillListed"] = "Análisis completo · se encontraron {0} aplicaciones. La aplicación seleccionada sigue registrada; la revisión está bloqueada.",
+                ["StatusScanFailed"] = "Error de análisis: {0}",
+                ["StatusScanBeforeReview"] = "Inicia el desinstalador registrado y vuelve a analizar. La revisión solo estará disponible cuando la app ya no aparezca en el Registro.",
+                ["StatusCheckingData"] = "Comprobando rutas exactas de datos de aplicaciones…",
+                ["StatusNoCandidates"] = "No se encontraron carpetas de datos exactas. No es un análisis completo del sistema ni del Registro.",
+                ["StatusCandidates"] = "Se encontraron {0} carpetas candidatas. Ninguna se selecciona automáticamente.",
+                ["StatusLeftoverScanFailed"] = "Error al analizar residuos: {0}",
+                ["StatusSelectApp"] = "Selecciona una aplicación primero.",
+                ["StatusSafetyRequired"] = "Acepta el aviso de seguridad antes de continuar.",
+                ["StatusSelectReviewedFolder"] = "Selecciona una carpeta revisada primero.",
+                ["StatusLowConfidence"] = "Los candidatos de baja confianza o los datos personales no se pueden mover a cuarentena.",
+                ["StatusQuarantined"] = "Carpeta movida a la cuarentena local. Su contenido no se eliminó.",
+                ["StatusRestored"] = "Carpeta restaurada a su ruta original.",
+                ["StatusRestoreRequired"] = "Acepta el aviso de seguridad y selecciona una entrada de cuarentena.",
+                ["StatusHistoryUnavailable"] = "El historial local no está disponible: {0}",
+                ["StatusOfficialStarted"] = "Desinstalador iniciado. Cuando termine, analiza las aplicaciones y revisa los residuos asociados.",
+                ["StatusReadRegistered"] = "Se leyeron {0} entradas de desinstalación registradas.",
+                ["ApplicationsPage"] = "Aplicaciones",
+                ["HistoryPage"] = "Acciones locales registradas por CleanLens en este dispositivo.",
+                ["QuarantinePage"] = "Restaura las carpetas movidas si la ruta original está disponible.",
+                ["SafetyDialogTitle"] = "CleanLens", ["MachineRegistry"] = "equipo", ["UserRegistry"] = "usuario",
+                ["View32"] = "vista de 32 bits", ["View64"] = "vista de 64 bits"
+            },
+            ["fr"] = new Dictionary<string, string>(StringComparer.Ordinal)
+            {
+                ["AppName"] = "CleanLens", ["ProductSubtitle"] = "NETTOYAGE WINDOWS", ["Principle"] = "VOIR D'ABORD. SUPPRIMER ENSUITE.", ["ActionFailed"] = "L'action n'a pas pu aboutir : {0}",
+                ["HistoryAllApps"] = "Toutes les applications", ["HistoryInventoryScan"] = "Analyse de l'inventaire",
+                ["HistoryOfficialUninstall"] = "Lancement du désinstalleur officiel", ["HistoryProcessStarted"] = "Processus lancé : {0}.",
+                ["HistoryLaunchedByWindows"] = "Windows a lancé le désinstalleur enregistré.",
+                ["HistoryQuarantine"] = "Quarantaine", ["HistoryMovedQuarantine"] = "Déplacé en quarantaine locale",
+                ["HistoryRestore"] = "Restaurer", ["HistoryRestored"] = "Restauré depuis la quarantaine locale",
+                ["Language"] = "Langue", ["NotScannedYet"] = "Pas encore analysé", ["SelectDetailsHint"] = "Sélectionnez une application pour consulter ses informations enregistrées.",
+                ["Version"] = "Version {0}", ["InstallLocation"] = "Emplacement d’installation : {0}", ["InstallDateUnknown"] = "Date d’installation non indiquée",
+                ["SizeNotReported"] = "Non indiquée", ["EstimatedSize"] = "Taille estimée · {0}", ["NotReported"] = "Non indiqué",
+                ["SizeUnavailable"] = "Taille indisponible",
+                ["CategoryApplicationData"] = "Données de l'application", ["CategoryProgramData"] = "ProgramData",
+                ["ConfidenceLow"] = "Faible", ["ConfidenceMedium"] = "Moyenne", ["ConfidenceHigh"] = "Élevée",
+                ["CandidatePublisherProductPath"] = "Les dossiers exacts de l'éditeur et du produit correspondent à l'identité enregistrée dans un emplacement de données standard.",
+                ["CandidateProductFolderAfterUninstall"] = "Dossier exact du produit dans un emplacement standard après disparition de l'entrée de désinstallation. Vérifiez le chemin avant de le déplacer.",
+                ["Overview"] = "Vue d’ensemble", ["Applications"] = "Applications", ["LeftoverReview"] = "Vérifier les résidus", ["History"] = "Historique", ["Quarantine"] = "Quarantaine",
+                ["Workspace"] = "ESPACE DE TRAVAIL", ["LocalOnly"] = "Local uniquement · sans télémétrie", ["LocalTagline"] = "Vérifiez chaque chemin avant de le déplacer.",
+                ["ScanApplications"] = "Analyser les applications", ["OverviewSubtitle"] = "Voyez ce qui est installé et vérifiez chaque élément avant son déplacement.",
+                ["ApplicationsSubtitle"] = "Applications inscrites dans la liste de désinstallation de Windows.",
+                ["InstalledApps"] = "APPLICATIONS INSTALLÉES", ["ReportedAppSize"] = "TAILLE SIGNALÉE", ["CandidatesFound"] = "CANDIDATS TROUVÉS",
+                ["ReportedEstimateNote"] = "Estimations du Registre ; les tailles inconnues sont exclues.",
+                ["AllApplications"] = "Toutes les applications", ["WithoutUninstaller"] = "Sans désinstalleur", ["UnknownPublisher"] = "Éditeur inconnu",
+                ["SearchTooltip"] = "Rechercher nom, éditeur, version, chemin ou exécutable",
+                ["HeaderApplication"] = "APPLICATION", ["HeaderPublisher"] = "ÉDITEUR", ["HeaderVersion"] = "VERSION", ["HeaderSize"] = "TAILLE · EST.",
+                ["SelectApplication"] = "Sélectionnez une application", ["PublisherNotListed"] = "Éditeur non indiqué",
+                ["ApplicationDetails"] = "DÉTAILS DE L'APPLICATION", ["AdvancedDetails"] = "Détails avancés",
+                ["UninstallCommand"] = "Commande de désinstallation", ["RegistryIdentity"] = "Identité du Registre",
+                ["PersonalDataOut"] = "LES DONNÉES PERSONNELLES RESTENT EXCLUES",
+                ["PersonalDataMessage"] = "Documents, projets, sauvegardes et autres fichiers personnels ne sont pas analysés.",
+                ["RunUninstaller"] = "Lancer le désinstalleur enregistré", ["ReviewLeftovers"] = "Vérifier les données associées",
+                ["LeftoverSubtitle"] = "La vérification est disponible après le lancement du désinstalleur et un nouvel inventaire qui confirme la disparition de l'application.",
+                ["LeftoverConfirmedSubtitle"] = "{0} n'est plus répertoriée. Vérifiez chaque élément avant de le déplacer.",
+                ["ScanSelectedApplication"] = "Analyser l'application sélectionnée", ["MoveToQuarantine"] = "Déplacer le dossier sélectionné en quarantaine",
+                ["HeaderPath"] = "CHEMIN", ["HeaderSizeSimple"] = "TAILLE", ["HeaderType"] = "TYPE", ["HeaderConfidence"] = "CONFIANCE", ["HeaderReason"] = "MOTIF",
+                ["HistoryTitle"] = "Historique local des opérations", ["QuarantinedFolders"] = "Dossiers en quarantaine", ["RestoreSelected"] = "Restaurer la sélection",
+                ["SafetyTitle"] = "Un outil prudent pour des changements importants",
+                ["SafetyBody"] = "CleanLens peut lancer un désinstalleur enregistré et déplacer des données sélectionnées. Un nettoyage peut affecter un logiciel encore utile. Les fichiers personnels ne sont ni analysés ni sélectionnés automatiquement.",
+                ["SafetyCheck"] = "Je comprends que le nettoyage peut déplacer des données et que la restauration peut échouer si le chemin d'origine est occupé.",
+                ["Continue"] = "Continuer", ["SafetyRequired"] = "Acceptez l'avis de sécurité avant de lancer un désinstalleur.",
+                ["SelectFirst"] = "Sélectionnez d'abord une application.", ["NoUninstaller"] = "Windows n'a pas enregistré de commande de désinstallation pour cette application.",
+                ["QuietOnly"] = "Windows ne fournit qu'une commande de désinstallation silencieuse. CleanLens ne lancera pas de désinstallation silencieuse.",
+                ["ReviewUninstallerTitle"] = "Vérifier le désinstalleur officiel",
+                ["ReviewUninstallerMessage"] = "CleanLens va lancer le désinstalleur enregistré pour {0}.\n\nCommande :\n{1}\n\nCette commande vient des métadonnées locales et peut supprimer des données hors du contrôle de CleanLens. Vérifiez l'exécutable et ses arguments avant de continuer.",
+                ["UninstallerErrorTitle"] = "Impossible de lancer le désinstalleur enregistré.",
+                ["UninstallerError"] = "Impossible de lancer le désinstalleur enregistré.\n\n{0}",
+                ["ReviewUnavailableTitle"] = "Vérification indisponible", ["SafetyNoticeTitle"] = "Avis de sécurité",
+                ["StatusInitial"] = "Analysez les applications pour lire le Registre de désinstallation de Windows.",
+                ["StatusScanningApps"] = "Analyse des applications enregistrées…",
+                ["StatusScanComplete"] = "Analyse terminée · {0} entrées de désinstallation enregistrées.",
+                ["StatusUninstallRemoved"] = "Analyse terminée · {0} n'est plus répertoriée. Vous pouvez vérifier les dossiers associés.",
+                ["StatusUninstallStillListed"] = "Analyse terminée · {0} applications trouvées. L'application reste répertoriée, le nettoyage est bloqué.",
+                ["StatusScanFailed"] = "Échec de l'analyse : {0}",
+                ["StatusScanBeforeReview"] = "Lancez le désinstalleur enregistré puis relancez l'inventaire. La vérification ne sera disponible que lorsque l'application ne sera plus répertoriée.",
+                ["StatusCheckingData"] = "Vérification des chemins exacts de données d'application…",
+                ["StatusNoCandidates"] = "Aucun dossier de données exact trouvé. Ce n'est pas une analyse complète du système ou du Registre.",
+                ["StatusCandidates"] = "{0} dossiers candidats trouvés. Aucun n'est sélectionné automatiquement.",
+                ["StatusLeftoverScanFailed"] = "Échec de l'analyse des résidus : {0}",
+                ["StatusSelectApp"] = "Sélectionnez d'abord une application.",
+                ["StatusSafetyRequired"] = "Acceptez l'avis de sécurité avant de continuer.",
+                ["StatusSelectReviewedFolder"] = "Sélectionnez d'abord un dossier vérifié.",
+                ["StatusLowConfidence"] = "Les éléments de faible confiance ou les données personnelles ne peuvent pas être déplacés en quarantaine.",
+                ["StatusQuarantined"] = "Dossier déplacé en quarantaine locale. Son contenu n'a pas été supprimé.",
+                ["StatusRestored"] = "Dossier restauré à son emplacement d'origine.",
+                ["StatusRestoreRequired"] = "Acceptez l'avis de sécurité et sélectionnez un élément en quarantaine.",
+                ["StatusHistoryUnavailable"] = "L'historique local est indisponible : {0}",
+                ["StatusOfficialStarted"] = "Désinstalleur lancé. Une fois terminé, analysez les applications puis vérifiez les résidus associés.",
+                ["StatusReadRegistered"] = "{0} entrées de désinstallation ont été lues.",
+                ["ApplicationsPage"] = "Applications",
+                ["HistoryPage"] = "Actions locales enregistrées par CleanLens sur cet appareil.",
+                ["QuarantinePage"] = "Restaurez les dossiers déplacés si le chemin d'origine est disponible.",
+                ["SafetyDialogTitle"] = "CleanLens", ["MachineRegistry"] = "ordinateur", ["UserRegistry"] = "utilisateur",
+                ["View32"] = "vue 32 bits", ["View64"] = "vue 64 bits"
+            }
+        };
+
+    public static IReadOnlyList<string> Languages { get; } = ["en", "it", "es", "fr"];
+
+    private string language = "en";
+
+    public event PropertyChangedEventHandler? PropertyChanged;
+
+    public string Language
+    {
+        get => language;
+        set
+        {
+            var selectedLanguage = Dictionaries.ContainsKey(value) ? value : "en";
+            if (!language.Equals(selectedLanguage, StringComparison.OrdinalIgnoreCase))
+            {
+                language = selectedLanguage;
+                PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(Language)));
+                OnPropertyChanged("Item[]");
+            }
+        }
+    }
+
+    public string this[string key] => Dictionaries[Language].TryGetValue(key, out var value) ? value : Dictionaries["en"][key];
+
+    public static string Translate(string language, string key)
+    {
+        var selected = Dictionaries.TryGetValue(language, out var dictionary) ? dictionary : Dictionaries["en"];
+        return selected.TryGetValue(key, out var value) ? value : Dictionaries["en"].GetValueOrDefault(key, key);
+    }
+
+    public string Format(string key, params object[] arguments)
+    {
+        return string.Format(CultureInfo.CurrentCulture, this[key], arguments);
+    }
+
+    public static IReadOnlyList<string> MissingKeys(string language)
+    {
+        var referenceKeys = Dictionaries["en"].Keys;
+        return Dictionaries.TryGetValue(language, out var dictionary)
+            ? referenceKeys.Except(dictionary.Keys, StringComparer.Ordinal).ToArray()
+            : referenceKeys.ToArray();
+    }
+
+    private void OnPropertyChanged(string propertyName)
+    {
+        PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
+    }
+}

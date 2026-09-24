@@ -1,8 +1,10 @@
 using System.Collections.ObjectModel;
 using System.IO;
+using System.Globalization;
 using System.Text.Json;
 using System.Windows;
 using CleanLens.Core.Models;
+using CleanLens.Core.Localization;
 using CleanLens.Core.Services;
 using CleanLens.Data;
 using CleanLens.Windows;
@@ -39,13 +41,16 @@ public partial class MainViewModel : ObservableObject
     private bool safetyAccepted;
 
     [ObservableProperty]
-    private string statusText = "Scan applications to read the Windows uninstall registry.";
+    private string selectedLanguage = "en";
 
     [ObservableProperty]
-    private string pageTitle = "Overview";
+    private string statusText = string.Empty;
 
     [ObservableProperty]
-    private string pageSubtitle = "See what is installed. Review every cleanup candidate before moving it.";
+    private string pageTitle = string.Empty;
+
+    [ObservableProperty]
+    private string pageSubtitle = string.Empty;
 
     [ObservableProperty]
     private Visibility disclaimerVisibility = Visibility.Visible;
@@ -56,13 +61,19 @@ public partial class MainViewModel : ObservableObject
     public ObservableCollection<QuarantineEntry> QuarantineEntries { get; } = [];
     public ObservableCollection<InstalledApplication> VisibleApplications { get; } = [];
     public bool HasReviewApplication => SelectedApplication is not null || pendingUninstallApplication is not null;
+    public LocalizationCatalog Texts { get; }
+    public IReadOnlyList<string> Languages => LocalizationCatalog.Languages;
 
-    public string AppCountText => scanned ? Applications.Count.ToString() : "Not scanned yet";
-    public string TotalSizeText => scanned ? FormatBytes(Applications.Sum(application => application.EstimatedSizeKilobytes.GetValueOrDefault() * 1024)) : "Not scanned yet";
-    public string LeftoversText => leftoversScanned ? Leftovers.Count.ToString() : "Not scanned yet";
-    public string DetailVersion => SelectedApplication is null ? "Select an application to inspect its registered details." : $"Version {Fallback(SelectedApplication.Version)} · {FormatInstallDate(SelectedApplication.InstalledAt)}";
-    public string DetailLocation => SelectedApplication is null ? string.Empty : $"Install location: {Fallback(SelectedApplication.InstallLocation)}";
-    public string DetailSource => SelectedApplication is null ? string.Empty : $"{SelectedApplication.Source} · {FormatEstimate(SelectedApplication.EstimatedSizeKilobytes)}";
+    public string AppCountText => scanned ? Applications.Count.ToString(CultureInfo.GetCultureInfo(Texts.Language)) : Texts["NotScannedYet"];
+    public string TotalSizeText => !scanned || Applications.All(application => application.EstimatedSizeKilobytes is null)
+        ? Texts["SizeNotReported"]
+        : FormatBytes(Applications.Sum(application => application.EstimatedSizeKilobytes.GetValueOrDefault() * 1024));
+    public string LeftoversText => leftoversScanned ? Leftovers.Count.ToString(CultureInfo.GetCultureInfo(Texts.Language)) : Texts["NotScannedYet"];
+    public string SelectedApplicationDisplayName => (SelectedApplication ?? pendingUninstallApplication)?.Name ?? Texts["SelectApplication"];
+    public string SelectedPublisher => string.IsNullOrWhiteSpace((SelectedApplication ?? pendingUninstallApplication)?.Publisher) ? Texts["PublisherNotListed"] : (SelectedApplication ?? pendingUninstallApplication)!.Publisher;
+    public string DetailVersion => (SelectedApplication ?? pendingUninstallApplication) is not { } application ? Texts["SelectDetailsHint"] : $"{Texts.Format("Version", Fallback(application.Version))} · {FormatInstallDate(application.InstalledAt)}";
+    public string DetailLocation => (SelectedApplication ?? pendingUninstallApplication) is { } application ? Texts.Format("InstallLocation", Fallback(application.InstallLocation)) : string.Empty;
+    public string DetailSource => (SelectedApplication ?? pendingUninstallApplication) is not { } application ? string.Empty : $"{Texts[application.Source.Contains("machine", StringComparison.OrdinalIgnoreCase) ? "MachineRegistry" : "UserRegistry"]} · {Texts[application.Source.Contains("Registry32", StringComparison.OrdinalIgnoreCase) ? "View32" : "View64"]} · {FormatEstimate(application.EstimatedSizeKilobytes)}";
 
     public MainViewModel(IApplicationInventory inventory, LeftoverScanner leftoverScanner, CleanLensDatabase database, QuarantineService quarantineService)
     {
@@ -70,7 +81,14 @@ public partial class MainViewModel : ObservableObject
         this.leftoverScanner = leftoverScanner;
         this.database = database;
         this.quarantineService = quarantineService;
-        SafetyAccepted = LoadSafetyAcceptance();
+        var settings = LoadUserSettings();
+        var language = LocalizationCatalog.Languages.Contains(settings.Language ?? string.Empty, StringComparer.OrdinalIgnoreCase) ? settings.Language! : "en";
+        Texts = new LocalizationCatalog { Language = language };
+        SafetyAccepted = settings.SafetyAccepted;
+        SelectedLanguage = language;
+        StatusText = Texts["StatusInitial"];
+        PageTitle = Texts["Overview"];
+        PageSubtitle = Texts["OverviewSubtitle"];
         DisclaimerVisibility = SafetyAccepted ? Visibility.Collapsed : Visibility.Visible;
         _ = LoadLocalRecordsAsync();
     }
@@ -83,12 +101,32 @@ public partial class MainViewModel : ObservableObject
         OnPropertyChanged(nameof(DetailVersion));
         OnPropertyChanged(nameof(DetailLocation));
         OnPropertyChanged(nameof(DetailSource));
+        OnPropertyChanged(nameof(SelectedApplicationDisplayName));
+        OnPropertyChanged(nameof(SelectedPublisher));
+        OnPropertyChanged(nameof(AppCountText));
+        OnPropertyChanged(nameof(TotalSizeText));
+        OnPropertyChanged(nameof(LeftoversText));
     }
 
     partial void OnSafetyAcceptedChanged(bool value)
     {
         DisclaimerVisibility = value ? Visibility.Collapsed : Visibility.Visible;
     }
+
+    partial void OnSelectedLanguageChanged(string value)
+    {
+        Texts.Language = value;
+        StatusText = Texts["StatusInitial"];
+        SetPage(CurrentPageKey == "LeftoverReview" ? "Leftover review" : CurrentPageKey);
+        OnPropertyChanged(nameof(DetailVersion));
+        OnPropertyChanged(nameof(DetailLocation));
+        OnPropertyChanged(nameof(DetailSource));
+        OnPropertyChanged(nameof(SelectedApplicationDisplayName));
+        OnPropertyChanged(nameof(SelectedPublisher));
+        SaveUserSettings();
+    }
+
+    private string CurrentPageKey { get; set; } = "Overview";
 
     public void UpdateSearch(string value)
     {
@@ -104,16 +142,24 @@ public partial class MainViewModel : ObservableObject
 
     public void SetPage(string page)
     {
-        PageTitle = page;
+        CurrentPageKey = page switch
+        {
+            "Leftover review" => "LeftoverReview",
+            "Applications" => "Applications",
+            "History" => "History",
+            "Quarantine" => "Quarantine",
+            _ => "Overview"
+        };
+        PageTitle = Texts[CurrentPageKey];
         PageSubtitle = page switch
         {
-            "Applications" => "Installed applications reported by the Windows uninstall registry.",
+            "Applications" => Texts["ApplicationsSubtitle"],
             "Leftover review" => uninstallRemovalVerified && pendingUninstallApplication is not null
-                ? $"{pendingUninstallApplication.Name} is no longer registered. Review every candidate before moving it."
-                : "Candidate review is available after CleanLens starts an uninstaller and a fresh scan confirms the app is no longer registered.",
-            "History" => "Local actions recorded by CleanLens on this device.",
-            "Quarantine" => "Restore moved folders while their original paths remain available.",
-            _ => "See what is installed. Review every cleanup candidate before moving it."
+                ? Texts.Format("LeftoverConfirmedSubtitle", pendingUninstallApplication.Name)
+                : Texts["LeftoverSubtitle"],
+            "History" => Texts["HistoryPage"],
+            "Quarantine" => Texts["QuarantinePage"],
+            _ => Texts["OverviewSubtitle"]
         };
     }
 
@@ -122,7 +168,7 @@ public partial class MainViewModel : ObservableObject
     {
         try
         {
-            StatusText = "Scanning registered Windows applications…";
+            StatusText = Texts["StatusScanningApps"];
             var results = await inventory.ScanAsync();
             Applications.Clear();
             foreach (var application in results)
@@ -138,18 +184,18 @@ public partial class MainViewModel : ObservableObject
             {
                 uninstallRemovalVerified = results.All(application => application.Id != pendingUninstallApplicationId);
                 StatusText = uninstallRemovalVerified
-                    ? $"Scan complete · {pendingUninstallApplication?.Name ?? "The selected application"} no longer appears in registered uninstall entries. Associated folder review is available."
-                    : $"Scan complete · {results.Count} applications found. The selected application is still registered, so cleanup candidates remain unavailable.";
+                    ? Texts.Format("StatusUninstallRemoved", pendingUninstallApplication?.Name ?? Texts["SelectApplication"])
+                    : Texts.Format("StatusUninstallStillListed", results.Count);
             }
             else
             {
-                StatusText = $"Scan complete · {results.Count} applications read from registered uninstall entries.";
+                StatusText = Texts.Format("StatusScanComplete", results.Count);
             }
-            await database.RecordOperationAsync("All applications", "Inventory scan", $"Read {results.Count} registered uninstall entries.");
+            await database.RecordOperationAsync(Texts["HistoryAllApps"], Texts["HistoryInventoryScan"], Texts.Format("StatusReadRegistered", results.Count));
         }
         catch (Exception ex)
         {
-            StatusText = $"Scan failed: {ex.Message}";
+            StatusText = Texts.Format("StatusScanFailed", ex.Message);
         }
     }
 
@@ -159,18 +205,18 @@ public partial class MainViewModel : ObservableObject
         var application = SelectedApplication ?? pendingUninstallApplication;
         if (application is null)
         {
-            StatusText = "Select an application first.";
+            StatusText = Texts["StatusSelectApp"];
             return;
         }
         if (application.Id != pendingUninstallApplicationId || !uninstallRemovalVerified)
         {
-            StatusText = "Run the registered uninstaller, then scan applications again. Candidate review is available only after the selected app is no longer registered.";
+            StatusText = Texts["StatusScanBeforeReview"];
             return;
         }
 
         try
         {
-            StatusText = "Checking exact publisher/product application-data paths…";
+            StatusText = Texts["StatusCheckingData"];
             var results = await leftoverScanner.ScanAsync(application);
             Leftovers.Clear();
             foreach (var candidate in results)
@@ -180,12 +226,12 @@ public partial class MainViewModel : ObservableObject
             leftoversScanned = true;
             OnPropertyChanged(nameof(LeftoversText));
             StatusText = results.Count == 0
-                ? "No exact application-data candidates matched. This is not a full system or registry scan."
-                : $"{results.Count} candidate folder(s) found. None are selected automatically.";
+                ? Texts["StatusNoCandidates"]
+                : Texts.Format("StatusCandidates", results.Count);
         }
         catch (Exception ex)
         {
-            StatusText = $"Leftover scan failed: {ex.Message}";
+            StatusText = Texts.Format("StatusLeftoverScanFailed", ex.Message);
         }
     }
 
@@ -196,31 +242,34 @@ public partial class MainViewModel : ObservableObject
         {
             return;
         }
-        Directory.CreateDirectory(Path.GetDirectoryName(settingsPath)!);
-        File.WriteAllText(settingsPath, JsonSerializer.Serialize(new UserSettings(true)));
+        SaveUserSettings();
     }
 
     public async Task<string> QuarantineSelectedAsync()
     {
         if (!SafetyAccepted)
         {
-            throw new InvalidOperationException("Accept the safety notice before continuing.");
+            throw new InvalidOperationException(Texts["StatusSafetyRequired"]);
         }
         var application = SelectedApplication ?? pendingUninstallApplication;
         if (SelectedLeftover is null || application is null || application.Id != pendingUninstallApplicationId || !uninstallRemovalVerified)
         {
-            throw new InvalidOperationException("Select a reviewed leftover folder first.");
+            throw new InvalidOperationException(Texts["StatusSelectReviewedFolder"]);
         }
         if (SelectedLeftover.Confidence == ConfidenceLevel.Low || SelectedLeftover.IsUserData)
         {
-            throw new InvalidOperationException("Low-confidence or personal-data candidates cannot be moved to quarantine.");
+            throw new InvalidOperationException(Texts["StatusLowConfidence"]);
         }
-        var operationId = await quarantineService.MoveAsync(SelectedLeftover.Path, application.Name);
+        var operationId = await quarantineService.MoveAsync(
+            SelectedLeftover.Path,
+            application.Name,
+            Texts["HistoryQuarantine"],
+            Texts["HistoryMovedQuarantine"]);
         Leftovers.Remove(SelectedLeftover);
         SelectedLeftover = null;
         await RefreshLocalRecordsAsync();
         OnPropertyChanged(nameof(LeftoversText));
-        StatusText = "Folder moved to local quarantine. Its contents were not deleted.";
+        StatusText = Texts["StatusQuarantined"];
         return operationId;
     }
 
@@ -228,19 +277,23 @@ public partial class MainViewModel : ObservableObject
     {
         if (!SafetyAccepted || SelectedQuarantine is null)
         {
-            throw new InvalidOperationException("Accept the safety notice and select a quarantine record first.");
+            throw new InvalidOperationException(Texts["StatusRestoreRequired"]);
         }
-        await quarantineService.RestoreAsync(SelectedQuarantine);
+        await quarantineService.RestoreAsync(
+            SelectedQuarantine,
+            Texts["HistoryRestore"],
+            Texts["HistoryRestored"]);
         await RefreshLocalRecordsAsync();
-        StatusText = "Folder restored to its original path.";
+        StatusText = Texts["StatusRestored"];
     }
 
-    public async Task RecordUninstallAsync(InstalledApplication application, string result)
+    public async Task RecordUninstallAsync(InstalledApplication application, int? processId)
     {
         pendingUninstallApplication = application;
         pendingUninstallApplicationId = application.Id;
         uninstallRemovalVerified = false;
-        await database.RecordOperationAsync(application.Name, "Official uninstall started", result);
+        var result = processId is null ? Texts["HistoryLaunchedByWindows"] : Texts.Format("HistoryProcessStarted", processId.Value);
+        await database.RecordOperationAsync(application.Name, Texts["HistoryOfficialUninstall"], result);
         await RefreshLocalRecordsAsync();
     }
 
@@ -254,7 +307,7 @@ public partial class MainViewModel : ObservableObject
         }
         catch (Exception ex)
         {
-            StatusText = $"Local history is unavailable: {ex.Message}";
+            StatusText = Texts.Format("StatusHistoryUnavailable", ex.Message);
         }
     }
 
@@ -291,27 +344,33 @@ public partial class MainViewModel : ObservableObject
         }
     }
 
-    private bool LoadSafetyAcceptance()
+    private UserSettings LoadUserSettings()
     {
         try
         {
-            return File.Exists(settingsPath) && JsonSerializer.Deserialize<UserSettings>(File.ReadAllText(settingsPath))?.SafetyAccepted == true;
+            return File.Exists(settingsPath) ? JsonSerializer.Deserialize<UserSettings>(File.ReadAllText(settingsPath)) ?? new UserSettings(false, "en") : new UserSettings(false, "en");
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or JsonException)
         {
-            return false;
+            return new UserSettings(false, "en");
         }
     }
 
-    private static string FormatEstimate(long? kilobytes) => kilobytes is null ? "Size not reported" : $"Estimated size · {FormatBytes(kilobytes.Value * 1024)}";
+    private void SaveUserSettings()
+    {
+        Directory.CreateDirectory(Path.GetDirectoryName(settingsPath)!);
+        File.WriteAllText(settingsPath, JsonSerializer.Serialize(new UserSettings(SafetyAccepted, SelectedLanguage)));
+    }
 
-    private static string FormatInstallDate(DateTimeOffset? date) => date?.ToLocalTime().ToString("d") ?? "Install date not reported";
+    private string FormatEstimate(long? kilobytes) => kilobytes is null ? Texts["SizeNotReported"] : Texts.Format("EstimatedSize", FormatBytes(kilobytes.Value * 1024));
 
-    private static string FormatBytes(long bytes)
+    private string FormatInstallDate(DateTimeOffset? date) => date?.ToLocalTime().ToString("d", CultureInfo.GetCultureInfo(Texts.Language)) ?? Texts["InstallDateUnknown"];
+
+    private string FormatBytes(long bytes)
     {
         if (bytes < 0)
         {
-            return "Size unavailable";
+            return Texts["SizeUnavailable"];
         }
         string[] units = ["B", "KB", "MB", "GB", "TB"];
         double value = bytes;
@@ -321,10 +380,10 @@ public partial class MainViewModel : ObservableObject
             value /= 1024;
             unit++;
         }
-        return $"{value:0.#} {units[unit]}";
+        return $"{value.ToString("0.#", CultureInfo.GetCultureInfo(Texts.Language))} {units[unit]}";
     }
 
-    private static string Fallback(string value) => string.IsNullOrWhiteSpace(value) ? "Not reported" : value;
+    private string Fallback(string value) => string.IsNullOrWhiteSpace(value) ? Texts["NotReported"] : value;
 
-    private sealed record UserSettings(bool SafetyAccepted);
+    private sealed record UserSettings(bool SafetyAccepted, string Language);
 }

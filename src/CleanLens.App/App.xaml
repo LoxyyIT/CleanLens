@@ -1,9 +1,11 @@
 <Application x:Class="CleanLens.App.App"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:local="clr-namespace:CleanLens.App"
              >
     <Application.Resources>
         <ResourceDictionary>
+            <local:LocalizationValueConverter x:Key="LocalizationValueConverter" />
             <Color x:Key="Ink">#0E2136</Color>
             <Color x:Key="Muted">#5F7183</Color>
             <Color x:Key="Line">#DBE5EF</Color>

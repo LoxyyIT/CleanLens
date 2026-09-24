@@ -15,7 +15,7 @@ Roadmap entries are plans, not implemented features.
 - Extend sandbox coverage for junctions, nested reparse points, races and blocked paths.
 - Make quarantine metadata and recovery records transactional and resilient to interrupted operations.
 - Add a dedicated publisher/signature review and verification flow for the registered command.
-- Add complete localization tests and EN/IT/ES/FR desktop strings before exposing additional UI.
+- Expand desktop localization validation to cover new strings and runtime UI flows.
 
 ## Planned product work
 

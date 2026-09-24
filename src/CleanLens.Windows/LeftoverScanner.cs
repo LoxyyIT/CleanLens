@@ -83,6 +83,9 @@ public sealed class LeftoverScanner
                 foreach (var path in candidatePaths)
                 {
                     var publisherFolderMatches = NormalizeToken(Path.GetFileName(Path.GetDirectoryName(path)!)).Equals(publisher, StringComparison.OrdinalIgnoreCase);
+                    var reasonKey = publisherFolderMatches
+                        ? "PublisherProductPath"
+                        : "ProductFolderAfterUninstall";
                     var reason = publisherFolderMatches
                         ? "Exact publisher and product directory components match the registered application identity under a standard application-data root."
                         : "Exact product folder under a standard application-data root after the registered uninstall entry disappeared. Review the path before moving it.";
@@ -94,7 +97,10 @@ public sealed class LeftoverScanner
                         reason,
                         size,
                         false,
-                        false));
+                        false)
+                    {
+                        ReasonKey = reasonKey
+                    });
                 }
             }
 

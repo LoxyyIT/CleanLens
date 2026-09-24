@@ -55,7 +55,7 @@ CleanLens starts only an existing, fully qualified executable path, apart from M
 
 ## Interface
 
-The WPF application currently has an English interface. The static project website supports English, Italian, Spanish and French. Localized desktop UI, appearance settings, advanced inventory filters and accessibility validation are still planned.
+The WPF application and static website support English, Italian, Spanish and French. The desktop language choice is saved locally. Appearance settings, advanced inventory filters and accessibility validation are still planned.
 
 No verified desktop screenshots are included yet. The website's product illustration is labelled as a concept, not a real capture.
 

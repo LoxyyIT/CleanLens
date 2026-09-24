@@ -1,5 +1,6 @@
 using System.Windows;
 using System.Windows.Controls;
+using System.ComponentModel;
 using CleanLens.Windows;
 
 namespace CleanLens.App;
@@ -9,10 +10,45 @@ public partial class MainWindow : Window
     public MainWindow()
     {
         InitializeComponent();
+        DataContextChanged += MainWindow_DataContextChanged;
         Loaded += Window_Loaded;
     }
 
     private MainViewModel ViewModel => (MainViewModel)DataContext;
+
+    private void MainWindow_DataContextChanged(object sender, DependencyPropertyChangedEventArgs e)
+    {
+        if (e.OldValue is MainViewModel oldViewModel)
+        {
+            oldViewModel.PropertyChanged -= ViewModel_PropertyChanged;
+        }
+        if (e.NewValue is MainViewModel newViewModel)
+        {
+            newViewModel.PropertyChanged += ViewModel_PropertyChanged;
+            UpdateLocalizedColumnHeaders(newViewModel);
+        }
+    }
+
+    private void ViewModel_PropertyChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        if (e.PropertyName == nameof(MainViewModel.SelectedLanguage) && sender is MainViewModel viewModel)
+        {
+            UpdateLocalizedColumnHeaders(viewModel);
+        }
+    }
+
+    private void UpdateLocalizedColumnHeaders(MainViewModel viewModel)
+    {
+        ApplicationsDataGrid.Columns[0].Header = viewModel.Texts["HeaderApplication"];
+        ApplicationsDataGrid.Columns[1].Header = viewModel.Texts["HeaderPublisher"];
+        ApplicationsDataGrid.Columns[2].Header = viewModel.Texts["HeaderVersion"];
+        ApplicationsDataGrid.Columns[3].Header = viewModel.Texts["HeaderSize"];
+        LeftoversDataGrid.Columns[0].Header = viewModel.Texts["HeaderPath"];
+        LeftoversDataGrid.Columns[1].Header = viewModel.Texts["HeaderSizeSimple"];
+        LeftoversDataGrid.Columns[2].Header = viewModel.Texts["HeaderType"];
+        LeftoversDataGrid.Columns[3].Header = viewModel.Texts["HeaderConfidence"];
+        LeftoversDataGrid.Columns[4].Header = viewModel.Texts["HeaderReason"];
+    }
 
     private void Search_Changed(object sender, TextChangedEventArgs e)
     {
@@ -69,7 +105,7 @@ public partial class MainWindow : Window
         }
         catch (Exception ex)
         {
-            MessageBox.Show(this, ex.Message, "CleanLens", MessageBoxButton.OK, MessageBoxImage.Warning);
+            MessageBox.Show(this, ViewModel.Texts.Format("ActionFailed", ex.Message), ViewModel.Texts["AppName"], MessageBoxButton.OK, MessageBoxImage.Warning);
         }
     }
 
@@ -81,7 +117,7 @@ public partial class MainWindow : Window
         }
         catch (Exception ex)
         {
-            MessageBox.Show(this, ex.Message, "CleanLens", MessageBoxButton.OK, MessageBoxImage.Warning);
+            MessageBox.Show(this, ViewModel.Texts.Format("ActionFailed", ex.Message), ViewModel.Texts["AppName"], MessageBoxButton.OK, MessageBoxImage.Warning);
         }
     }
 
@@ -90,26 +126,26 @@ public partial class MainWindow : Window
         var application = ViewModel.SelectedApplication;
         if (application is null)
         {
-            MessageBox.Show(this, "Select an application first.", "CleanLens", MessageBoxButton.OK, MessageBoxImage.Information);
+            MessageBox.Show(this, ViewModel.Texts["SelectFirst"], ViewModel.Texts["AppName"], MessageBoxButton.OK, MessageBoxImage.Information);
             return;
         }
         if (!ViewModel.SafetyAccepted)
         {
-            MessageBox.Show(this, "Accept the safety notice before starting an uninstaller.", "Safety notice", MessageBoxButton.OK, MessageBoxImage.Information);
+            MessageBox.Show(this, ViewModel.Texts["SafetyRequired"], ViewModel.Texts["SafetyNoticeTitle"], MessageBoxButton.OK, MessageBoxImage.Information);
             return;
         }
         var command = application.UninstallCommand;
         if (string.IsNullOrWhiteSpace(command) && !string.IsNullOrWhiteSpace(application.QuietUninstallCommand))
         {
-            MessageBox.Show(this, "Windows lists only a quiet uninstall command for this application. CleanLens will not start a silent uninstall.", "Review unavailable", MessageBoxButton.OK, MessageBoxImage.Information);
+            MessageBox.Show(this, ViewModel.Texts["QuietOnly"], ViewModel.Texts["ReviewUnavailableTitle"], MessageBoxButton.OK, MessageBoxImage.Information);
             return;
         }
         if (string.IsNullOrWhiteSpace(command))
         {
-            MessageBox.Show(this, "Windows has no registered uninstaller command for this application.", "CleanLens", MessageBoxButton.OK, MessageBoxImage.Information);
+            MessageBox.Show(this, ViewModel.Texts["NoUninstaller"], ViewModel.Texts["AppName"], MessageBoxButton.OK, MessageBoxImage.Information);
             return;
         }
-        var answer = MessageBox.Show(this, $"CleanLens will start the registered uninstaller for {application.Name}.\n\nCommand:\n{command}\n\nThis command comes from local application metadata and may remove data outside CleanLens. Review its executable and arguments before continuing.", "Review official uninstaller", MessageBoxButton.OKCancel, MessageBoxImage.Warning);
+        var answer = MessageBox.Show(this, ViewModel.Texts.Format("ReviewUninstallerMessage", application.Name, command), ViewModel.Texts["ReviewUninstallerTitle"], MessageBoxButton.OKCancel, MessageBoxImage.Warning);
         if (answer != MessageBoxResult.OK)
         {
             return;
@@ -117,12 +153,12 @@ public partial class MainWindow : Window
         try
         {
             var process = new UninstallerLauncher().Start(command);
-            await ViewModel.RecordUninstallAsync(application, process is null ? "The registered uninstaller was launched by Windows." : $"Started process {process.Id}.");
-            ViewModel.StatusText = "Official uninstaller launched. When it finishes, scan applications and then review associated leftovers.";
+            await ViewModel.RecordUninstallAsync(application, process?.Id);
+            ViewModel.StatusText = ViewModel.Texts["StatusOfficialStarted"];
         }
         catch (Exception ex)
         {
-            MessageBox.Show(this, $"Could not start the registered uninstaller.\n\n{ex.Message}", "CleanLens", MessageBoxButton.OK, MessageBoxImage.Error);
+            MessageBox.Show(this, ViewModel.Texts.Format("UninstallerError", ex.Message), ViewModel.Texts["UninstallerErrorTitle"], MessageBoxButton.OK, MessageBoxImage.Error);
         }
     }
 

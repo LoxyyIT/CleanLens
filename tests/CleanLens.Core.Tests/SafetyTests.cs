@@ -1,5 +1,6 @@
 using CleanLens.Core.Models;
 using CleanLens.Core.Safety;
+using CleanLens.Core.Localization;
 using CleanLens.Data;
 using CleanLens.Windows;
 using System.Diagnostics;
@@ -9,6 +10,25 @@ namespace CleanLens.Core.Tests;
 
 public sealed class SafetyTests
 {
+    [Fact]
+    public void Every_desktop_localization_has_the_complete_key_set()
+    {
+        foreach (var language in LocalizationCatalog.Languages)
+        {
+            Assert.Empty(LocalizationCatalog.MissingKeys(language));
+        }
+    }
+
+    [Fact]
+    public void Localization_catalog_switches_language_without_losing_fallback_keys()
+    {
+        var catalog = new LocalizationCatalog { Language = "it" };
+        Assert.Equal("Applicazioni", catalog["Applications"]);
+        Assert.Equal("CleanLens", catalog["SafetyDialogTitle"]);
+        catalog.Language = "unsupported";
+        Assert.Equal("Applications", catalog["Applications"]);
+    }
+
     [Fact]
     public void Path_policy_accepts_only_descendants_of_allowed_root()
     {

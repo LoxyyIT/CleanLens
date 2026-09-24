@@ -16,7 +16,7 @@ public sealed record InstalledApplication(
     string Source)
 {
     public string SearchText => string.Join(' ', Name, Publisher, Version, InstallLocation, DisplayIcon, UninstallCommand);
-    public string EstimatedSizeText => EstimatedSizeKilobytes is null ? "Not reported" : FormatSize(EstimatedSizeKilobytes.Value * 1024);
+    public string EstimatedSizeText => EstimatedSizeKilobytes is null ? string.Empty : FormatSize(EstimatedSizeKilobytes.Value * 1024);
 
     private static string FormatSize(long bytes)
     {

@@ -8,6 +8,7 @@
 - Added limited exact product-folder and publisher/product application-data review and local quarantine/restore.
 - Added SQLite history and quarantine metadata.
 - Added safety path guards and sandboxed tests.
+- Added English, Italian, Spanish and French desktop localization with a saved language choice.
 - Added a static four-language project website.
 
 This is an early source prototype, not a supported public binary release.
