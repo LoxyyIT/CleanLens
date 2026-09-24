@@ -65,6 +65,14 @@ public partial class MainViewModel : ObservableObject
     public ObservableCollection<QuarantineEntry> QuarantineEntries { get; } = [];
     public ObservableCollection<InstalledApplication> VisibleApplications { get; } = [];
     public bool HasReviewApplication => SelectedApplication is not null || pendingUninstallApplication is not null;
+    public bool CanUninstallSelected => SafetyAccepted && SelectedApplication is not null &&
+        !string.IsNullOrWhiteSpace(SelectedApplication.UninstallCommand) &&
+        !SelectedApplication.Id.Equals(pendingUninstallApplicationId, StringComparison.Ordinal);
+    public bool CanReviewLeftovers => uninstallRemovalVerified && pendingUninstallApplicationId is not null &&
+        (SelectedApplication is null || SelectedApplication.Id == pendingUninstallApplicationId);
+    public bool CanQuarantineSelected => SafetyAccepted && CanReviewLeftovers && SelectedLeftover is not null &&
+        SelectedLeftover.Confidence != ConfidenceLevel.Low && !SelectedLeftover.IsUserData;
+    public bool CanRestoreSelected => SafetyAccepted && SelectedQuarantine is not null;
     public LocalizationCatalog Texts { get; }
     public IReadOnlyList<string> Languages => LocalizationCatalog.Languages;
     public Visibility InventoryEmptyStateVisibility => VisibleApplications.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
@@ -127,10 +135,27 @@ public partial class MainViewModel : ObservableObject
         OnPropertyChanged(nameof(DetailSource));
         OnPropertyChanged(nameof(SelectedApplicationDisplayName));
         OnPropertyChanged(nameof(SelectedPublisher));
+        OnPropertyChanged(nameof(CanUninstallSelected));
+        OnPropertyChanged(nameof(CanReviewLeftovers));
+        OnPropertyChanged(nameof(CanQuarantineSelected));
+        ScanLeftoversCommand.NotifyCanExecuteChanged();
+    }
+
+    partial void OnSelectedLeftoverChanged(LeftoverCandidate? value)
+    {
+        OnPropertyChanged(nameof(CanQuarantineSelected));
+    }
+
+    partial void OnSelectedQuarantineChanged(QuarantineEntry? value)
+    {
+        OnPropertyChanged(nameof(CanRestoreSelected));
     }
 
     partial void OnSafetyAcceptedChanged(bool value)
     {
+        OnPropertyChanged(nameof(CanUninstallSelected));
+        OnPropertyChanged(nameof(CanQuarantineSelected));
+        OnPropertyChanged(nameof(CanRestoreSelected));
         if (!value)
         {
             SafetyNoticeAcknowledged = false;
@@ -222,12 +247,21 @@ public partial class MainViewModel : ObservableObject
                 StatusText = uninstallRemovalVerified
                     ? Texts.Format("StatusUninstallRemoved", pendingUninstallApplication?.Name ?? Texts["SelectApplication"])
                     : Texts.Format("StatusUninstallStillListed", results.Count);
+                if (!uninstallRemovalVerified)
+                {
+                    pendingUninstallApplication = null;
+                    pendingUninstallApplicationId = null;
+                }
             }
             else
             {
                 StatusText = Texts.Format("StatusScanComplete", results.Count);
             }
             await database.RecordOperationAsync(Texts["HistoryAllApps"], Texts["HistoryInventoryScan"], Texts.Format("StatusReadRegistered", results.Count));
+            OnPropertyChanged(nameof(CanUninstallSelected));
+            OnPropertyChanged(nameof(CanReviewLeftovers));
+            OnPropertyChanged(nameof(CanQuarantineSelected));
+            ScanLeftoversCommand.NotifyCanExecuteChanged();
         }
         catch (Exception ex)
         {
@@ -235,7 +269,7 @@ public partial class MainViewModel : ObservableObject
         }
     }
 
-    [RelayCommand]
+    [RelayCommand(CanExecute = nameof(CanReviewLeftovers))]
     private async Task ScanLeftoversAsync()
     {
         var application = SelectedApplication ?? pendingUninstallApplication;
@@ -342,6 +376,10 @@ public partial class MainViewModel : ObservableObject
         pendingUninstallApplication = application;
         pendingUninstallApplicationId = application.Id;
         uninstallRemovalVerified = false;
+        OnPropertyChanged(nameof(CanUninstallSelected));
+        OnPropertyChanged(nameof(CanReviewLeftovers));
+        OnPropertyChanged(nameof(CanQuarantineSelected));
+        ScanLeftoversCommand.NotifyCanExecuteChanged();
         var result = processId is null ? Texts["HistoryLaunchedByWindows"] : Texts.Format("HistoryProcessStarted", processId.Value);
         await database.RecordOperationAsync(application.Name, Texts["HistoryOfficialUninstall"], result);
         await RefreshLocalRecordsAsync();

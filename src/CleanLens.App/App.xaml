@@ -318,6 +318,27 @@
                 </Style.Triggers>
             </Style>
 
+            <Style x:Key="GridTextCell" TargetType="TextBlock">
+                <Setter Property="TextTrimming" Value="CharacterEllipsis" />
+                <Setter Property="TextWrapping" Value="NoWrap" />
+                <Setter Property="VerticalAlignment" Value="Center" />
+            </Style>
+            <Style x:Key="ApplicationNameCell" TargetType="TextBlock" BasedOn="{StaticResource GridTextCell}">
+                <Setter Property="ToolTip" Value="{Binding Name}" />
+                <Setter Property="FontWeight" Value="SemiBold" />
+            </Style>
+            <Style x:Key="PublisherCell" TargetType="TextBlock" BasedOn="{StaticResource GridTextCell}">
+                <Setter Property="ToolTip" Value="{Binding Publisher}" />
+                <Setter Property="Foreground" Value="{StaticResource MutedBrush}" />
+            </Style>
+            <Style x:Key="VersionCell" TargetType="TextBlock" BasedOn="{StaticResource GridTextCell}">
+                <Setter Property="ToolTip" Value="{Binding Version}" />
+            </Style>
+            <Style x:Key="SizeCell" TargetType="TextBlock" BasedOn="{StaticResource GridTextCell}">
+                <Setter Property="TextAlignment" Value="Right" />
+                <Setter Property="ToolTip" Value="{Binding EstimatedSizeText}" />
+            </Style>
+
             <Style TargetType="DataGridRow">
                 <Setter Property="MinHeight" Value="52" />
                 <Setter Property="BorderBrush" Value="{StaticResource LineBrush}" />
