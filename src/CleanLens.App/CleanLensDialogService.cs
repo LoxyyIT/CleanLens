@@ -129,7 +129,8 @@ internal static class CleanLensDialogService
     {
         var dialog = CreateShell(owner, title, CleanLensDialogTone.Information, 500, 240);
         var body = new StackPanel { VerticalAlignment = VerticalAlignment.Center };
-        body.Children.Add(CreateMessageBody(message));
+        var status = CreateMessageBody(message);
+        body.Children.Add(status);
         var progress = new ProgressBar
         {
             IsIndeterminate = true,
@@ -141,6 +142,8 @@ internal static class CleanLensDialogService
         };
         body.Children.Add(progress);
         SetBody(dialog, body);
+        var parts = (DialogParts)dialog.Tag;
+        dialog.Tag = parts with { Status = status };
         AddFooterButton(dialog, cancelText, isPrimary: false, isDanger: false, cancel);
         dialog.Closed += (_, _) => owner.IsEnabled = true;
         dialog.Closing += (_, _) => cancel();
@@ -148,6 +151,14 @@ internal static class CleanLensDialogService
         dialog.Show();
         dialog.Activate();
         return dialog;
+    }
+
+    public static void SetProgressMessage(Window dialog, string message)
+    {
+        if (dialog.Tag is DialogParts { Status: not null } parts)
+        {
+            parts.Status.Text = message;
+        }
     }
 
     private static Window CreateShell(Window owner, string title, CleanLensDialogTone tone, double width, double height)
@@ -343,5 +354,5 @@ internal static class CleanLensDialogService
 
     private static SolidColorBrush Brush(string value) => new((Color)ColorConverter.ConvertFromString(value));
 
-    private sealed record DialogParts(Border Body, StackPanel Footer);
+    private sealed record DialogParts(Border Body, StackPanel Footer, TextBlock? Status = null);
 }

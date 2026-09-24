@@ -201,9 +201,10 @@ public partial class MainWindow : Window
         IReadOnlyList<ManualDeleteCandidate> candidates;
         using var cancellation = new CancellationTokenSource();
         var progress = CleanLensDialogService.ShowProgress(this, ViewModel.Texts["ManualDeleteTitle"], ViewModel.Texts["ManualDeleteScanning"], ViewModel.Texts["Cancel"], cancellation.Cancel);
+        var scanProgress = new Progress<int>(count => CleanLensDialogService.SetProgressMessage(progress, ViewModel.Texts.Format("ManualDeleteScanProgress", count)));
         try
         {
-            candidates = await new ManualDeleteService().FindExactNameMatchesAsync(application, cancellation.Token);
+            candidates = await new ManualDeleteService().FindExactNameMatchesAsync(application, cancellation.Token, scanProgress);
         }
         catch (OperationCanceledException)
         {
