@@ -1,12 +1,12 @@
 <p align="center">
-  <img src="docs/assets/images/cleanlens-mark.svg" alt="CleanLens" width="88">
+  <img src="logo.png" alt="CleanLens" width="120">
 </p>
 
 <h1 align="center">CleanLens</h1>
 
 <p align="center">
   <strong>Remove the app. See what it leaves behind.</strong><br>
-  A local-first Windows uninstaller that puts the cleanup decision in your hands.
+  A local-first Windows uninstaller that puts every cleanup decision in your hands.
 </p>
 
 <p align="center">
@@ -40,14 +40,18 @@ The project is in early development. The current source is a deliberately narrow
 - Scans exact product-named folders and exact publisher/product directory pairs under AppData and ProgramData only after a registry-confirmed uninstall.
 - Shows why a folder matched and leaves every candidate unselected.
 - Moves reviewed folders into a local quarantine and can restore them when the original path is free.
+- Shows registered Windows app icons in the inventory, with a monogram fallback when Windows has no icon.
+- Offers a separate, opt-in manual delete review for exact folder-name matches in common personal folders. Each full path starts unselected and permanent deletion requires a second confirmation.
 - Stores operation history and quarantine metadata in a local SQLite database.
-- Keeps the safety acknowledgement and application data on the device.
+- Persists the selected language and safety acknowledgement locally.
 
 ## Safety boundaries
 
-CleanLens does not scan or offer Documents, Desktop, Pictures, Music, Videos or Saved Games. It does not delete Registry entries, services, scheduled tasks, startup entries, browser extensions, drivers or shared runtimes. The current data scan checks exact product-named folders directly under standard application-data roots and exact publisher/product directory pairs; every result is medium confidence, requires manual review and remains unselected. It is not a comprehensive leftover scanner.
+The standard leftover scan checks exact product-named folders in AppData and ProgramData after an uninstall is confirmed. The separate manual-delete action searches only common personal folders, up to three directory levels, for exact folder-name matches. It never selects a result automatically, and a matching name is not proof that the folder belongs to the app. Review every path carefully; deletion is permanent and may remove personal files. Coverage is limited and is not a comprehensive whole-PC scan.
 
-Cleanup moves a selected folder to quarantine. It refuses paths outside configured application-data roots, protected Windows and Program Files paths, known personal libraries, and paths containing reparse points. This reduces risk but cannot eliminate races caused by other software changing filesystem state concurrently. A quarantine move is not a guarantee that an application can be fully restored.
+Standard cleanup moves a selected application-data folder to quarantine. Manual deletion is a distinct, irreversible operation. Both actions revalidate selected paths and refuse paths outside supported roots and folders containing reparse points. This reduces risk but cannot eliminate races caused by other software changing filesystem state concurrently. A quarantine move is not a guarantee that an application can be fully restored.
+
+**Warning:** inappropriate use or a wrong path can damage Windows, break applications or permanently remove personal files. Review the full path list and proceed only when you accept responsibility for the selected items.
 
 An uninstall command comes from the Windows Registry and is untrusted input. CleanLens displays it before launching it. The command is executed by Windows as registered; inspect the executable and arguments and cancel if they are unexpected. The application's own uninstaller controls its removal behavior.
 
@@ -55,7 +59,7 @@ CleanLens starts only an existing, fully qualified executable path, apart from M
 
 ## Interface
 
-The WPF application and static website support English, Italian, Spanish and French. The desktop language choice is saved locally. Appearance settings, advanced inventory filters and accessibility validation are still planned.
+The WPF application and static website support English, Italian, Spanish and French. The desktop language choice is saved locally. Overview has been consolidated into the Applications page. Appearance themes and accessibility validation are still planned.
 
 No verified desktop screenshots are included yet. The website's product illustration is labelled as a concept, not a real capture.
 
