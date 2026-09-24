@@ -1,4 +1,5 @@
 using System.Windows;
+using System.Windows.Automation;
 using System.Windows.Controls;
 using System.Windows.Media;
 using System.Windows.Media.Effects;
@@ -185,7 +186,7 @@ internal static class CleanLensDialogService
         var header = new Grid { Background = Brush("#FBFCFE"), Margin = new Thickness(1) };
         header.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(52) });
         header.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
-        header.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(44) });
+        header.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(56) });
         var accent = tone == CleanLensDialogTone.Danger ? Red : tone == CleanLensDialogTone.Warning ? Brush("#D08B18") : Blue;
         var glyph = tone == CleanLensDialogTone.Danger ? "!" : tone == CleanLensDialogTone.Warning ? "!" : "i";
         var icon = new Border
@@ -203,12 +204,36 @@ internal static class CleanLensDialogService
         titleBlock.Margin = new Thickness(14, 0, 8, 0);
         Grid.SetColumn(titleBlock, 1);
         header.Children.Add(titleBlock);
-        var close = CreateButton("×", isPrimary: false, isDanger: false);
-        close.Width = 34;
-        close.Height = 34;
-        close.Margin = new Thickness(0, 0, 12, 0);
+        var close = new Button
+        {
+            Width = 36,
+            Height = 36,
+            Margin = new Thickness(0, 0, 10, 0),
+            Padding = new Thickness(0),
+            Background = Brush("#B9364B"),
+            BorderBrush = Brush("#D46C7C"),
+            BorderThickness = new Thickness(1),
+            Cursor = System.Windows.Input.Cursors.Hand,
+            FocusVisualStyle = null,
+            ToolTip = "Close",
+            Template = ButtonTemplate(),
+            Content = new System.Windows.Shapes.Path
+            {
+                Data = Geometry.Parse("M 4,4 L 12,12 M 12,4 L 4,12"),
+                Stroke = Brushes.White,
+                StrokeThickness = 1.8,
+                StrokeStartLineCap = PenLineCap.Round,
+                StrokeEndLineCap = PenLineCap.Round,
+                StrokeLineJoin = PenLineJoin.Round,
+                Width = 16,
+                Height = 16,
+                Stretch = Stretch.Uniform,
+                HorizontalAlignment = HorizontalAlignment.Center,
+                VerticalAlignment = VerticalAlignment.Center
+            }
+        };
         close.Padding = new Thickness(0);
-        close.ToolTip = "Close";
+        AutomationProperties.SetName(close, "Close");
         close.Click += (_, _) => dialog.Close();
         Grid.SetColumn(close, 2);
         header.Children.Add(close);
