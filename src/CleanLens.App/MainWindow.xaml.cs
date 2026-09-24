@@ -100,6 +100,7 @@ public partial class MainWindow : Window
         HistoryWorkspace.Visibility = page == "History" ? Visibility.Visible : Visibility.Collapsed;
         QuarantineWorkspace.Visibility = page == "Quarantine" ? Visibility.Visible : Visibility.Collapsed;
         SettingsWorkspace.Visibility = page == "Settings" ? Visibility.Visible : Visibility.Collapsed;
+        SummaryMetrics.Visibility = page is "Overview" or "Applications" or "Leftover review" ? Visibility.Visible : Visibility.Collapsed;
         ViewModel.SetPage(page);
         if (page is "History" or "Quarantine")
         {

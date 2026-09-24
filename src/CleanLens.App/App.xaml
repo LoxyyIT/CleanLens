@@ -31,7 +31,7 @@
             <DropShadowEffect x:Key="CardShadow" BlurRadius="28" ShadowDepth="4" Direction="270" Opacity="0.075" Color="#17324F" />
 
             <ControlTemplate x:Key="BareToggleButton" TargetType="ToggleButton">
-                <ContentPresenter HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}" VerticalAlignment="{TemplateBinding VerticalContentAlignment}" />
+                <ContentPresenter Content="{TemplateBinding Content}" ContentTemplate="{TemplateBinding ContentTemplate}" ContentStringFormat="{TemplateBinding ContentStringFormat}" HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}" VerticalAlignment="{TemplateBinding VerticalContentAlignment}" RecognizesAccessKey="True" />
             </ControlTemplate>
 
             <Style TargetType="TextBlock">

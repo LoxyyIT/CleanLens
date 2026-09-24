@@ -15,6 +15,15 @@ public partial class App : Application
     protected override void OnStartup(StartupEventArgs e)
     {
         var appData = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
+        var localDataPath = Path.Combine(appData, "CleanLens");
+#if DEBUG
+        var debugDataPath = Environment.GetEnvironmentVariable("CLEANLENS_DEBUG_DATA_DIR");
+        if (!string.IsNullOrWhiteSpace(debugDataPath))
+        {
+            localDataPath = Path.GetFullPath(debugDataPath);
+        }
+#endif
+        Directory.CreateDirectory(localDataPath);
         var allowedRoots = new[]
         {
             Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
@@ -38,13 +47,18 @@ public partial class App : Application
         var services = new ServiceCollection();
         services.AddSingleton<IApplicationInventory, RegistryApplicationInventory>();
         services.AddSingleton<LeftoverScanner>();
-        services.AddSingleton(new CleanLensDatabase(Path.Combine(appData, "CleanLens", "cleanlens.db")));
+        services.AddSingleton(new CleanLensDatabase(Path.Combine(localDataPath, "cleanlens.db")));
         services.AddSingleton(new DeletionPathPolicy(allowedRoots, protectedRoots));
         services.AddSingleton(provider => new QuarantineService(
-            Path.Combine(appData, "CleanLens", "Quarantine"),
+            Path.Combine(localDataPath, "Quarantine"),
             provider.GetRequiredService<CleanLensDatabase>(),
             provider.GetRequiredService<DeletionPathPolicy>()));
-        services.AddSingleton<MainViewModel>();
+        services.AddSingleton(provider => new MainViewModel(
+            provider.GetRequiredService<IApplicationInventory>(),
+            provider.GetRequiredService<LeftoverScanner>(),
+            provider.GetRequiredService<CleanLensDatabase>(),
+            provider.GetRequiredService<QuarantineService>(),
+            localDataPath));
         Services = services.BuildServiceProvider();
 
         base.OnStartup(e);

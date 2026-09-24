@@ -19,7 +19,8 @@ public partial class MainViewModel : ObservableObject
     private readonly LeftoverScanner leftoverScanner;
     private readonly CleanLensDatabase database;
     private readonly QuarantineService quarantineService;
-    private readonly string settingsPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "CleanLens", "settings.json");
+    private readonly string settingsPath;
+    private readonly string localDataPath;
     private bool scanned;
     private bool leftoversScanned;
     private InstalledApplication? pendingUninstallApplication;
@@ -39,6 +40,9 @@ public partial class MainViewModel : ObservableObject
 
     [ObservableProperty]
     private bool safetyAccepted;
+
+    [ObservableProperty]
+    private bool safetyNoticeAcknowledged;
 
     [ObservableProperty]
     private string selectedLanguage = "en";
@@ -65,12 +69,17 @@ public partial class MainViewModel : ObservableObject
     public IReadOnlyList<string> Languages => LocalizationCatalog.Languages;
     public Visibility InventoryEmptyStateVisibility => VisibleApplications.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
     public Visibility InventoryEmptyScanVisibility => !scanned || Applications.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
+    public Visibility LeftoversEmptyStateVisibility => Leftovers.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
+    public Visibility HistoryEmptyStateVisibility => HistoryEntries.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
+    public Visibility QuarantineEmptyStateVisibility => QuarantineEntries.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
     public string InventoryEmptyTitle => !scanned
         ? Texts["EmptyNotScannedTitle"]
         : Applications.Count == 0 ? Texts["EmptyAppsTitle"] : Texts["EmptyFilteredTitle"];
     public string InventoryEmptyCopy => !scanned
         ? Texts["EmptyNotScannedCopy"]
         : Applications.Count == 0 ? Texts["EmptyAppsCopy"] : Texts["EmptyFilteredCopy"];
+    public string LeftoversEmptyTitle => leftoversScanned ? Texts["NoResidualMatchesTitle"] : Texts["EmptyLeftoversTitle"];
+    public string LeftoversEmptyCopy => leftoversScanned ? Texts["NoResidualMatchesCopy"] : Texts["EmptyLeftoversCopy"];
 
     public string AppCountText => scanned ? Applications.Count.ToString(CultureInfo.GetCultureInfo(Texts.Language)) : Texts["NotScannedYet"];
     public string TotalSizeText => !scanned || Applications.All(application => application.EstimatedSizeKilobytes is null)
@@ -82,23 +91,26 @@ public partial class MainViewModel : ObservableObject
     public string DetailVersion => (SelectedApplication ?? pendingUninstallApplication) is not { } application ? Texts["SelectDetailsHint"] : $"{Texts.Format("Version", Fallback(application.Version))} · {FormatInstallDate(application.InstalledAt)}";
     public string DetailLocation => (SelectedApplication ?? pendingUninstallApplication) is { } application ? Texts.Format("InstallLocation", Fallback(application.InstallLocation)) : string.Empty;
     public string DetailSource => (SelectedApplication ?? pendingUninstallApplication) is not { } application ? string.Empty : $"{Texts[application.Source.Contains("machine", StringComparison.OrdinalIgnoreCase) ? "MachineRegistry" : "UserRegistry"]} · {Texts[application.Source.Contains("Registry32", StringComparison.OrdinalIgnoreCase) ? "View32" : "View64"]} · {FormatEstimate(application.EstimatedSizeKilobytes)}";
-    public string LocalDataPath => Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "CleanLens");
+    public string LocalDataPath => localDataPath;
 
-    public MainViewModel(IApplicationInventory inventory, LeftoverScanner leftoverScanner, CleanLensDatabase database, QuarantineService quarantineService)
+    public MainViewModel(IApplicationInventory inventory, LeftoverScanner leftoverScanner, CleanLensDatabase database, QuarantineService quarantineService, string localDataPath)
     {
         this.inventory = inventory;
         this.leftoverScanner = leftoverScanner;
         this.database = database;
         this.quarantineService = quarantineService;
+        this.localDataPath = Path.GetFullPath(localDataPath);
+        settingsPath = Path.Combine(this.localDataPath, "settings.json");
         var settings = LoadUserSettings();
         var language = LocalizationCatalog.Languages.Contains(settings.Language ?? string.Empty, StringComparer.OrdinalIgnoreCase) ? settings.Language! : "en";
         Texts = new LocalizationCatalog { Language = language };
         SafetyAccepted = settings.SafetyAccepted;
+        SafetyNoticeAcknowledged = SafetyAccepted;
         SelectedLanguage = language;
         StatusText = Texts["StatusInitial"];
         PageTitle = Texts["Overview"];
         PageSubtitle = Texts["OverviewSubtitle"];
-        DisclaimerVisibility = SafetyAccepted ? Visibility.Collapsed : Visibility.Visible;
+        DisclaimerVisibility = SafetyNoticeAcknowledged ? Visibility.Collapsed : Visibility.Visible;
         _ = LoadLocalRecordsAsync();
     }
 
@@ -107,6 +119,9 @@ public partial class MainViewModel : ObservableObject
         Leftovers.Clear();
         leftoversScanned = false;
         OnPropertyChanged(nameof(LeftoversText));
+        OnPropertyChanged(nameof(LeftoversEmptyStateVisibility));
+        OnPropertyChanged(nameof(LeftoversEmptyTitle));
+        OnPropertyChanged(nameof(LeftoversEmptyCopy));
         OnPropertyChanged(nameof(DetailVersion));
         OnPropertyChanged(nameof(DetailLocation));
         OnPropertyChanged(nameof(DetailSource));
@@ -115,6 +130,14 @@ public partial class MainViewModel : ObservableObject
     }
 
     partial void OnSafetyAcceptedChanged(bool value)
+    {
+        if (!value)
+        {
+            SafetyNoticeAcknowledged = false;
+        }
+    }
+
+    partial void OnSafetyNoticeAcknowledgedChanged(bool value)
     {
         DisclaimerVisibility = value ? Visibility.Collapsed : Visibility.Visible;
     }
@@ -132,6 +155,8 @@ public partial class MainViewModel : ObservableObject
         OnPropertyChanged(nameof(InventoryEmptyTitle));
         OnPropertyChanged(nameof(InventoryEmptyCopy));
         OnPropertyChanged(nameof(InventoryEmptyScanVisibility));
+        OnPropertyChanged(nameof(LeftoversEmptyTitle));
+        OnPropertyChanged(nameof(LeftoversEmptyCopy));
         SaveUserSettings();
     }
 
@@ -236,6 +261,9 @@ public partial class MainViewModel : ObservableObject
             }
             leftoversScanned = true;
             OnPropertyChanged(nameof(LeftoversText));
+            OnPropertyChanged(nameof(LeftoversEmptyStateVisibility));
+            OnPropertyChanged(nameof(LeftoversEmptyTitle));
+            OnPropertyChanged(nameof(LeftoversEmptyCopy));
             StatusText = results.Count == 0
                 ? Texts["StatusNoCandidates"]
                 : Texts.Format("StatusCandidates", results.Count);
@@ -254,12 +282,15 @@ public partial class MainViewModel : ObservableObject
             return;
         }
         SaveUserSettings();
+        SafetyNoticeAcknowledged = true;
     }
 
     [RelayCommand]
     private void ReviewSafetyNotice()
     {
         SafetyAccepted = false;
+        SafetyNoticeAcknowledged = false;
+        SaveUserSettings();
         StatusText = Texts["SafetyRequired"];
     }
 
@@ -287,6 +318,7 @@ public partial class MainViewModel : ObservableObject
         SelectedLeftover = null;
         await RefreshLocalRecordsAsync();
         OnPropertyChanged(nameof(LeftoversText));
+        OnPropertyChanged(nameof(LeftoversEmptyStateVisibility));
         StatusText = Texts["StatusQuarantined"];
         return operationId;
     }
@@ -343,6 +375,8 @@ public partial class MainViewModel : ObservableObject
         {
             QuarantineEntries.Add(entry);
         }
+        OnPropertyChanged(nameof(HistoryEmptyStateVisibility));
+        OnPropertyChanged(nameof(QuarantineEmptyStateVisibility));
     }
 
     private void RefreshVisibleApplications()
