@@ -383,12 +383,25 @@
                 </ScrollViewer>
             </Border>
             <Border Grid.RowSpan="3" Background="#99081A2C" Visibility="{Binding DisclaimerVisibility}">
-                <Border Width="560" Padding="30" Background="White" CornerRadius="22" HorizontalAlignment="Center" VerticalAlignment="Center">
+                <Border Width="680" Padding="30" Background="White" CornerRadius="22" HorizontalAlignment="Center" VerticalAlignment="Center">
                     <StackPanel>
                         <TextBlock Text="{Binding Texts[SafetyTitle]}" FontSize="23" FontWeight="SemiBold" />
                         <TextBlock Text="{Binding Texts[SafetyBody]}" Foreground="{StaticResource MutedBrush}" FontSize="13" TextWrapping="Wrap" Margin="0,12,0,16" />
-                        <CheckBox IsChecked="{Binding SafetyAccepted}" FontSize="12"><TextBlock Text="{Binding Texts[SafetyCheck]}" TextWrapping="Wrap" Width="470" /></CheckBox>
-                        <Button Content="{Binding Texts[Continue]}" Command="{Binding AcceptSafetyCommand}" IsEnabled="{Binding SafetyAccepted}" Style="{StaticResource PrimaryButton}" HorizontalAlignment="Right" Margin="0,20,0,0" />
+                        <StackPanel>
+                            <Border Background="#F8FAFC" BorderBrush="{StaticResource LineBrush}" BorderThickness="1" CornerRadius="10" Padding="12,9" Margin="0,4,0,4">
+                                <CheckBox IsChecked="{Binding SafetyUninstallerAcknowledged}" FontSize="11"><TextBlock Text="{Binding Texts[SafetyCheckUninstaller]}" TextWrapping="Wrap" /></CheckBox>
+                            </Border>
+                            <Border Background="#F8FAFC" BorderBrush="{StaticResource LineBrush}" BorderThickness="1" CornerRadius="10" Padding="12,9" Margin="0,4,0,4">
+                                <CheckBox IsChecked="{Binding SafetyDamageAcknowledged}" FontSize="11"><TextBlock Text="{Binding Texts[SafetyCheckDamage]}" TextWrapping="Wrap" /></CheckBox>
+                            </Border>
+                            <Border Background="#FFF9F0" BorderBrush="#F0D5AB" BorderThickness="1" CornerRadius="10" Padding="12,9" Margin="0,4,0,4">
+                                <CheckBox IsChecked="{Binding SafetyManualDeleteAcknowledged}" FontSize="11"><TextBlock Text="{Binding Texts[SafetyCheckManualDelete]}" TextWrapping="Wrap" /></CheckBox>
+                            </Border>
+                            <Border Background="#F8FAFC" BorderBrush="{StaticResource LineBrush}" BorderThickness="1" CornerRadius="10" Padding="12,9" Margin="0,4,0,4">
+                                <CheckBox IsChecked="{Binding SafetyRestoreAcknowledged}" FontSize="11"><TextBlock Text="{Binding Texts[SafetyCheckRestore]}" TextWrapping="Wrap" /></CheckBox>
+                            </Border>
+                        </StackPanel>
+                        <Button Content="{Binding Texts[Continue]}" Command="{Binding AcceptSafetyCommand}" IsEnabled="{Binding CanAcceptSafety}" Style="{StaticResource PrimaryButton}" HorizontalAlignment="Right" Margin="0,18,0,0" />
                     </StackPanel>
                 </Border>
             </Border>

@@ -15,6 +15,7 @@ namespace CleanLens.App;
 
 public partial class MainViewModel : ObservableObject
 {
+    private const int CurrentSafetyNoticeVersion = 2;
     private readonly IApplicationInventory inventory;
     private readonly LeftoverScanner leftoverScanner;
     private readonly CleanLensDatabase database;
@@ -40,6 +41,18 @@ public partial class MainViewModel : ObservableObject
 
     [ObservableProperty]
     private bool safetyAccepted;
+
+    [ObservableProperty]
+    private bool safetyUninstallerAcknowledged;
+
+    [ObservableProperty]
+    private bool safetyDamageAcknowledged;
+
+    [ObservableProperty]
+    private bool safetyManualDeleteAcknowledged;
+
+    [ObservableProperty]
+    private bool safetyRestoreAcknowledged;
 
     [ObservableProperty]
     private bool safetyNoticeAcknowledged;
@@ -73,6 +86,7 @@ public partial class MainViewModel : ObservableObject
     public bool CanQuarantineSelected => SafetyAccepted && CanReviewLeftovers && SelectedLeftover is not null &&
         SelectedLeftover.Confidence != ConfidenceLevel.Low && !SelectedLeftover.IsUserData;
     public bool CanRestoreSelected => SafetyAccepted && SelectedQuarantine is not null;
+    public bool CanAcceptSafety => SafetyUninstallerAcknowledged && SafetyDamageAcknowledged && SafetyManualDeleteAcknowledged && SafetyRestoreAcknowledged;
     public LocalizationCatalog Texts { get; }
     public IReadOnlyList<string> Languages => LocalizationCatalog.Languages;
     public Visibility InventoryEmptyStateVisibility => VisibleApplications.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
@@ -112,7 +126,7 @@ public partial class MainViewModel : ObservableObject
         var settings = LoadUserSettings();
         var language = LocalizationCatalog.Languages.Contains(settings.Language ?? string.Empty, StringComparer.OrdinalIgnoreCase) ? settings.Language! : "en";
         Texts = new LocalizationCatalog { Language = language };
-        SafetyAccepted = settings.SafetyAccepted;
+        SafetyAccepted = settings.SafetyAccepted && settings.SafetyNoticeVersion >= CurrentSafetyNoticeVersion;
         SafetyNoticeAcknowledged = SafetyAccepted;
         SelectedLanguage = language;
         StatusText = Texts["StatusInitial"];
@@ -166,6 +180,14 @@ public partial class MainViewModel : ObservableObject
     {
         DisclaimerVisibility = value ? Visibility.Collapsed : Visibility.Visible;
     }
+
+    partial void OnSafetyUninstallerAcknowledgedChanged(bool value) => OnPropertyChanged(nameof(CanAcceptSafety));
+
+    partial void OnSafetyDamageAcknowledgedChanged(bool value) => OnPropertyChanged(nameof(CanAcceptSafety));
+
+    partial void OnSafetyManualDeleteAcknowledgedChanged(bool value) => OnPropertyChanged(nameof(CanAcceptSafety));
+
+    partial void OnSafetyRestoreAcknowledgedChanged(bool value) => OnPropertyChanged(nameof(CanAcceptSafety));
 
     partial void OnSelectedLanguageChanged(string value)
     {
@@ -311,10 +333,11 @@ public partial class MainViewModel : ObservableObject
     [RelayCommand]
     private void AcceptSafety()
     {
-        if (!SafetyAccepted)
+        if (!CanAcceptSafety)
         {
             return;
         }
+        SafetyAccepted = true;
         SaveUserSettings();
         SafetyNoticeAcknowledged = true;
     }
@@ -323,6 +346,10 @@ public partial class MainViewModel : ObservableObject
     private void ReviewSafetyNotice()
     {
         SafetyAccepted = false;
+        SafetyUninstallerAcknowledged = false;
+        SafetyDamageAcknowledged = false;
+        SafetyManualDeleteAcknowledged = false;
+        SafetyRestoreAcknowledged = false;
         SafetyNoticeAcknowledged = false;
         SaveUserSettings();
         StatusText = Texts["SafetyRequired"];
@@ -444,17 +471,18 @@ public partial class MainViewModel : ObservableObject
         {
             if (!File.Exists(settingsPath))
             {
-                return new UserSettings(false, "en");
+                return new UserSettings(false, "en", 0);
             }
 
             using var document = JsonDocument.Parse(File.ReadAllText(settingsPath));
             if (document.RootElement.ValueKind != JsonValueKind.Object)
             {
-                return new UserSettings(false, "en");
+                return new UserSettings(false, "en", 0);
             }
 
             var safetyAccepted = false;
             var language = "en";
+            var safetyNoticeVersion = 0;
             foreach (var property in document.RootElement.EnumerateObject())
             {
                 if (property.Name.Equals(nameof(UserSettings.SafetyAccepted), StringComparison.OrdinalIgnoreCase) &&
@@ -467,20 +495,25 @@ public partial class MainViewModel : ObservableObject
                 {
                     language = property.Value.GetString() ?? "en";
                 }
+                else if (property.Name.Equals(nameof(UserSettings.SafetyNoticeVersion), StringComparison.OrdinalIgnoreCase) &&
+                    property.Value.ValueKind == JsonValueKind.Number && property.Value.TryGetInt32(out var version))
+                {
+                    safetyNoticeVersion = version;
+                }
             }
 
-            return new UserSettings(safetyAccepted, language);
+            return new UserSettings(safetyAccepted, language, safetyNoticeVersion);
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or JsonException)
         {
-            return new UserSettings(false, "en");
+            return new UserSettings(false, "en", 0);
         }
     }
 
     private void SaveUserSettings()
     {
         Directory.CreateDirectory(Path.GetDirectoryName(settingsPath)!);
-        File.WriteAllText(settingsPath, JsonSerializer.Serialize(new UserSettings(SafetyAccepted, SelectedLanguage)));
+        File.WriteAllText(settingsPath, JsonSerializer.Serialize(new UserSettings(SafetyAccepted, SelectedLanguage, CurrentSafetyNoticeVersion)));
     }
 
     private string FormatEstimate(long? kilobytes) => kilobytes is null ? Texts["SizeNotReported"] : Texts.Format("EstimatedSize", FormatBytes(kilobytes.Value * 1024));
@@ -506,5 +539,5 @@ public partial class MainViewModel : ObservableObject
 
     private string Fallback(string value) => string.IsNullOrWhiteSpace(value) ? Texts["NotReported"] : value;
 
-    private sealed record UserSettings(bool SafetyAccepted, string Language);
+    private sealed record UserSettings(bool SafetyAccepted, string Language, int SafetyNoticeVersion);
 }
