@@ -1,9 +1,8 @@
 using System.Windows;
 using System.Windows.Controls;
-using System.Windows.Media;
-using CleanLens.Core.Models;
 using System.ComponentModel;
 using System.Diagnostics;
+using CleanLens.Core.Models;
 using CleanLens.Windows;
 
 namespace CleanLens.App;
@@ -119,7 +118,7 @@ public partial class MainWindow : Window
         }
         catch (Exception ex)
         {
-            MessageBox.Show(this, ViewModel.Texts.Format("ActionFailed", ex.Message), ViewModel.Texts["AppName"], MessageBoxButton.OK, MessageBoxImage.Warning);
+            ShowLocalizedMessage(ViewModel.Texts["AppName"], ViewModel.Texts.Format("ActionFailed", ex.Message), CleanLensDialogTone.Warning);
         }
     }
 
@@ -131,7 +130,7 @@ public partial class MainWindow : Window
         }
         catch (Exception ex)
         {
-            MessageBox.Show(this, ViewModel.Texts.Format("ActionFailed", ex.Message), ViewModel.Texts["AppName"], MessageBoxButton.OK, MessageBoxImage.Warning);
+            ShowLocalizedMessage(ViewModel.Texts["AppName"], ViewModel.Texts.Format("ActionFailed", ex.Message), CleanLensDialogTone.Warning);
         }
     }
 
@@ -140,27 +139,27 @@ public partial class MainWindow : Window
         var application = ViewModel.SelectedApplication;
         if (application is null)
         {
-            MessageBox.Show(this, ViewModel.Texts["SelectFirst"], ViewModel.Texts["AppName"], MessageBoxButton.OK, MessageBoxImage.Information);
+            ShowLocalizedMessage(ViewModel.Texts["AppName"], ViewModel.Texts["SelectFirst"]);
             return;
         }
         if (!ViewModel.SafetyAccepted)
         {
-            MessageBox.Show(this, ViewModel.Texts["SafetyRequired"], ViewModel.Texts["SafetyNoticeTitle"], MessageBoxButton.OK, MessageBoxImage.Information);
+            ShowLocalizedMessage(ViewModel.Texts["SafetyNoticeTitle"], ViewModel.Texts["SafetyRequired"], CleanLensDialogTone.Warning);
             return;
         }
         var command = application.UninstallCommand;
         if (string.IsNullOrWhiteSpace(command) && !string.IsNullOrWhiteSpace(application.QuietUninstallCommand))
         {
-            MessageBox.Show(this, ViewModel.Texts["QuietOnly"], ViewModel.Texts["ReviewUnavailableTitle"], MessageBoxButton.OK, MessageBoxImage.Information);
+            ShowLocalizedMessage(ViewModel.Texts["ReviewUnavailableTitle"], ViewModel.Texts["QuietOnly"], CleanLensDialogTone.Warning);
             return;
         }
         if (string.IsNullOrWhiteSpace(command))
         {
-            MessageBox.Show(this, ViewModel.Texts["NoUninstaller"], ViewModel.Texts["AppName"], MessageBoxButton.OK, MessageBoxImage.Information);
+            ShowLocalizedMessage(ViewModel.Texts["AppName"], ViewModel.Texts["NoUninstaller"]);
             return;
         }
-        var answer = MessageBox.Show(this, ViewModel.Texts.Format("ReviewUninstallerMessage", application.Name, command), ViewModel.Texts["ReviewUninstallerTitle"], MessageBoxButton.OKCancel, MessageBoxImage.Warning);
-        if (answer != MessageBoxResult.OK)
+        var answer = CleanLensDialogService.Confirm(this, ViewModel.Texts["ReviewUninstallerTitle"], ViewModel.Texts.Format("ReviewUninstallerMessage", application.Name, command), ViewModel.Texts["Continue"], ViewModel.Texts["Cancel"]);
+        if (!answer)
         {
             return;
         }
@@ -172,7 +171,7 @@ public partial class MainWindow : Window
         }
         catch (Exception ex)
         {
-            MessageBox.Show(this, ViewModel.Texts.Format("UninstallerError", ex.Message), ViewModel.Texts["UninstallerErrorTitle"], MessageBoxButton.OK, MessageBoxImage.Error);
+            ShowLocalizedMessage(ViewModel.Texts["UninstallerErrorTitle"], ViewModel.Texts.Format("UninstallerError", ex.Message), CleanLensDialogTone.Warning);
         }
     }
 
@@ -181,114 +180,61 @@ public partial class MainWindow : Window
         var application = ViewModel.SelectedApplication;
         if (application is null)
         {
-            MessageBox.Show(this, ViewModel.Texts["SelectFirst"], ViewModel.Texts["AppName"], MessageBoxButton.OK, MessageBoxImage.Information);
+            ShowLocalizedMessage(ViewModel.Texts["AppName"], ViewModel.Texts["SelectFirst"]);
             return;
         }
         if (!ViewModel.SafetyAccepted)
         {
-            MessageBox.Show(this, ViewModel.Texts["SafetyRequired"], ViewModel.Texts["SafetyNoticeTitle"], MessageBoxButton.OK, MessageBoxImage.Information);
+            ShowLocalizedMessage(ViewModel.Texts["SafetyNoticeTitle"], ViewModel.Texts["SafetyRequired"], CleanLensDialogTone.Warning);
             return;
         }
 
-        IReadOnlyList<string> paths;
+        IReadOnlyList<ManualDeleteCandidate> candidates;
+        using var cancellation = new CancellationTokenSource();
+        var progress = CleanLensDialogService.ShowProgress(this, ViewModel.Texts["ManualDeleteTitle"], ViewModel.Texts["ManualDeleteScanning"], ViewModel.Texts["Cancel"], cancellation.Cancel);
         try
         {
-            ViewModel.StatusText = ViewModel.Texts["ManualDeleteIntro"];
-            paths = await new ManualDeleteService().FindExactNameMatchesAsync(application);
+            candidates = await new ManualDeleteService().FindExactNameMatchesAsync(application, cancellation.Token);
+        }
+        catch (OperationCanceledException)
+        {
+            return;
         }
         catch (Exception ex)
         {
-            MessageBox.Show(this, ViewModel.Texts.Format("ActionFailed", ex.Message), ViewModel.Texts["AppName"], MessageBoxButton.OK, MessageBoxImage.Warning);
+            ShowLocalizedMessage(ViewModel.Texts["AppName"], ViewModel.Texts.Format("ActionFailed", ex.Message), CleanLensDialogTone.Warning);
+            return;
+        }
+        finally
+        {
+            progress.Close();
+        }
+
+        if (candidates.Count == 0)
+        {
+            ShowLocalizedMessage(ViewModel.Texts["ManualDeleteTitle"], ViewModel.Texts["ManualDeleteEmpty"]);
             return;
         }
 
-        if (paths.Count == 0)
-        {
-            MessageBox.Show(this, ViewModel.Texts["ManualDeleteEmpty"], ViewModel.Texts["ManualDeleteTitle"], MessageBoxButton.OK, MessageBoxImage.Information);
-            return;
-        }
-
-        var choices = new List<CheckBox>();
-        var rows = new StackPanel { Margin = new Thickness(16, 0, 16, 12) };
-        foreach (var path in paths)
-        {
-            var checkbox = new CheckBox { IsChecked = false, Margin = new Thickness(0, 9, 0, 9), FontSize = 12 };
-            checkbox.Content = new TextBlock { Text = path, TextWrapping = TextWrapping.Wrap, MaxWidth = 700, ToolTip = path };
-            choices.Add(checkbox);
-            rows.Children.Add(checkbox);
-            rows.Children.Add(new Border { Height = 1, Background = new SolidColorBrush(Color.FromRgb(222, 231, 240)) });
-        }
-
-        var dialog = new Window
-        {
-            Owner = this,
-            Title = ViewModel.Texts["ManualDeleteTitle"],
-            Width = 820,
-            Height = 650,
-            MinWidth = 600,
-            MinHeight = 400,
-            WindowStartupLocation = WindowStartupLocation.CenterOwner,
-            Background = new SolidColorBrush(Color.FromRgb(243, 247, 251)),
-            ResizeMode = ResizeMode.CanResize
-        };
-        var layout = new DockPanel { LastChildFill = true };
-        var intro = new TextBlock
-        {
-            Text = ViewModel.Texts["ManualDeleteIntro"],
-            TextWrapping = TextWrapping.Wrap,
-            Margin = new Thickness(18, 16, 18, 13),
-            Foreground = new SolidColorBrush(Color.FromRgb(82, 101, 123)),
-            FontSize = 13
-        };
-        DockPanel.SetDock(intro, Dock.Top);
-        layout.Children.Add(intro);
-        var footer = new StackPanel { Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Right, Margin = new Thickness(16) };
-        var cancel = new Button { Content = ViewModel.Texts["Cancel"], Padding = new Thickness(18, 10, 18, 10), MinWidth = 100, Margin = new Thickness(0, 0, 10, 0) };
-        cancel.Click += (_, _) => dialog.DialogResult = false;
-        var delete = new Button
-        {
-            Content = ViewModel.Texts["ManualDelete"],
-            Padding = new Thickness(18, 10, 18, 10),
-            MinWidth = 150,
-            Background = new SolidColorBrush(Color.FromRgb(180, 35, 61)),
-            Foreground = Brushes.White,
-            BorderThickness = new Thickness(0)
-        };
-        delete.Click += (_, _) => dialog.DialogResult = true;
-        footer.Children.Add(cancel);
-        footer.Children.Add(delete);
-        DockPanel.SetDock(footer, Dock.Bottom);
-        layout.Children.Add(footer);
-        var card = new Border
-        {
-            Background = Brushes.White,
-            BorderBrush = new SolidColorBrush(Color.FromRgb(222, 231, 240)),
-            BorderThickness = new Thickness(1),
-            CornerRadius = new CornerRadius(14),
-            Margin = new Thickness(16, 0, 16, 0),
-            Child = new ScrollViewer { VerticalScrollBarVisibility = ScrollBarVisibility.Auto, Content = rows }
-        };
-        layout.Children.Add(card);
-        dialog.Content = layout;
-        if (dialog.ShowDialog() != true)
-        {
-            return;
-        }
-
-        var selectedPaths = choices.Where(choice => choice.IsChecked == true).Select(choice => ((TextBlock)choice.Content).Text).ToArray();
-        if (selectedPaths.Length == 0)
-        {
-            return;
-        }
-        var pathList = string.Join(Environment.NewLine, selectedPaths);
-        var confirmation = MessageBox.Show(
+        var selectedPaths = CleanLensDialogService.SelectManualDeletePaths(
             this,
-            ViewModel.Texts.Format("ManualDeleteConfirm", selectedPaths.Length, pathList),
             ViewModel.Texts["ManualDeleteTitle"],
-            MessageBoxButton.YesNo,
-            MessageBoxImage.Stop,
-            MessageBoxResult.No);
-        if (confirmation != MessageBoxResult.Yes)
+            ViewModel.Texts["ManualDeleteIntro"],
+            ViewModel.Texts["ManualDeleteCandidateCount"],
+            ViewModel.Texts["ManualDeleteSelected"],
+            ViewModel.Texts["Cancel"],
+            candidates);
+        if (selectedPaths is null)
+        {
+            return;
+        }
+        if (selectedPaths.Count == 0)
+        {
+            ShowLocalizedMessage(ViewModel.Texts["ManualDeleteTitle"], ViewModel.Texts["ManualDeleteSelectOne"]);
+            return;
+        }
+        var confirmationText = ViewModel.Texts.Format("ManualDeleteConfirm", selectedPaths.Count, string.Join(Environment.NewLine, selectedPaths));
+        if (!CleanLensDialogService.Confirm(this, ViewModel.Texts["ManualDeleteTitle"], confirmationText, ViewModel.Texts["ManualDelete"], ViewModel.Texts["Cancel"], danger: true))
         {
             return;
         }
@@ -296,13 +242,16 @@ public partial class MainWindow : Window
         {
             await new ManualDeleteService().DeleteSelectedAsync(application, selectedPaths);
             ViewModel.StatusText = ViewModel.Texts["ManualDeleteDone"];
-            MessageBox.Show(this, ViewModel.Texts["ManualDeleteDone"], ViewModel.Texts["AppName"], MessageBoxButton.OK, MessageBoxImage.Information);
+            ShowLocalizedMessage(ViewModel.Texts["AppName"], ViewModel.Texts["ManualDeleteDone"]);
         }
         catch (Exception ex)
         {
-            MessageBox.Show(this, ViewModel.Texts.Format("ActionFailed", ex.Message), ViewModel.Texts["AppName"], MessageBoxButton.OK, MessageBoxImage.Warning);
+            ShowLocalizedMessage(ViewModel.Texts["AppName"], ViewModel.Texts.Format("ActionFailed", ex.Message), CleanLensDialogTone.Warning);
         }
     }
+
+    private void ShowLocalizedMessage(string title, string message, CleanLensDialogTone tone = CleanLensDialogTone.Information) =>
+        CleanLensDialogService.ShowMessage(this, title, message, tone, ViewModel.Texts["DialogOk"]);
 
     private void Window_Loaded(object sender, RoutedEventArgs e)
     {
