@@ -269,7 +269,10 @@ public partial class MainWindow : Window
                 }
                 catch (Exception ex)
                 {
-                    failures.Add($"{candidate.Path}\n{ex.Message}");
+                    var errorMessage = IsAccessDenied(ex)
+                        ? ViewModel.Texts["QuarantineAdminRetry"]
+                        : ex.Message;
+                    failures.Add($"{candidate.Path}\n{errorMessage}");
                 }
             }
             if (movedCount > 0)
@@ -311,6 +314,19 @@ public partial class MainWindow : Window
 
     private void ShowLocalizedMessage(string title, string message, CleanLensDialogTone tone = CleanLensDialogTone.Information) =>
         CleanLensDialogService.ShowMessage(this, title, message, tone, ViewModel.Texts["DialogOk"]);
+
+    private static bool IsAccessDenied(Exception exception)
+    {
+        for (Exception? current = exception; current is not null; current = current.InnerException)
+        {
+            if (current is UnauthorizedAccessException or System.Security.SecurityException ||
+                (unchecked((uint)current.HResult) & 0xFFFF) == 5)
+            {
+                return true;
+            }
+        }
+        return false;
+    }
 
     private void Window_Loaded(object sender, RoutedEventArgs e)
     {
