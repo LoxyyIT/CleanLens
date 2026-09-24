@@ -310,7 +310,7 @@
                     <Setter.Value>
                         <ControlTemplate TargetType="CheckBox">
                             <Grid>
-                                <Grid.ColumnDefinitions><ColumnDefinition Width="21" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
+                                <Grid.ColumnDefinitions><ColumnDefinition Width="29" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
                                 <Border x:Name="CheckSurface" Width="17" Height="17" Background="White" BorderBrush="#B9C7D5" BorderThickness="1.2" CornerRadius="5" VerticalAlignment="Top" Margin="0,2,0,0">
                                     <Path x:Name="CheckMark" Data="M 3,8 L 6.5,11 L 13,4" Stroke="White" StrokeThickness="1.8" StrokeStartLineCap="Round" StrokeEndLineCap="Round" Visibility="Collapsed" />
                                 </Border>
