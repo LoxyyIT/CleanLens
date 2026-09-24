@@ -128,14 +128,19 @@
                 <Border Grid.Column="0" Style="{StaticResource Card}" Padding="18">
                     <Grid>
                         <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="*" /></Grid.RowDefinitions>
-                        <DockPanel Margin="0,0,0,15">
-                            <ComboBox x:Name="FilterCombo" DockPanel.Dock="Right" Width="155" Height="36" SelectedIndex="0" SelectionChanged="Filter_Changed">
+                        <Grid Margin="0,0,0,15">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="280" />
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="155" />
+                            </Grid.ColumnDefinitions>
+                            <TextBox x:Name="SearchBox" Grid.Column="0" Height="38" Padding="11,0" HorizontalAlignment="Stretch" VerticalContentAlignment="Center" BorderBrush="{StaticResource LineBrush}" BorderThickness="1" TextChanged="Search_Changed" ToolTip="{Binding Texts[SearchTooltip]}" />
+                            <ComboBox x:Name="FilterCombo" Grid.Column="2" Width="155" Height="38" HorizontalAlignment="Right" SelectedIndex="0" SelectionChanged="Filter_Changed">
                                 <ComboBoxItem Content="{Binding Texts[AllApplications]}" />
                                 <ComboBoxItem Content="{Binding Texts[WithoutUninstaller]}" />
                                 <ComboBoxItem Content="{Binding Texts[UnknownPublisher]}" />
                             </ComboBox>
-                            <TextBox x:Name="SearchBox" Width="280" Height="36" Padding="11,7" VerticalContentAlignment="Center" BorderBrush="{StaticResource LineBrush}" BorderThickness="1" TextChanged="Search_Changed" ToolTip="{Binding Texts[SearchTooltip]}" />
-                        </DockPanel>
+                        </Grid>
                         <DataGrid x:Name="ApplicationsDataGrid" Grid.Row="1" ItemsSource="{Binding VisibleApplications}" SelectedItem="{Binding SelectedApplication, Mode=TwoWay}" AutoGenerateColumns="False" CanUserAddRows="False" IsReadOnly="True" HeadersVisibility="Column" RowHeight="55" ColumnHeaderHeight="40" Background="Transparent">
                             <DataGrid.Columns>
                                 <DataGridTemplateColumn Width="54">

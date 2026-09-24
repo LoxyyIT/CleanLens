@@ -223,10 +223,13 @@
                 <Setter Property="Template">
                     <Setter.Value>
                         <ControlTemplate TargetType="TextBox">
-                            <Grid>
-                                <Border x:Name="InputSurface" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="9" />
-                                <ScrollViewer x:Name="PART_ContentHost" Margin="{TemplateBinding Padding}" VerticalAlignment="Center" />
-                                <TextBlock x:Name="Watermark" Text="{TemplateBinding ToolTip}" Margin="{TemplateBinding Padding}" VerticalAlignment="Center" Foreground="{StaticResource MutedBrush}" Opacity="0.72" IsHitTestVisible="False" Visibility="Collapsed" />
+                            <Grid ClipToBounds="True">
+                                <Border x:Name="InputSurface" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="9" Padding="{TemplateBinding Padding}">
+                                    <Grid>
+                                        <ScrollViewer x:Name="PART_ContentHost" VerticalAlignment="{TemplateBinding VerticalContentAlignment}" HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}" />
+                                        <TextBlock x:Name="Watermark" Text="{TemplateBinding ToolTip}" VerticalAlignment="{TemplateBinding VerticalContentAlignment}" Foreground="{StaticResource MutedBrush}" Opacity="0.72" IsHitTestVisible="False" Visibility="Collapsed" />
+                                    </Grid>
+                                </Border>
                             </Grid>
                             <ControlTemplate.Triggers>
                                 <Trigger Property="Text" Value=""><Setter TargetName="Watermark" Property="Visibility" Value="Visible" /></Trigger>
