@@ -6,37 +6,92 @@
         WindowStartupLocation="CenterScreen" Background="#F3F7FB" Foreground="{StaticResource InkBrush}" FontFamily="Segoe UI">
     <Grid>
         <Grid.ColumnDefinitions>
-            <ColumnDefinition Width="228" />
+            <ColumnDefinition Width="248" />
             <ColumnDefinition Width="*" />
         </Grid.ColumnDefinitions>
-        <Border Grid.Column="0" Background="#081A2C">
-            <DockPanel Margin="18,22" LastChildFill="False">
-                <StackPanel DockPanel.Dock="Top">
-                    <StackPanel Orientation="Horizontal" Margin="5,4,0,34">
-                        <Border Width="40" Height="40" CornerRadius="12" Background="#183D5D" Padding="3">
-                            <Image Source="/CleanLens;component/logo.png" Stretch="Uniform" />
-                        </Border>
-                        <StackPanel Margin="11,1,0,0">
-                            <TextBlock Text="CleanLens" Foreground="White" FontSize="17" FontWeight="SemiBold" />
-                            <TextBlock Text="{Binding Texts[ProductSubtitle]}" Foreground="#8FA8BF" FontSize="9" FontWeight="Bold" />
-                        </StackPanel>
-                    </StackPanel>
-                    <TextBlock Text="{Binding Texts[Workspace]}" Foreground="#7890A8" FontSize="10" FontWeight="Bold" Margin="10,0,0,9" />
-                    <Button x:Name="ApplicationsNav" Style="{StaticResource NavButton}" Click="Applications_Click" Margin="0,2"><StackPanel Orientation="Horizontal"><TextBlock Text="▦" Width="28" /><TextBlock Text="{Binding Texts[Applications]}" /></StackPanel></Button>
-                    <Button x:Name="LeftoversNav" Style="{StaticResource NavButton}" Click="Leftovers_Click" Margin="0,2"><StackPanel Orientation="Horizontal"><TextBlock Text="⌕" Width="28" /><TextBlock Text="{Binding Texts[LeftoverReview]}" /></StackPanel></Button>
-                    <Button x:Name="HistoryNav" Style="{StaticResource NavButton}" Click="History_Click" Margin="0,2"><StackPanel Orientation="Horizontal"><TextBlock Text="◷" Width="28" /><TextBlock Text="{Binding Texts[History]}" /></StackPanel></Button>
-                    <Button x:Name="QuarantineNav" Style="{StaticResource NavButton}" Click="Quarantine_Click" Margin="0,2"><StackPanel Orientation="Horizontal"><TextBlock Text="▣" Width="28" /><TextBlock Text="{Binding Texts[Quarantine]}" /></StackPanel></Button>
-                    <Button x:Name="SettingsNav" Style="{StaticResource NavButton}" Click="Settings_Click" Margin="0,2"><StackPanel Orientation="Horizontal"><TextBlock Text="⚙" Width="28" /><TextBlock Text="{Binding Texts[Settings]}" /></StackPanel></Button>
-                </StackPanel>
-                <Border DockPanel.Dock="Bottom" Background="#102B47" CornerRadius="14" Padding="13" Margin="0,15,0,0">
+        <Border Grid.Column="0" BorderBrush="#19354E" BorderThickness="0,0,1,0">
+            <Border.Background>
+                <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+                    <GradientStop Color="#071827" Offset="0" />
+                    <GradientStop Color="#0A2034" Offset="0.58" />
+                    <GradientStop Color="#081A2B" Offset="1" />
+                </LinearGradientBrush>
+            </Border.Background>
+            <DockPanel Margin="17,22,17,18" LastChildFill="False">
+                <Border DockPanel.Dock="Bottom" Background="#0E273D" BorderBrush="#1B3B55" BorderThickness="1" CornerRadius="16" Padding="13" Margin="0,13,0,0">
                     <StackPanel>
-                        <TextBlock Text="{Binding Texts[Principle]}" Foreground="#73D6D4" FontSize="9" FontWeight="Bold" />
-                        <TextBlock Text="{Binding Texts[LocalTagline]}" Foreground="#D0DCE8" FontSize="11" TextWrapping="Wrap" Margin="0,6,0,0" />
-                        <TextBlock Text="{Binding Texts[LocalOnly]}" Foreground="#89A1B7" FontSize="10" Margin="0,8,0,0" />
-                        <Border Height="1" Background="#29435C" Margin="0,12,0,9" />
-                        <Button Content="GitHub  ↗" Click="OpenGitHub_Click" HorizontalAlignment="Left" Padding="0" Background="Transparent" BorderThickness="0" Foreground="#B8D8F3" FontSize="11" FontWeight="SemiBold" Cursor="Hand" />
+                        <Border HorizontalAlignment="Left" Background="#143550" CornerRadius="8" Padding="8,5">
+                            <StackPanel Orientation="Horizontal">
+                                <Ellipse Width="6" Height="6" Fill="#55D1C8" VerticalAlignment="Center" Margin="0,0,7,0" />
+                                <TextBlock Text="{Binding Texts[LocalOnly]}" Foreground="#C3D7E7" FontSize="9" FontWeight="SemiBold" />
+                            </StackPanel>
+                        </Border>
+                        <TextBlock Text="{Binding Texts[Principle]}" Foreground="#66D4D0" FontSize="8" FontWeight="Bold" Margin="1,13,0,0" />
+                        <TextBlock Text="{Binding Texts[LocalTagline]}" Foreground="#D7E3ED" FontSize="11" TextWrapping="Wrap" LineHeight="16" Margin="1,5,0,0" />
+                        <Button Click="OpenGitHub_Click" HorizontalAlignment="Stretch" Margin="0,13,0,0" Padding="10,8" Background="#163650" BorderBrush="#294A64" BorderThickness="1" Foreground="#DCEAF5" FontSize="11" FontWeight="SemiBold" Cursor="Hand">
+                            <Grid>
+                                <Grid.ColumnDefinitions><ColumnDefinition Width="25" /><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+                                <TextBlock Text="&#xE71B;" FontFamily="Segoe MDL2 Assets" FontSize="15" Foreground="#83B4D4" VerticalAlignment="Center" />
+                                <TextBlock Grid.Column="1" Text="GitHub" VerticalAlignment="Center" />
+                                <TextBlock Grid.Column="2" Text="↗" Foreground="#83B4D4" VerticalAlignment="Center" />
+                            </Grid>
+                        </Button>
                     </StackPanel>
                 </Border>
+                <Button x:Name="SettingsNav" DockPanel.Dock="Bottom" Style="{StaticResource NavButton}" Click="Settings_Click" Margin="0,12,0,0">
+                    <StackPanel Orientation="Horizontal">
+                        <Border Width="34" Height="34" CornerRadius="11" Background="#122B41" Margin="0,0,12,0">
+                            <TextBlock Text="&#xE713;" FontFamily="Segoe MDL2 Assets" FontSize="16" Foreground="#AFC2D3" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                        </Border>
+                        <TextBlock Text="{Binding Texts[Settings]}" VerticalAlignment="Center" />
+                    </StackPanel>
+                </Button>
+                <Border DockPanel.Dock="Bottom" Height="1" Background="#20394F" Margin="0,12,0,0" />
+                <StackPanel DockPanel.Dock="Top">
+                    <StackPanel Orientation="Horizontal" Margin="3,2,0,27">
+                        <Border Width="48" Height="48" CornerRadius="15" Background="#163852" BorderBrush="#2B526D" BorderThickness="1" Padding="3">
+                            <Image Source="/CleanLens;component/logo.png" Stretch="Uniform" />
+                        </Border>
+                        <StackPanel VerticalAlignment="Center" Margin="12,0,0,0">
+                            <TextBlock Text="CleanLens" Foreground="White" FontSize="18" FontWeight="SemiBold" />
+                            <TextBlock Text="{Binding Texts[ProductSubtitle]}" Foreground="#8FA8BF" FontSize="8" FontWeight="Bold" Margin="1,2,0,0" />
+                        </StackPanel>
+                    </StackPanel>
+                    <Grid Margin="0,0,0,8">
+                        <Grid.ColumnDefinitions><ColumnDefinition Width="Auto" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
+                        <TextBlock Text="{Binding Texts[Workspace]}" Foreground="#7890A8" FontSize="9" FontWeight="Bold" Margin="10,0,10,0" VerticalAlignment="Center" />
+                        <Border Grid.Column="1" Height="1" Background="#1C354A" VerticalAlignment="Center" Margin="5,0,4,0" />
+                    </Grid>
+                    <Button x:Name="ApplicationsNav" Style="{StaticResource NavButton}" Click="Applications_Click" Margin="0,2">
+                        <StackPanel Orientation="Horizontal">
+                            <Border Width="34" Height="34" CornerRadius="11" Background="#122B41" Margin="0,0,12,0"><TextBlock Text="&#xE71D;" FontFamily="Segoe MDL2 Assets" FontSize="16" HorizontalAlignment="Center" VerticalAlignment="Center" /></Border>
+                            <TextBlock Text="{Binding Texts[Applications]}" VerticalAlignment="Center" />
+                        </StackPanel>
+                    </Button>
+                    <Button x:Name="LeftoversNav" Style="{StaticResource NavButton}" Click="Leftovers_Click" Margin="0,2">
+                        <StackPanel Orientation="Horizontal">
+                            <Border Width="34" Height="34" CornerRadius="11" Background="#122B41" Margin="0,0,12,0"><TextBlock Text="&#xE721;" FontFamily="Segoe MDL2 Assets" FontSize="16" HorizontalAlignment="Center" VerticalAlignment="Center" /></Border>
+                            <TextBlock Text="{Binding Texts[LeftoverReview]}" VerticalAlignment="Center" />
+                        </StackPanel>
+                    </Button>
+                    <Button x:Name="HistoryNav" Style="{StaticResource NavButton}" Click="History_Click" Margin="0,2">
+                        <StackPanel Orientation="Horizontal">
+                            <Border Width="34" Height="34" CornerRadius="11" Background="#122B41" Margin="0,0,12,0"><TextBlock Text="&#xE81C;" FontFamily="Segoe MDL2 Assets" FontSize="16" HorizontalAlignment="Center" VerticalAlignment="Center" /></Border>
+                            <TextBlock Text="{Binding Texts[History]}" VerticalAlignment="Center" />
+                        </StackPanel>
+                    </Button>
+                    <Grid Margin="0,22,0,8">
+                        <Grid.ColumnDefinitions><ColumnDefinition Width="Auto" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
+                        <TextBlock Text="{Binding Texts[Protection]}" Foreground="#7890A8" FontSize="9" FontWeight="Bold" Margin="10,0,10,0" VerticalAlignment="Center" />
+                        <Border Grid.Column="1" Height="1" Background="#1C354A" VerticalAlignment="Center" Margin="5,0,4,0" />
+                    </Grid>
+                    <Button x:Name="QuarantineNav" Style="{StaticResource NavButton}" Click="Quarantine_Click" Margin="0,2">
+                        <StackPanel Orientation="Horizontal">
+                            <Border Width="34" Height="34" CornerRadius="11" Background="#122B41" Margin="0,0,12,0"><TextBlock Text="&#xE8D7;" FontFamily="Segoe MDL2 Assets" FontSize="16" HorizontalAlignment="Center" VerticalAlignment="Center" /></Border>
+                            <TextBlock Text="{Binding Texts[Quarantine]}" VerticalAlignment="Center" />
+                        </StackPanel>
+                    </Button>
+                </StackPanel>
             </DockPanel>
         </Border>
         <Grid Grid.Column="1" Margin="30,24,30,28">

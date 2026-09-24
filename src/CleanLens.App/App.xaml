@@ -53,34 +53,41 @@
                 <Setter Property="Background" Value="Transparent" />
                 <Setter Property="Foreground" Value="#B8C9DA" />
                 <Setter Property="BorderThickness" Value="0" />
-                <Setter Property="Padding" Value="13,11" />
+                <Setter Property="Padding" Value="11,6" />
                 <Setter Property="HorizontalContentAlignment" Value="Stretch" />
-                <Setter Property="FontSize" Value="13" />
-                <Setter Property="FontWeight" Value="Medium" />
+                <Setter Property="VerticalContentAlignment" Value="Center" />
+                <Setter Property="FontSize" Value="12.5" />
+                <Setter Property="FontWeight" Value="SemiBold" />
+                <Setter Property="MinHeight" Value="46" />
                 <Setter Property="Cursor" Value="Hand" />
                 <Setter Property="FocusVisualStyle" Value="{x:Null}" />
                 <Setter Property="Template">
                     <Setter.Value>
                         <ControlTemplate TargetType="Button">
                             <Grid>
-                                <Border x:Name="NavSurface" Background="{TemplateBinding Background}" CornerRadius="10" />
-                                <Border x:Name="ActiveMark" Width="3" HorizontalAlignment="Left" Margin="1,8,0,8" Background="{StaticResource CyanBrush}" CornerRadius="2" Visibility="Collapsed" />
-                                <Border x:Name="KeyboardFocusRing" BorderBrush="#55738F" BorderThickness="1" CornerRadius="10" Opacity="0" IsHitTestVisible="False" />
-                                <ContentPresenter Margin="2,0,0,0" VerticalAlignment="Center" />
+                                <Border x:Name="NavSurface" Background="{TemplateBinding Background}" BorderBrush="Transparent" BorderThickness="1" CornerRadius="12" />
+                                <Border x:Name="ActiveMark" Width="3" HorizontalAlignment="Left" Margin="1,10,0,10" Background="{StaticResource CyanBrush}" CornerRadius="2" Visibility="Collapsed" />
+                                <Border x:Name="KeyboardFocusRing" BorderBrush="#55738F" BorderThickness="1" CornerRadius="12" Opacity="0" IsHitTestVisible="False" />
+                                <ContentPresenter Margin="3,0,2,0" VerticalAlignment="Center" />
                             </Grid>
                             <ControlTemplate.Triggers>
                                 <Trigger Property="IsMouseOver" Value="True">
-                                    <Setter TargetName="NavSurface" Property="Background" Value="#173650" />
-                                    <Setter Property="Foreground" Value="White" />
+                                    <Setter TargetName="NavSurface" Property="Background" Value="#102A40" />
+                                    <Setter TargetName="NavSurface" Property="BorderBrush" Value="#1C3C55" />
+                                    <Setter Property="Foreground" Value="#EDF5FC" />
                                 </Trigger>
                                 <Trigger Property="Tag" Value="Active">
-                                    <Setter TargetName="NavSurface" Property="Background" Value="#1A3C5A" />
+                                    <Setter TargetName="NavSurface" Property="Background" Value="#193B57" />
+                                    <Setter TargetName="NavSurface" Property="BorderBrush" Value="#244967" />
                                     <Setter TargetName="ActiveMark" Property="Visibility" Value="Visible" />
                                     <Setter Property="Foreground" Value="White" />
-                                    <Setter Property="FontWeight" Value="SemiBold" />
+                                    <Setter Property="FontWeight" Value="Bold" />
                                 </Trigger>
                                 <Trigger Property="IsKeyboardFocused" Value="True">
                                     <Setter TargetName="KeyboardFocusRing" Property="Opacity" Value="1" />
+                                </Trigger>
+                                <Trigger Property="IsPressed" Value="True">
+                                    <Setter TargetName="NavSurface" Property="Background" Value="#214966" />
                                 </Trigger>
                                 <Trigger Property="IsEnabled" Value="False"><Setter Property="Opacity" Value="0.48" /></Trigger>
                             </ControlTemplate.Triggers>
