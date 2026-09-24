@@ -351,14 +351,19 @@
                 <ScrollViewer VerticalScrollBarVisibility="Auto">
                     <StackPanel MaxWidth="840" HorizontalAlignment="Left">
                         <TextBlock Text="{Binding Texts[PreferencesHeading]}" FontSize="10" Foreground="{StaticResource BlueBrush}" FontWeight="Bold" />
-                        <TextBlock Text="{Binding Texts[Language]}" FontSize="17" FontWeight="SemiBold" Margin="0,7,0,4" />
-                        <TextBlock Text="{Binding Texts[SettingsSubtitle]}" FontSize="12" Foreground="{StaticResource MutedBrush}" Margin="0,0,0,12" />
-                        <ComboBox SelectedValue="{Binding SelectedLanguage}" SelectedValuePath="Tag" Width="240" Height="42" HorizontalAlignment="Left">
-                            <ComboBoxItem Content="English" Tag="en" />
-                            <ComboBoxItem Content="Italiano" Tag="it" />
-                            <ComboBoxItem Content="Español" Tag="es" />
-                            <ComboBoxItem Content="Français" Tag="fr" />
-                        </ComboBox>
+                        <Grid Margin="0,9,0,4" MinHeight="60">
+                            <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="190" /></Grid.ColumnDefinitions>
+                            <StackPanel VerticalAlignment="Center" Margin="0,0,18,0">
+                                <TextBlock Text="{Binding Texts[Language]}" FontSize="17" FontWeight="SemiBold" />
+                                <TextBlock Text="{Binding Texts[SettingsSubtitle]}" FontSize="12" Foreground="{StaticResource MutedBrush}" TextWrapping="Wrap" Margin="0,4,0,0" />
+                            </StackPanel>
+                            <ComboBox x:Name="LanguageSelector" Grid.Column="1" SelectedValue="{Binding SelectedLanguage, Mode=OneWay}" SelectedValuePath="Tag" SelectionChanged="Language_Changed" Width="190" Height="42" HorizontalAlignment="Right" VerticalAlignment="Center">
+                                <ComboBoxItem Content="English" Tag="en" />
+                                <ComboBoxItem Content="Italiano" Tag="it" />
+                                <ComboBoxItem Content="Español" Tag="es" />
+                                <ComboBoxItem Content="Français" Tag="fr" />
+                            </ComboBox>
+                        </Grid>
                         <Border Height="1" Background="{StaticResource LineBrush}" Margin="0,24,0,22" />
                         <TextBlock Text="{Binding Texts[DataStorageHeading]}" FontSize="10" Foreground="{StaticResource BlueBrush}" FontWeight="Bold" />
                         <TextBlock Text="{Binding Texts[DataStorageDescription]}" FontSize="12" Foreground="{StaticResource MutedBrush}" TextWrapping="Wrap" Margin="0,7,0,8" />

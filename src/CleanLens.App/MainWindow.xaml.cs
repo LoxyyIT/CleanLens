@@ -68,6 +68,15 @@ public partial class MainWindow : Window
         }
     }
 
+    private void Language_Changed(object sender, SelectionChangedEventArgs e)
+    {
+        if (sender is ComboBox comboBox && comboBox.SelectedValue is string language && DataContext is MainViewModel viewModel &&
+            viewModel.Languages.Contains(language, StringComparer.OrdinalIgnoreCase) && !viewModel.SelectedLanguage.Equals(language, StringComparison.OrdinalIgnoreCase))
+        {
+            viewModel.SelectedLanguage = language;
+        }
+    }
+
     private async void Applications_Click(object sender, RoutedEventArgs e) => await ShowPageAsync("Applications");
 
     private void OpenGitHub_Click(object sender, RoutedEventArgs e) =>
@@ -256,9 +265,13 @@ public partial class MainWindow : Window
     private void Window_Loaded(object sender, RoutedEventArgs e)
     {
         ApplicationsNav.Tag = "Active";
-        if (DataContext is MainViewModel viewModel && viewModel.SafetyAccepted)
+        if (DataContext is MainViewModel viewModel)
         {
-            _ = viewModel.ScanCommand.ExecuteAsync(null);
+            LanguageSelector.SelectedValue = viewModel.SelectedLanguage;
+            if (viewModel.SafetyAccepted)
+            {
+                _ = viewModel.ScanCommand.ExecuteAsync(null);
+            }
         }
     }
 }

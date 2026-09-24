@@ -442,7 +442,34 @@ public partial class MainViewModel : ObservableObject
     {
         try
         {
-            return File.Exists(settingsPath) ? JsonSerializer.Deserialize<UserSettings>(File.ReadAllText(settingsPath)) ?? new UserSettings(false, "en") : new UserSettings(false, "en");
+            if (!File.Exists(settingsPath))
+            {
+                return new UserSettings(false, "en");
+            }
+
+            using var document = JsonDocument.Parse(File.ReadAllText(settingsPath));
+            if (document.RootElement.ValueKind != JsonValueKind.Object)
+            {
+                return new UserSettings(false, "en");
+            }
+
+            var safetyAccepted = false;
+            var language = "en";
+            foreach (var property in document.RootElement.EnumerateObject())
+            {
+                if (property.Name.Equals(nameof(UserSettings.SafetyAccepted), StringComparison.OrdinalIgnoreCase) &&
+                    property.Value.ValueKind is JsonValueKind.True or JsonValueKind.False)
+                {
+                    safetyAccepted = property.Value.GetBoolean();
+                }
+                else if (property.Name.Equals(nameof(UserSettings.Language), StringComparison.OrdinalIgnoreCase) &&
+                    property.Value.ValueKind == JsonValueKind.String)
+                {
+                    language = property.Value.GetString() ?? "en";
+                }
+            }
+
+            return new UserSettings(safetyAccepted, language);
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or JsonException)
         {
