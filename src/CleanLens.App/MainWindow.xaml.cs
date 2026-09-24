@@ -39,10 +39,10 @@ public partial class MainWindow : Window
 
     private void UpdateLocalizedColumnHeaders(MainViewModel viewModel)
     {
-        ApplicationsDataGrid.Columns[0].Header = viewModel.Texts["HeaderApplication"];
-        ApplicationsDataGrid.Columns[1].Header = viewModel.Texts["HeaderPublisher"];
-        ApplicationsDataGrid.Columns[2].Header = viewModel.Texts["HeaderVersion"];
-        ApplicationsDataGrid.Columns[3].Header = viewModel.Texts["HeaderSize"];
+        ApplicationsDataGrid.Columns[1].Header = viewModel.Texts["HeaderApplication"];
+        ApplicationsDataGrid.Columns[2].Header = viewModel.Texts["HeaderPublisher"];
+        ApplicationsDataGrid.Columns[3].Header = viewModel.Texts["HeaderVersion"];
+        ApplicationsDataGrid.Columns[4].Header = viewModel.Texts["HeaderSize"];
         LeftoversDataGrid.Columns[0].Header = viewModel.Texts["HeaderPath"];
         LeftoversDataGrid.Columns[1].Header = viewModel.Texts["HeaderSizeSimple"];
         LeftoversDataGrid.Columns[2].Header = viewModel.Texts["HeaderType"];
@@ -83,12 +83,23 @@ public partial class MainWindow : Window
 
     private async void Quarantine_Click(object sender, RoutedEventArgs e) => await ShowPageAsync("Quarantine");
 
+    private async void Settings_Click(object sender, RoutedEventArgs e) => await ShowPageAsync("Settings");
+
     private async Task ShowPageAsync(string page)
     {
+        var overviewActive = page == "Overview";
+        var applicationsActive = page == "Applications";
+        OverviewNav.Tag = overviewActive ? "Active" : null;
+        ApplicationsNav.Tag = applicationsActive ? "Active" : null;
+        LeftoversNav.Tag = page == "Leftover review" ? "Active" : null;
+        HistoryNav.Tag = page == "History" ? "Active" : null;
+        QuarantineNav.Tag = page == "Quarantine" ? "Active" : null;
+        SettingsNav.Tag = page == "Settings" ? "Active" : null;
         ApplicationWorkspace.Visibility = page is "Overview" or "Applications" ? Visibility.Visible : Visibility.Collapsed;
         LeftoverWorkspace.Visibility = page == "Leftover review" ? Visibility.Visible : Visibility.Collapsed;
         HistoryWorkspace.Visibility = page == "History" ? Visibility.Visible : Visibility.Collapsed;
         QuarantineWorkspace.Visibility = page == "Quarantine" ? Visibility.Visible : Visibility.Collapsed;
+        SettingsWorkspace.Visibility = page == "Settings" ? Visibility.Visible : Visibility.Collapsed;
         ViewModel.SetPage(page);
         if (page is "History" or "Quarantine")
         {
@@ -164,6 +175,7 @@ public partial class MainWindow : Window
 
     private void Window_Loaded(object sender, RoutedEventArgs e)
     {
+        OverviewNav.Tag = "Active";
         if (DataContext is MainViewModel viewModel && viewModel.SafetyAccepted)
         {
             _ = viewModel.ScanCommand.ExecuteAsync(null);

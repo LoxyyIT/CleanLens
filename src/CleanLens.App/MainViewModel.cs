@@ -63,6 +63,14 @@ public partial class MainViewModel : ObservableObject
     public bool HasReviewApplication => SelectedApplication is not null || pendingUninstallApplication is not null;
     public LocalizationCatalog Texts { get; }
     public IReadOnlyList<string> Languages => LocalizationCatalog.Languages;
+    public Visibility InventoryEmptyStateVisibility => VisibleApplications.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
+    public Visibility InventoryEmptyScanVisibility => !scanned || Applications.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
+    public string InventoryEmptyTitle => !scanned
+        ? Texts["EmptyNotScannedTitle"]
+        : Applications.Count == 0 ? Texts["EmptyAppsTitle"] : Texts["EmptyFilteredTitle"];
+    public string InventoryEmptyCopy => !scanned
+        ? Texts["EmptyNotScannedCopy"]
+        : Applications.Count == 0 ? Texts["EmptyAppsCopy"] : Texts["EmptyFilteredCopy"];
 
     public string AppCountText => scanned ? Applications.Count.ToString(CultureInfo.GetCultureInfo(Texts.Language)) : Texts["NotScannedYet"];
     public string TotalSizeText => !scanned || Applications.All(application => application.EstimatedSizeKilobytes is null)
@@ -74,6 +82,7 @@ public partial class MainViewModel : ObservableObject
     public string DetailVersion => (SelectedApplication ?? pendingUninstallApplication) is not { } application ? Texts["SelectDetailsHint"] : $"{Texts.Format("Version", Fallback(application.Version))} · {FormatInstallDate(application.InstalledAt)}";
     public string DetailLocation => (SelectedApplication ?? pendingUninstallApplication) is { } application ? Texts.Format("InstallLocation", Fallback(application.InstallLocation)) : string.Empty;
     public string DetailSource => (SelectedApplication ?? pendingUninstallApplication) is not { } application ? string.Empty : $"{Texts[application.Source.Contains("machine", StringComparison.OrdinalIgnoreCase) ? "MachineRegistry" : "UserRegistry"]} · {Texts[application.Source.Contains("Registry32", StringComparison.OrdinalIgnoreCase) ? "View32" : "View64"]} · {FormatEstimate(application.EstimatedSizeKilobytes)}";
+    public string LocalDataPath => Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "CleanLens");
 
     public MainViewModel(IApplicationInventory inventory, LeftoverScanner leftoverScanner, CleanLensDatabase database, QuarantineService quarantineService)
     {
@@ -103,9 +112,6 @@ public partial class MainViewModel : ObservableObject
         OnPropertyChanged(nameof(DetailSource));
         OnPropertyChanged(nameof(SelectedApplicationDisplayName));
         OnPropertyChanged(nameof(SelectedPublisher));
-        OnPropertyChanged(nameof(AppCountText));
-        OnPropertyChanged(nameof(TotalSizeText));
-        OnPropertyChanged(nameof(LeftoversText));
     }
 
     partial void OnSafetyAcceptedChanged(bool value)
@@ -123,6 +129,9 @@ public partial class MainViewModel : ObservableObject
         OnPropertyChanged(nameof(DetailSource));
         OnPropertyChanged(nameof(SelectedApplicationDisplayName));
         OnPropertyChanged(nameof(SelectedPublisher));
+        OnPropertyChanged(nameof(InventoryEmptyTitle));
+        OnPropertyChanged(nameof(InventoryEmptyCopy));
+        OnPropertyChanged(nameof(InventoryEmptyScanVisibility));
         SaveUserSettings();
     }
 
@@ -148,6 +157,7 @@ public partial class MainViewModel : ObservableObject
             "Applications" => "Applications",
             "History" => "History",
             "Quarantine" => "Quarantine",
+            "Settings" => "Settings",
             _ => "Overview"
         };
         PageTitle = Texts[CurrentPageKey];
@@ -159,6 +169,7 @@ public partial class MainViewModel : ObservableObject
                 : Texts["LeftoverSubtitle"],
             "History" => Texts["HistoryPage"],
             "Quarantine" => Texts["QuarantinePage"],
+            "Settings" => Texts["SettingsSubtitle"],
             _ => Texts["OverviewSubtitle"]
         };
     }
@@ -243,6 +254,13 @@ public partial class MainViewModel : ObservableObject
             return;
         }
         SaveUserSettings();
+    }
+
+    [RelayCommand]
+    private void ReviewSafetyNotice()
+    {
+        SafetyAccepted = false;
+        StatusText = Texts["SafetyRequired"];
     }
 
     public async Task<string> QuarantineSelectedAsync()
@@ -342,6 +360,10 @@ public partial class MainViewModel : ObservableObject
         {
             VisibleApplications.Add(application);
         }
+        OnPropertyChanged(nameof(InventoryEmptyStateVisibility));
+        OnPropertyChanged(nameof(InventoryEmptyTitle));
+        OnPropertyChanged(nameof(InventoryEmptyCopy));
+        OnPropertyChanged(nameof(InventoryEmptyScanVisibility));
     }
 
     private UserSettings LoadUserSettings()
