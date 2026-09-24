@@ -14,7 +14,7 @@ Do not open a public issue for a vulnerability that could expose data or cause u
 - The registered uninstaller command is shown to the user before it is started.
 - Only an existing, fully qualified executable is started; MSI is resolved to the Windows system executable and quiet-only commands are refused.
 - Third-party uninstaller Authenticode signatures are not verified in this prototype.
-- The current candidate scanner requires exact publisher and product directory components under selected application-data roots.
+- The current candidate scanner requires a registry-confirmed uninstall and an exact product folder in a selected application-data root, or exact publisher/product directory components.
 - Personal libraries, Windows directories, Program Files paths and reparse points are excluded from quarantine moves.
 - Cleanup uses a reversible move to local quarantine. Permanent deletion of quarantined content is not implemented.
 - Services, tasks, startup items, Registry entries, drivers, shared runtimes and browser extensions are not modified.

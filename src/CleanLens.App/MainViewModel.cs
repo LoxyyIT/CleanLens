@@ -211,6 +211,10 @@ public partial class MainViewModel : ObservableObject
         {
             throw new InvalidOperationException("Select a reviewed leftover folder first.");
         }
+        if (SelectedLeftover.Confidence == ConfidenceLevel.Low || SelectedLeftover.IsUserData)
+        {
+            throw new InvalidOperationException("Low-confidence or personal-data candidates cannot be moved to quarantine.");
+        }
         var operationId = await quarantineService.MoveAsync(SelectedLeftover.Path, application.Name);
         Leftovers.Remove(SelectedLeftover);
         SelectedLeftover = null;

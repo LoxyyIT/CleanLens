@@ -92,8 +92,10 @@ public sealed class SafetyTests
         var root = Path.Combine(sandbox.Root, "appdata");
         var productOnly = Path.Combine(root, "SampleProduct");
         var matched = Path.Combine(root, "AcmePublisher", "SampleProduct");
+        var documentsProduct = Path.Combine(root, "Documents", "SampleProduct");
         Directory.CreateDirectory(productOnly);
         Directory.CreateDirectory(matched);
+        Directory.CreateDirectory(documentsProduct);
         await File.WriteAllTextAsync(Path.Combine(matched, "settings.json"), "{}");
         var application = new InstalledApplication(
             "test-id",
@@ -111,11 +113,15 @@ public sealed class SafetyTests
             "Sandbox fixture");
 
         var candidates = await new LeftoverScanner([root]).ScanAsync(application);
-        var candidate = Assert.Single(candidates);
-        Assert.Equal(Path.GetFullPath(matched), candidate.Path);
-        Assert.Equal(ConfidenceLevel.Medium, candidate.Confidence);
-        Assert.False(candidate.IsSelectedByDefault);
-        Assert.Equal(2, candidate.SizeBytes);
+        Assert.Equal(2, candidates.Count);
+        var directCandidate = Assert.Single(candidates, candidate => candidate.Path.Equals(Path.GetFullPath(productOnly), StringComparison.OrdinalIgnoreCase));
+        var publisherCandidate = Assert.Single(candidates, candidate => candidate.Path.Equals(Path.GetFullPath(matched), StringComparison.OrdinalIgnoreCase));
+        foreach (var candidate in new[] { directCandidate, publisherCandidate })
+        {
+            Assert.Equal(ConfidenceLevel.Medium, candidate.Confidence);
+            Assert.False(candidate.IsSelectedByDefault);
+        }
+        Assert.Equal(2, publisherCandidate.SizeBytes);
     }
 
     [Fact]

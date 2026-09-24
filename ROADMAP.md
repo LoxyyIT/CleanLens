@@ -6,7 +6,7 @@ Roadmap entries are plans, not implemented features.
 
 - Registry uninstall inventory for machine and current-user entries in both Registry views.
 - Registered uninstaller launch after showing the command and requesting confirmation.
-- Limited exact publisher/product AppData and ProgramData candidate scan.
+- Limited exact product-folder and publisher/product AppData and ProgramData candidate scan.
 - Selected-folder quarantine move and restore to an unoccupied original path.
 - Local SQLite operation and quarantine history.
 

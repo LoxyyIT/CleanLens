@@ -37,7 +37,7 @@ The project is in early development. The current source is a deliberately narrow
 - Displays registered version, install location, size estimate and uninstall command.
 - Starts a registered uninstaller only after showing the command for confirmation.
 - Enables candidate review only after CleanLens launched that uninstaller and a fresh registry scan no longer lists the application.
-- Scans exact publisher/product directory pairs under AppData and ProgramData.
+- Scans exact product-named folders and exact publisher/product directory pairs under AppData and ProgramData only after a registry-confirmed uninstall.
 - Shows why a folder matched and leaves every candidate unselected.
 - Moves reviewed folders into a local quarantine and can restore them when the original path is free.
 - Stores operation history and quarantine metadata in a local SQLite database.
@@ -45,7 +45,7 @@ The project is in early development. The current source is a deliberately narrow
 
 ## Safety boundaries
 
-CleanLens does not scan or offer Documents, Desktop, Pictures, Music, Videos or Saved Games. It does not delete Registry entries, services, scheduled tasks, startup entries, browser extensions, drivers or shared runtimes. The current data scan only checks exact adjacent publisher/product folder pairs in standard application-data locations; it is not a comprehensive leftover scanner.
+CleanLens does not scan or offer Documents, Desktop, Pictures, Music, Videos or Saved Games. It does not delete Registry entries, services, scheduled tasks, startup entries, browser extensions, drivers or shared runtimes. The current data scan checks exact product-named folders directly under standard application-data roots and exact publisher/product directory pairs; every result is medium confidence, requires manual review and remains unselected. It is not a comprehensive leftover scanner.
 
 Cleanup moves a selected folder to quarantine. It refuses paths outside configured application-data roots, protected Windows and Program Files paths, known personal libraries, and paths containing reparse points. This reduces risk but cannot eliminate races caused by other software changing filesystem state concurrently. A quarantine move is not a guarantee that an application can be fully restored.
 

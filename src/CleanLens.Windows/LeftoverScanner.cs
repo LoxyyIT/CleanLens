@@ -23,7 +23,7 @@ public sealed class LeftoverScanner
         {
             var publisher = NormalizeToken(application.Publisher);
             var product = NormalizeToken(application.Name);
-            if (publisher.Length < 3 || product.Length < 3)
+            if (product.Length < 3)
             {
                 return [];
             }
@@ -42,10 +42,22 @@ public sealed class LeftoverScanner
                     continue;
                 }
 
-                foreach (var publisherPath in publishers)
+                var candidatePaths = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+                foreach (var path in publishers)
                 {
                     cancellationToken.ThrowIfCancellationRequested();
-                    if (NormalizeToken(Path.GetFileName(publisherPath)) != publisher || !IsSafeDirectory(publisherPath))
+                    if (!IsSafeDirectory(path))
+                    {
+                        continue;
+                    }
+
+                    var folderName = NormalizeToken(Path.GetFileName(path));
+                    if (folderName.Equals(product, StringComparison.OrdinalIgnoreCase))
+                    {
+                        candidatePaths.Add(path);
+                    }
+
+                    if (publisher.Length < 3 || !folderName.Equals(publisher, StringComparison.OrdinalIgnoreCase))
                     {
                         continue;
                     }
@@ -53,30 +65,36 @@ public sealed class LeftoverScanner
                     IEnumerable<string> products;
                     try
                     {
-                        products = Directory.EnumerateDirectories(publisherPath, "*", SearchOption.TopDirectoryOnly).ToArray();
+                        products = Directory.EnumerateDirectories(path, "*", SearchOption.TopDirectoryOnly).ToArray();
                     }
                     catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or System.Security.SecurityException)
                     {
                         continue;
                     }
-
-                    foreach (var path in products)
+                    foreach (var productPath in products)
                     {
-                        if (NormalizeToken(Path.GetFileName(path)) != product || !IsSafeDirectory(path))
+                        if (NormalizeToken(Path.GetFileName(productPath)) == product && IsSafeDirectory(productPath))
                         {
-                            continue;
+                            candidatePaths.Add(productPath);
                         }
-
-                        var size = MeasureTopLevel(path, cancellationToken);
-                        found.Add(new LeftoverCandidate(
-                            path,
-                            root.Equals(Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData), StringComparison.OrdinalIgnoreCase) ? CandidateCategory.ProgramData : CandidateCategory.ApplicationData,
-                            ConfidenceScorer.Score(2, exactProductIdentity: true, isUserData: false),
-                            "Exact publisher and product directory components match the registered application identity under a standard application-data root.",
-                            size,
-                            false,
-                            false));
                     }
+                }
+
+                foreach (var path in candidatePaths)
+                {
+                    var publisherFolderMatches = NormalizeToken(Path.GetFileName(Path.GetDirectoryName(path)!)).Equals(publisher, StringComparison.OrdinalIgnoreCase);
+                    var reason = publisherFolderMatches
+                        ? "Exact publisher and product directory components match the registered application identity under a standard application-data root."
+                        : "Exact product folder under a standard application-data root after the registered uninstall entry disappeared. Review the path before moving it.";
+                    var size = MeasureTopLevel(path, cancellationToken);
+                    found.Add(new LeftoverCandidate(
+                        path,
+                        root.Equals(Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData), StringComparison.OrdinalIgnoreCase) ? CandidateCategory.ProgramData : CandidateCategory.ApplicationData,
+                        ConfidenceScorer.Score(2, exactProductIdentity: true, isUserData: false),
+                        reason,
+                        size,
+                        false,
+                        false));
                 }
             }
 
