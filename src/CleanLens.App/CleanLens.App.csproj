@@ -6,6 +6,7 @@
     <EnableWindowsTargeting>true</EnableWindowsTargeting>
     <RootNamespace>CleanLens.App</RootNamespace>
     <AssemblyName>CleanLens</AssemblyName>
+    <ApplicationIcon>Assets\CleanLens.ico</ApplicationIcon>
     <Version>0.1.0</Version>
     <AssemblyVersion>0.1.0.0</AssemblyVersion>
     <FileVersion>0.1.0.0</FileVersion>
@@ -13,6 +14,7 @@
   </PropertyGroup>
   <ItemGroup>
     <Resource Include="..\..\logo.png" Link="logo.png" />
+    <Resource Include="Assets\CleanLens.ico" />
     <ProjectReference Include="..\CleanLens.Core\CleanLens.Core.csproj" />
     <ProjectReference Include="..\CleanLens.Windows\CleanLens.Windows.csproj" />
     <ProjectReference Include="..\CleanLens.Data\CleanLens.Data.csproj" />
