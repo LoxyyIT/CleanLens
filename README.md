@@ -61,7 +61,7 @@ CleanLens starts only an existing, fully qualified executable path, apart from M
 
 The WPF application and static website support English, Italian, Spanish and French. The desktop language choice is saved locally. Overview has been consolidated into the Applications page. Appearance themes and accessibility validation are still planned.
 
-No verified desktop screenshots are included yet. The website's product illustration is labelled as a concept, not a real capture.
+The project site includes an actual Windows capture of the CleanLens app. It shows a local inventory filtered to Microsoft Visual C++ entries; application data and inventory counts vary by PC.
 
 ## Build
 

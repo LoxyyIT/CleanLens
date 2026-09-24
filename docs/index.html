@@ -44,21 +44,10 @@
           <p class="hero-note" data-i18n="heroNote">Early development · no public Windows release yet.</p>
           <div class="hero-points"><span><i class="point-dot cyan"></i><span data-i18n="heroPoint1">Review paths before cleanup</span></span><span><i class="point-dot teal"></i><span data-i18n="heroPoint2">Manual personal cleanup is explicit</span></span><span><i class="point-dot violet"></i><span data-i18n="heroPoint3">Move to local quarantine</span></span></div>
         </div>
-        <div class="hero-visual" aria-label="Illustrative product concept" data-i18n-aria="illustrationLabel">
-          <div class="window-frame">
-            <div class="window-top"><div class="window-controls"><i></i><i></i><i></i></div><span>CleanLens</span><span class="window-state"><b></b> LOCAL</span></div>
-            <div class="window-body">
-              <aside class="mock-sidebar"><div class="mock-brand"><img src="assets/images/logo.png" alt=""><strong>CleanLens</strong></div><div class="mock-nav active"><span>▦</span><span data-i18n="mockApps">Applications</span></div><div class="mock-nav"><span>⌕</span><span data-i18n="mockLeftovers">Leftover review</span></div><div class="mock-nav"><span>◷</span><span data-i18n="mockHistory">History</span></div><div class="mock-local"><span data-i18n="mockLocal">LOCAL ONLY</span><br><small data-i18n="mockLocalCopy">Your scan stays on this PC</small></div></aside>
-              <div class="mock-content"><div class="mock-heading"><span class="mock-kicker" data-i18n="mockReview">APPLICATION REVIEW</span><strong data-i18n="mockApp">Example app</strong><small data-i18n="mockSubtitle">Illustrative UI concept · not a real scan</small></div>
-                <div class="mock-summary"><div><small data-i18n="mockData">APPLICATION DATA</small><b data-i18n="mockPaths">Review paths</b></div><span class="mock-badge" data-i18n="mockNotSelected">NOT SELECTED</span></div>
-                <div class="mock-row"><span class="folder-icon">▰</span><div><b>%APPDATA%\Publisher\Product</b><small data-i18n="mockReason">Exact publisher/product path · application data</small></div><span class="confidence" data-i18n="mockMedium">MEDIUM</span></div>
-                <div class="mock-row muted-row"><span class="folder-icon">▰</span><div><b>Documents\Example Projects</b><small data-i18n="mockPersonalCopy">Personal files require manual review</small></div><span class="kept" data-i18n="mockKept">KEPT</span></div>
-                <div class="mock-footer"><span><span data-i18n="mockPersonal">Personal data</span> <b data-i18n="mockNever">Only by explicit choice</b></span><button type="button" disabled data-i18n="mockMove">Move to quarantine</button></div>
-              </div>
-            </div>
-          </div>
-          <p class="visual-caption" data-i18n="visualCaption">Product concept illustration · interface details may change.</p>
-        </div>
+        <figure class="hero-visual" aria-label="Real CleanLens app screenshot" data-i18n-aria="screenshotLabel">
+          <img class="app-screenshot" src="assets/images/cleanlens-app-capture.png" alt="CleanLens Windows app showing an installed-app inventory and selected application details." data-i18n-alt="screenshotAlt" fetchpriority="high">
+          <figcaption id="app-screenshot-caption" class="visual-caption"><span data-i18n="visualCaption">Live Windows capture · local inventory example.</span><a href="assets/images/cleanlens-app-capture.png" target="_blank" rel="noreferrer" data-i18n="screenshotFullSize">Open full-size screenshot ↗</a></figcaption>
+        </figure>
       </div>
     </section>
     <section class="principle-strip"><div class="shell principle-grid"><div><span class="principle-icon">⌕</span><b data-i18n="principle1">Show first. Delete second.</b></div><div><span class="principle-icon">◇</span><b data-i18n="principle2">Personal data is never just another leftover.</b></div><div><span class="principle-icon">↺</span><b data-i18n="principle3">Quarantine before permanent removal.</b></div></div></section>
@@ -80,7 +69,6 @@ dotnet build CleanLens.sln -c Release
 dotnet test CleanLens.sln -c Release
 dotnet publish src/CleanLens.App/CleanLens.App.csproj -c Release -r win-x64 --self-contained true</code></pre><p data-i18n="buildNote">Portable packaging and a public release are not available yet.</p></div>
     </div></section>
-    <section class="section screenshots-section"><div class="shell"><div class="section-intro centered"><p class="eyebrow" data-i18n="screensEyebrow">REAL CAPTURES ONLY</p><h2 data-i18n="screensTitle">Product screenshots will go here.</h2><p data-i18n="screensCopy">There are no verified application screenshots in the repository yet. The hero above is labelled as an illustration.</p></div><div class="screens-empty"><div class="screens-mark"><img src="assets/images/logo.png" alt=""></div><b data-i18n="screensEmpty">Screenshots to be added after a real Windows capture.</b><span data-i18n="screensNote">No fabricated app captures are used on this page.</span></div></div></section>
     <section class="section section-soft privacy-section"><div class="shell privacy-grid"><div class="section-intro"><p class="eyebrow" data-i18n="privacyEyebrow">LOCAL BY DEFAULT</p><h2 data-i18n="privacyTitle">Your app data stays on your PC.</h2><p data-i18n="privacyCopy">CleanLens has no account, cloud service, telemetry or analytics in the current source. Registry and file scans run locally.</p></div><div class="privacy-list"><div><span>✓</span><p data-i18n="privacy1">No telemetry or analytics configured.</p></div><div><span>✓</span><p data-i18n="privacy2">No user files are uploaded.</p></div><div><span>✓</span><p data-i18n="privacy3">History and quarantine metadata stay in local app data.</p></div><div><span>✓</span><p data-i18n="privacy4">No account or network connection is required by the desktop workflow.</p></div></div></div></section>
     <section class="section limits-section"><div class="shell limits-grid"><div class="section-intro"><p class="eyebrow" data-i18n="limitsEyebrow">HONEST LIMITS</p><h2 data-i18n="limitsTitle">A careful tool says what it cannot do.</h2></div><ul><li data-i18n="limit1">MSIX and Microsoft Store inventory are not implemented.</li><li data-i18n="limit2">Services, scheduled tasks, startup entries and Registry cleanup are read-only or not yet scanned.</li><li data-i18n="limit3">The leftover scanner covers a small set of exact application-data folders only.</li><li data-i18n="limit4">Four-language desktop localization and appearance settings are not implemented yet.</li><li data-i18n="limit5">A self-contained portable package and real Windows UI validation are still pending.</li></ul></div></section>
   </main>
