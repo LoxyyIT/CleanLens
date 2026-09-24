@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.1.1 — Manual quarantine options
+
+- Expanded manual cleanup matching to registered user profiles, Program Files x64/x86 and additional app-data roots.
+- Added a reversible quarantine action alongside permanent deletion in the manual path review.
+- Added quarantine and restore support for both files and folders.
+
 ## 0.1.0 — First Windows preview
 
 - Added a WPF application targeting .NET 10 for Windows x64.
@@ -11,4 +17,4 @@
 - Added English, Italian, Spanish and French desktop localization with a saved language choice.
 - Added a static four-language project website.
 
-The 0.1.0 release is an early Windows x64 preview distributed as an unsigned portable ZIP. It is not an installer and does not include an updater.
+The 0.1.1 release is an early Windows x64 preview distributed as an unsigned portable ZIP. It is not an installer and does not include an updater.

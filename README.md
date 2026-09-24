@@ -41,13 +41,13 @@ The project is in early development. The current source is a deliberately narrow
 - Shows why a folder matched and leaves every candidate unselected.
 - Moves reviewed folders into a local quarantine and can restore them when the original path is free.
 - Shows registered Windows app icons in the inventory, with a monogram fallback when Windows has no icon.
-- Offers a separate, opt-in manual delete review for exact folder-name matches in common personal folders. Each full path starts unselected and permanent deletion requires a second confirmation.
+- Offers a separate, opt-in manual review across registered install paths, Program Files x64/x86, app-data folders in accessible user profiles, Steam paths and supported personal libraries. Matches are exact and start unselected; you can move selected files or folders to quarantine or delete them permanently after a second confirmation.
 - Stores operation history and quarantine metadata in a local SQLite database.
 - Persists the selected language and safety acknowledgement locally.
 
 ## Safety boundaries
 
-The standard leftover scan checks exact product-named folders in AppData and ProgramData after an uninstall is confirmed. Manual delete lists Windows-registered and Windows Installer paths, Steam game files and related app-ID data from Steam manifests, exact app-data matches in AppData and ProgramData, and exact-name matches throughout accessible subfolders in common personal libraries. It never selects a result automatically, and a matching name is not proof that a folder belongs to the app. Review each path carefully; deletion is permanent and may remove program or personal files. It does not scan the whole disk or identify individual files by content.
+The standard leftover scan checks exact product-named folders in AppData and ProgramData after an uninstall is confirmed. Manual delete adds registered install and Windows Installer paths, exact app-name or publisher/product folders in Program Files and Program Files (x86), AppData and direct profile folders in accessible Windows profiles, Steam game files and related app-ID data, plus exact-name matches throughout supported personal libraries. It never selects a result automatically, and a matching name is not proof that a path belongs to the app. Selected files or folders can be moved to local quarantine or permanently deleted after a second confirmation. Review each path carefully; deletion may remove program or personal files. It does not scan the whole disk or identify individual files by content.
 
 Standard cleanup moves a selected application-data folder to quarantine. Manual deletion is a distinct, irreversible operation. Both actions revalidate selected paths and refuse paths outside supported roots and folders containing reparse points. This reduces risk but cannot eliminate races caused by other software changing filesystem state concurrently. A quarantine move is not a guarantee that an application can be fully restored.
 
