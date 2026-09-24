@@ -5,8 +5,6 @@ namespace CleanLens.Windows;
 
 public sealed class ManualDeleteService
 {
-    private const int MaximumDirectoriesPerRoot = 20000;
-    private const int MaximumDepth = 3;
 
     public Task<IReadOnlyList<string>> FindExactNameMatchesAsync(InstalledApplication application, CancellationToken cancellationToken = default) =>
         Task.Run<IReadOnlyList<string>>(() => FindExactNameMatches(application, cancellationToken), cancellationToken);
@@ -54,46 +52,37 @@ public sealed class ManualDeleteService
                 continue;
             }
 
-            var pending = new Stack<(string Path, int Depth)>();
-            pending.Push((root, 0));
-            var visited = 0;
-            while (pending.Count > 0 && visited < MaximumDirectoriesPerRoot)
+            var pending = new Stack<string>();
+            pending.Push(root);
+            while (pending.Count > 0)
             {
                 cancellationToken.ThrowIfCancellationRequested();
-                var (current, depth) = pending.Pop();
-                if (depth >= MaximumDepth)
-                {
-                    continue;
-                }
-                string[] children;
+                var current = pending.Pop();
                 try
                 {
-                    children = Directory.EnumerateDirectories(current, "*", SearchOption.TopDirectoryOnly).Take(MaximumDirectoriesPerRoot - visited).ToArray();
+                    foreach (var child in Directory.EnumerateDirectories(current, "*", SearchOption.TopDirectoryOnly))
+                    {
+                        cancellationToken.ThrowIfCancellationRequested();
+                        try
+                        {
+                            if (DeletionPathPolicy.ContainsReparsePoint(child))
+                            {
+                                continue;
+                            }
+                            if (NormalizeToken(Path.GetFileName(child)).Equals(product, StringComparison.OrdinalIgnoreCase))
+                            {
+                                results.Add(Path.GetFullPath(child));
+                                continue;
+                            }
+                            pending.Push(child);
+                        }
+                        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or System.Security.SecurityException or ArgumentException)
+                        {
+                        }
+                    }
                 }
                 catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or System.Security.SecurityException)
                 {
-                    continue;
-                }
-
-                foreach (var child in children)
-                {
-                    visited++;
-                    try
-                    {
-                        if (DeletionPathPolicy.ContainsReparsePoint(child))
-                        {
-                            continue;
-                        }
-                        if (NormalizeToken(Path.GetFileName(child)).Equals(product, StringComparison.OrdinalIgnoreCase))
-                        {
-                            results.Add(Path.GetFullPath(child));
-                            continue;
-                        }
-                        pending.Push((child, depth + 1));
-                    }
-                    catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or System.Security.SecurityException or ArgumentException)
-                    {
-                    }
                 }
             }
         }

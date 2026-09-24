@@ -47,7 +47,7 @@ The project is in early development. The current source is a deliberately narrow
 
 ## Safety boundaries
 
-The standard leftover scan checks exact product-named folders in AppData and ProgramData after an uninstall is confirmed. The separate manual-delete action searches only common personal folders, up to three directory levels, for exact folder-name matches. It never selects a result automatically, and a matching name is not proof that the folder belongs to the app. Review every path carefully; deletion is permanent and may remove personal files. Coverage is limited and is not a comprehensive whole-PC scan.
+The standard leftover scan checks exact product-named folders in AppData and ProgramData after an uninstall is confirmed. The separate manual-delete action recursively searches accessible subfolders in common personal libraries for exact folder-name matches. It never selects a result automatically, and a matching name is not proof that the folder belongs to the app. Review every path carefully; deletion is permanent and may remove personal files. It does not scan the whole disk or identify individual files by content.
 
 Standard cleanup moves a selected application-data folder to quarantine. Manual deletion is a distinct, irreversible operation. Both actions revalidate selected paths and refuse paths outside supported roots and folders containing reparse points. This reduces risk but cannot eliminate races caused by other software changing filesystem state concurrently. A quarantine move is not a guarantee that an application can be fully restored.
 
