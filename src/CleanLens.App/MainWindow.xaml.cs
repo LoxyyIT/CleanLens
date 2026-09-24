@@ -68,6 +68,14 @@ public partial class MainWindow : Window
         }
     }
 
+    private void SearchScope_Changed(object sender, SelectionChangedEventArgs e)
+    {
+        if (sender is ComboBox comboBox && DataContext is MainViewModel viewModel)
+        {
+            viewModel.UpdateSearchScope(comboBox.SelectedIndex);
+        }
+    }
+
     private void Language_Changed(object sender, SelectionChangedEventArgs e)
     {
         if (sender is ComboBox comboBox && comboBox.SelectedValue is string language && DataContext is MainViewModel viewModel &&

@@ -28,6 +28,7 @@ public partial class MainViewModel : ObservableObject
     private string? pendingUninstallApplicationId;
     private bool uninstallRemovalVerified;
     private string searchText = string.Empty;
+    private int searchScope;
     private int filterIndex;
 
     [ObservableProperty]
@@ -212,6 +213,12 @@ public partial class MainViewModel : ObservableObject
     public void UpdateSearch(string value)
     {
         searchText = value.Trim();
+        RefreshVisibleApplications();
+    }
+
+    public void UpdateSearchScope(int value)
+    {
+        searchScope = value;
         RefreshVisibleApplications();
     }
 
@@ -447,11 +454,25 @@ public partial class MainViewModel : ObservableObject
     private void RefreshVisibleApplications()
     {
         var filtered = Applications.Where(application =>
-            searchText.Length == 0 || application.SearchText.Contains(searchText, StringComparison.CurrentCultureIgnoreCase));
+        {
+            var searchableText = searchScope switch
+            {
+                1 => application.Name,
+                2 => application.Publisher,
+                3 => application.Version,
+                4 => application.InstallLocation,
+                _ => application.SearchText
+            };
+            return searchText.Length == 0 || searchableText.Contains(searchText, StringComparison.CurrentCultureIgnoreCase);
+        });
         filtered = filterIndex switch
         {
-            1 => filtered.Where(application => application.UninstallCommand.Length == 0),
-            2 => filtered.Where(application => application.Publisher.Length == 0),
+            1 => filtered.Where(application => application.UninstallCommand.Length > 0),
+            2 => filtered.Where(application => application.UninstallCommand.Length == 0),
+            3 => filtered.Where(application => application.Publisher.Length > 0),
+            4 => filtered.Where(application => application.Publisher.Length == 0),
+            5 => filtered.Where(application => application.EstimatedSizeKilobytes is not null),
+            6 => filtered.Where(application => application.EstimatedSizeKilobytes is null),
             _ => filtered
         };
         VisibleApplications.Clear();

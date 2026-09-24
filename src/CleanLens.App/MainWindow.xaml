@@ -130,15 +130,28 @@
                         <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="*" /></Grid.RowDefinitions>
                         <Grid Margin="0,0,0,15">
                             <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="280" />
+                                <ColumnDefinition Width="235" />
+                                <ColumnDefinition Width="8" />
+                                <ColumnDefinition Width="158" />
                                 <ColumnDefinition Width="*" />
-                                <ColumnDefinition Width="155" />
+                                <ColumnDefinition Width="184" />
                             </Grid.ColumnDefinitions>
                             <TextBox x:Name="SearchBox" Grid.Column="0" Height="38" Padding="11,0" HorizontalAlignment="Stretch" VerticalContentAlignment="Center" BorderBrush="{StaticResource LineBrush}" BorderThickness="1" TextChanged="Search_Changed" ToolTip="{Binding Texts[SearchTooltip]}" />
-                            <ComboBox x:Name="FilterCombo" Grid.Column="2" Width="155" Height="38" HorizontalAlignment="Right" SelectedIndex="0" SelectionChanged="Filter_Changed">
+                            <ComboBox x:Name="SearchScopeCombo" Grid.Column="2" Height="38" SelectedIndex="0" SelectionChanged="SearchScope_Changed">
+                                <ComboBoxItem Content="{Binding Texts[SearchAllFields]}" />
+                                <ComboBoxItem Content="{Binding Texts[SearchName]}" />
+                                <ComboBoxItem Content="{Binding Texts[SearchPublisher]}" />
+                                <ComboBoxItem Content="{Binding Texts[SearchVersion]}" />
+                                <ComboBoxItem Content="{Binding Texts[SearchLocation]}" />
+                            </ComboBox>
+                            <ComboBox x:Name="FilterCombo" Grid.Column="4" Width="184" Height="38" HorizontalAlignment="Right" SelectedIndex="0" SelectionChanged="Filter_Changed">
                                 <ComboBoxItem Content="{Binding Texts[AllApplications]}" />
+                                <ComboBoxItem Content="{Binding Texts[HasUninstaller]}" />
                                 <ComboBoxItem Content="{Binding Texts[WithoutUninstaller]}" />
+                                <ComboBoxItem Content="{Binding Texts[KnownPublisher]}" />
                                 <ComboBoxItem Content="{Binding Texts[UnknownPublisher]}" />
+                                <ComboBoxItem Content="{Binding Texts[ReportedSize]}" />
+                                <ComboBoxItem Content="{Binding Texts[UnreportedSize]}" />
                             </ComboBox>
                         </Grid>
                         <DataGrid x:Name="ApplicationsDataGrid" Grid.Row="1" ItemsSource="{Binding VisibleApplications}" SelectedItem="{Binding SelectedApplication, Mode=TwoWay}" AutoGenerateColumns="False" CanUserAddRows="False" IsReadOnly="True" HeadersVisibility="Column" RowHeight="55" ColumnHeaderHeight="40" Background="Transparent">
@@ -156,8 +169,8 @@
                                     </DataGridTemplateColumn.CellTemplate>
                                 </DataGridTemplateColumn>
                                 <DataGridTextColumn Header="APPLICATION" Binding="{Binding Name}" ElementStyle="{StaticResource ApplicationNameCell}" Width="2*" />
-                                <DataGridTextColumn Header="PUBLISHER" Binding="{Binding Publisher}" ElementStyle="{StaticResource PublisherCell}" Width="*" />
-                                <DataGridTextColumn Header="VERSION" Binding="{Binding Version}" ElementStyle="{StaticResource VersionCell}" Width="*" />
+                                <DataGridTextColumn Header="PUBLISHER" Binding="{Binding Publisher}" ElementStyle="{StaticResource PublisherCell}" Width="1.4*" MinWidth="150" />
+                                <DataGridTextColumn Header="VERSION" Binding="{Binding Version}" ElementStyle="{StaticResource VersionCell}" Width="1.1*" MinWidth="110" />
                                 <DataGridTemplateColumn Header="SIZE · EST." Width="110">
                                     <DataGridTemplateColumn.CellTemplate>
                                         <DataTemplate>
