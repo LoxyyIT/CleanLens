@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-labelledby="title">
+  <title id="title">CleanLens</title>
+  <defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#13abc4"/><stop offset="1" stop-color="#3e72ee"/></linearGradient></defs>
+  <rect x="2" y="2" width="60" height="60" rx="19" fill="#102b47"/>
+  <path d="M12 31c5.4-9.1 12.1-13.7 20-13.7S46.6 21.9 52 31c-5.4 9.1-12.1 13.7-20 13.7S17.4 40.1 12 31Z" fill="none" stroke="url(#g)" stroke-width="4" stroke-linejoin="round"/>
+  <circle cx="32" cy="31" r="7.5" fill="#fff"/><path d="m37.5 36.5 9 9" stroke="#67d0d0" stroke-width="4" stroke-linecap="round"/>
+</svg>

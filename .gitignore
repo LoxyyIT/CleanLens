@@ -1,0 +1,12 @@
+**/bin/
+**/obj/
+.vs/
+.idea/
+.playwright-cli/
+output/
+artifacts/
+*.user
+*.suo
+TestResults/
+playwright-report/
+node_modules/

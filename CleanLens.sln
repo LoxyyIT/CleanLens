@@ -1,0 +1,42 @@
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.0.31903.59
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CleanLens.Core", "src\CleanLens.Core\CleanLens.Core.csproj", "{D768F8B5-629B-4AA5-9AA3-35D0C84E1151}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CleanLens.Windows", "src\CleanLens.Windows\CleanLens.Windows.csproj", "{BBAAF388-20C5-4CEE-A7DF-5A79082145A2}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CleanLens.Data", "src\CleanLens.Data\CleanLens.Data.csproj", "{E940B6B6-7EFC-44B0-A8D0-4732F8DA180B}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CleanLens.App", "src\CleanLens.App\CleanLens.App.csproj", "{D5D6012D-A2A1-4ED1-85E1-57BC47A33462}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CleanLens.Core.Tests", "tests\CleanLens.Core.Tests\CleanLens.Core.Tests.csproj", "{EC746DCA-C0F8-4A0D-90D4-B2AAB6E4CC48}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{D768F8B5-629B-4AA5-9AA3-35D0C84E1151}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{D768F8B5-629B-4AA5-9AA3-35D0C84E1151}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{D768F8B5-629B-4AA5-9AA3-35D0C84E1151}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{D768F8B5-629B-4AA5-9AA3-35D0C84E1151}.Release|Any CPU.Build.0 = Release|Any CPU
+		{BBAAF388-20C5-4CEE-A7DF-5A79082145A2}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{BBAAF388-20C5-4CEE-A7DF-5A79082145A2}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{BBAAF388-20C5-4CEE-A7DF-5A79082145A2}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{BBAAF388-20C5-4CEE-A7DF-5A79082145A2}.Release|Any CPU.Build.0 = Release|Any CPU
+		{D5D6012D-A2A1-4ED1-85E1-57BC47A33462}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{D5D6012D-A2A1-4ED1-85E1-57BC47A33462}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{D5D6012D-A2A1-4ED1-85E1-57BC47A33462}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{D5D6012D-A2A1-4ED1-85E1-57BC47A33462}.Release|Any CPU.Build.0 = Release|Any CPU
+		{EC746DCA-C0F8-4A0D-90D4-B2AAB6E4CC48}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{EC746DCA-C0F8-4A0D-90D4-B2AAB6E4CC48}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{EC746DCA-C0F8-4A0D-90D4-B2AAB6E4CC48}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{EC746DCA-C0F8-4A0D-90D4-B2AAB6E4CC48}.Release|Any CPU.Build.0 = Release|Any CPU
+		{E940B6B6-7EFC-44B0-A8D0-4732F8DA180B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{E940B6B6-7EFC-44B0-A8D0-4732F8DA180B}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{E940B6B6-7EFC-44B0-A8D0-4732F8DA180B}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{E940B6B6-7EFC-44B0-A8D0-4732F8DA180B}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+EndGlobal

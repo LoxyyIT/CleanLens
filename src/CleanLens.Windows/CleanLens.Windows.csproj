@@ -1,0 +1,11 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <EnableWindowsTargeting>true</EnableWindowsTargeting>
+    <RootNamespace>CleanLens.Windows</RootNamespace>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\CleanLens.Core\CleanLens.Core.csproj" />
+    <ProjectReference Include="..\CleanLens.Data\CleanLens.Data.csproj" />
+  </ItemGroup>
+</Project>
