@@ -20,9 +20,16 @@
   <img src="https://img.shields.io/badge/platform-Windows-0b6cff" alt="Windows">
   <img src="https://img.shields.io/badge/UI-WPF-1677ff" alt="WPF">
   <img src="https://img.shields.io/badge/runtime-.NET%2010-512bd4" alt=".NET 10">
+  <a href="https://github.com/LoxyyIT/CleanLens/releases/tag/v0.1.1"><img src="https://img.shields.io/badge/release-v0.1.1-396be8" alt="CleanLens 0.1.1 release"></a>
   <img src="https://img.shields.io/badge/license-MIT-18a06f" alt="MIT">
   <img src="https://img.shields.io/badge/status-early%20development-c78b2f" alt="Early development">
 </p>
+
+<p align="center">
+  <img src="docs/assets/images/cleanlens-app-capture.png" alt="CleanLens showing a local application inventory and selected app details" width="920">
+</p>
+
+<p align="center"><em>Real Windows capture. Inventory and app details vary by PC.</em></p>
 
 ## Why CleanLens
 
@@ -30,24 +37,21 @@ An application's official uninstaller can leave settings, caches and other appli
 
 The project is in early development. The current source is a deliberately narrow Windows prototype; it is not yet the complete uninstaller described in the long-term roadmap.
 
-## What works in this source tree
+## Features
 
-- Reads registered uninstall entries from HKLM and HKCU in both 32-bit and 64-bit Registry views.
-- Searches the inventory by name, publisher, version, executable metadata and install path.
-- Displays registered version, install location, size estimate and uninstall command.
-- Starts a registered uninstaller only after showing the command for confirmation.
-- Enables candidate review only after CleanLens launched that uninstaller and a fresh registry scan no longer lists the application.
-- Scans exact product-named folders and exact publisher/product directory pairs under AppData and ProgramData only after a registry-confirmed uninstall.
-- Shows why a folder matched and leaves every candidate unselected.
-- Moves reviewed folders into a local quarantine and can restore them when the original path is free.
-- Shows registered Windows app icons in the inventory, with a monogram fallback when Windows has no icon.
-- Offers a separate, opt-in manual review across registered install paths, Program Files x64/x86, app-data folders in accessible user profiles, Steam paths and supported personal libraries. Matches are exact and start unselected; you can move selected files or folders to quarantine or delete them permanently after a second confirmation.
-- Stores operation history and quarantine metadata in a local SQLite database.
-- Persists the selected language and safety acknowledgement locally.
+- **Installed app inventory:** reads uninstall entries from HKLM and HKCU in both 32-bit and 64-bit Registry views. App icons come from Windows, with a monogram fallback when an icon is unavailable.
+- **Search and filters:** search all fields or narrow by app name, publisher, version or install path. Filter by uninstaller availability, publisher information and reported size.
+- **Reviewed uninstall:** inspect the registered uninstall command before CleanLens asks Windows to launch it. The command comes from local Registry metadata and remains under the app's own uninstall logic.
+- **Leftover review:** after the uninstall completes and a fresh inventory confirms the app is no longer registered, scan exact product folders and publisher/product pairs in the current user's AppData and shared ProgramData. Each result includes its full path, reason, size estimate and confidence; nothing is selected automatically.
+- **Manual delete scan:** separately review registered install and Windows Installer locations, Program Files and Program Files (x86), app-data folders in accessible Windows profiles, Steam app-ID paths and exact-name matches in supported personal libraries.
+- **Quarantine or permanent deletion:** from the manual path list, move selected files and folders into local quarantine for later restore, or permanently delete them after a separate confirmation. If Windows denies a move, CleanLens asks you to restart it as administrator; it does not elevate itself.
+- **Local records and settings:** browse operation history and quarantined items, restore items when their original paths are available, and keep the selected interface language and safety acknowledgement locally.
 
 ## Safety boundaries
 
-The standard leftover scan checks exact product-named folders in AppData and ProgramData after an uninstall is confirmed. Manual delete adds registered install and Windows Installer paths, exact app-name or publisher/product folders in Program Files and Program Files (x86), AppData and direct profile folders in accessible Windows profiles, Steam game files and related app-ID data, plus exact-name matches throughout supported personal libraries. It never selects a result automatically, and a matching name is not proof that a path belongs to the app. Selected files or folders can be moved to local quarantine or permanently deleted after a second confirmation. Review each path carefully; deletion may remove program or personal files. It does not scan the whole disk or identify individual files by content.
+The standard leftover scan checks exact product-named folders in the current user's AppData and shared ProgramData only after an uninstall is confirmed. Manual delete checks the additional locations listed above, including Program Files x64/x86, app data from accessible user profiles and selected personal libraries. It uses exact folder-name or publisher/product matches; a matching name is not proof that a path belongs to the app. Every result starts unchecked. Moving to quarantine is reversible when the original path is free; permanent deletion has a separate confirmation and may remove program or personal files.
+
+CleanLens does not scan the whole disk, inspect file contents, or cover every Windows app type and every leftover location. MSIX inventory, services, scheduled tasks and startup entries are not part of the current cleanup scan. Junctions and symbolic links are refused by cleanup guards, but path checks cannot eliminate every race with other software.
 
 Standard cleanup moves a selected application-data folder to quarantine. Manual deletion is a distinct, irreversible operation. Both actions revalidate selected paths and refuse paths outside supported roots and folders containing reparse points. This reduces risk but cannot eliminate races caused by other software changing filesystem state concurrently. A quarantine move is not a guarantee that an application can be fully restored.
 
@@ -60,8 +64,6 @@ CleanLens starts only an existing, fully qualified executable path, apart from M
 ## Interface
 
 The WPF application and static website support English, Italian, Spanish and French. The desktop language choice is saved locally. Overview has been consolidated into the Applications page. Appearance themes and accessibility validation are still planned.
-
-The project site includes an actual Windows capture of the CleanLens app. It shows a local inventory filtered to Microsoft Visual C++ entries; application data and inventory counts vary by PC.
 
 ## Download
 
