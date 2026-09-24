@@ -5,6 +5,8 @@ public sealed class DeletionPathPolicy
     private readonly string[] protectedRoots;
     private readonly string[] allowedRoots;
 
+    public IReadOnlyList<string> AllowedRoots => allowedRoots;
+
     public DeletionPathPolicy(IEnumerable<string> allowedRoots, IEnumerable<string>? protectedRoots = null)
     {
         this.allowedRoots = allowedRoots.Select(NormalizeRoot).Distinct(StringComparer.OrdinalIgnoreCase).ToArray();

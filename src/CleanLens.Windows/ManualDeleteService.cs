@@ -1,5 +1,6 @@
 using CleanLens.Core.Models;
 using CleanLens.Core.Safety;
+using Microsoft.Win32;
 using System.Runtime.InteropServices;
 using System.Text;
 using System.Text.RegularExpressions;
@@ -18,6 +19,35 @@ public sealed class ManualDeleteService
 
     public Task<IReadOnlyList<ManualDeleteCandidate>> FindExactNameMatchesAsync(InstalledApplication application, CancellationToken cancellationToken = default, IProgress<int>? progress = null) =>
         Task.Run<IReadOnlyList<ManualDeleteCandidate>>(() => FindExactNameMatches(application, cancellationToken, progress), cancellationToken);
+
+    public Task<string> MoveCandidateToQuarantineAsync(
+        InstalledApplication application,
+        string candidatePath,
+        QuarantineService quarantineService,
+        string operationText,
+        string resultText,
+        CancellationToken cancellationToken = default)
+    {
+        var candidatePolicy = CreatePolicy(application);
+        if (!candidatePolicy.TryValidate(candidatePath, out var canonicalPath, out var reason))
+        {
+            throw new InvalidOperationException(reason);
+        }
+        if (!IsKnownCandidate(canonicalPath, application))
+        {
+            throw new InvalidOperationException("The selected path is no longer a supported candidate.");
+        }
+        return quarantineService.MoveManualCandidateAsync(
+            canonicalPath,
+            application.Name,
+            candidatePolicy,
+            path => candidatePolicy.TryValidate(path, out var latestPath, out _) &&
+                latestPath.Equals(canonicalPath, StringComparison.OrdinalIgnoreCase) &&
+                IsKnownCandidate(latestPath, application),
+            operationText,
+            resultText,
+            cancellationToken);
+    }
 
     public Task DeleteSelectedAsync(InstalledApplication application, IEnumerable<string> selectedPaths, CancellationToken cancellationToken = default) =>
         Task.Run(() =>
@@ -76,7 +106,25 @@ public sealed class ManualDeleteService
         foreach (var root in GetApplicationDataRoots())
         {
             cancellationToken.ThrowIfCancellationRequested();
-            AddApplicationDataMatches(root, application.Publisher, productTokens, results);
+            AddExactDirectoryMatches(root, application.Publisher, productTokens, results,
+                "Exact app-name folder in an application-data root",
+                "Exact publisher/product folders in an application-data root");
+        }
+
+        foreach (var root in GetProgramRoots())
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            AddExactDirectoryMatches(root, application.Publisher, productTokens, results,
+                "Exact app-name folder in a Program Files root",
+                "Exact publisher/product folders in a Program Files root");
+        }
+
+        foreach (var root in GetUserProfileRoots())
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            AddExactDirectoryMatches(root, application.Publisher, productTokens, results,
+                "Exact app-name folder under a user profile",
+                "Exact publisher/product folders under a user profile");
         }
 
         var visitedDirectories = 0;
@@ -155,7 +203,13 @@ public sealed class ManualDeleteService
         }
     }
 
-    private static void AddApplicationDataMatches(string root, string publisher, IReadOnlySet<string> productTokens, IDictionary<string, string> results)
+    private static void AddExactDirectoryMatches(
+        string root,
+        string publisher,
+        IReadOnlySet<string> productTokens,
+        IDictionary<string, string> results,
+        string appNameSource,
+        string publisherProductSource)
     {
         if (!Directory.Exists(root) || !IsSafeDirectory(root))
         {
@@ -174,7 +228,7 @@ public sealed class ManualDeleteService
                 var folderToken = NormalizeToken(Path.GetFileName(folder));
                 if (productTokens.Contains(folderToken))
                 {
-                    AddCandidate(folder, "Exact app-name folder in an application-data root", results);
+                    AddCandidate(folder, appNameSource, results);
                     continue;
                 }
                 if (publisherToken.Length < 3 || !folderToken.Equals(publisherToken, StringComparison.OrdinalIgnoreCase))
@@ -185,7 +239,7 @@ public sealed class ManualDeleteService
                 {
                     if (IsSafeDirectory(productFolder) && productTokens.Contains(NormalizeToken(Path.GetFileName(productFolder))))
                     {
-                        AddCandidate(productFolder, "Exact publisher/product folders in an application-data root", results);
+                        AddCandidate(productFolder, publisherProductSource, results);
                     }
                 }
             }
@@ -510,7 +564,8 @@ public sealed class ManualDeleteService
         {
             return true;
         }
-        if (GetApplicationDataRoots().Any(root => DeletionPathPolicy.IsPathWithin(path, root)) || GetPersonalRoots().Any(root => DeletionPathPolicy.IsPathWithin(path, root)))
+        if (GetApplicationDataRoots().Concat(GetProgramRoots()).Concat(GetUserProfileRoots()).Any(root => DeletionPathPolicy.IsPathWithin(path, root)) ||
+            GetPersonalRoots().Any(root => DeletionPathPolicy.IsPathWithin(path, root)))
         {
             return productTokens.Contains(NormalizeToken(Path.GetFileName(path)));
         }
@@ -583,7 +638,8 @@ public sealed class ManualDeleteService
 
     private static string[] GetAllowedRoots(InstalledApplication application) => GetPersonalRoots()
         .Concat(GetApplicationDataRoots())
-        .Concat([Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles), Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86)])
+        .Concat(GetProgramRoots())
+        .Concat(GetUserProfileRoots())
         .Concat(GetSteamLibraryRoots(application))
         .Concat(GetRegisteredInstallLocations(application).Select(Path.GetDirectoryName).Where(path => !string.IsNullOrWhiteSpace(path)).Select(path => path!))
         .Where(path => !string.IsNullOrWhiteSpace(path) && !path.StartsWith("\\\\", StringComparison.Ordinal))
@@ -591,26 +647,135 @@ public sealed class ManualDeleteService
         .Distinct(StringComparer.OrdinalIgnoreCase)
         .ToArray();
 
-    private static string[] GetApplicationDataRoots() => new[]
+    private static string[] GetApplicationDataRoots()
     {
-        Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
-        Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-        Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData),
-        Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Programs"),
-        Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "..", "LocalLow"),
-        Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "AppData", "LocalLow")
-    }.Where(path => !string.IsNullOrWhiteSpace(path) && !path.StartsWith("\\\\", StringComparison.Ordinal)).Select(Path.GetFullPath).Distinct(StringComparer.OrdinalIgnoreCase).ToArray();
+        var paths = new List<string?>
+        {
+            Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
+            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+            Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData),
+            Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Programs")
+        };
+        foreach (var profile in GetUserProfileRoots())
+        {
+            var appData = Path.Combine(profile, "AppData");
+            paths.Add(Path.Combine(appData, "Roaming"));
+            paths.Add(Path.Combine(appData, "Local"));
+            paths.Add(Path.Combine(appData, "LocalLow"));
+            paths.Add(Path.Combine(appData, "Local", "Programs"));
+        }
+        return NormalizeRoots(paths);
+    }
 
-    private static string[] GetPersonalRoots() => new[]
+    private static string[] GetProgramRoots() => NormalizeRoots(
+    [
+        Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles),
+        Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86),
+        Environment.GetEnvironmentVariable("ProgramW6432"),
+        Environment.GetEnvironmentVariable("ProgramFiles"),
+        Environment.GetEnvironmentVariable("ProgramFiles(x86)")
+    ]);
+
+    private static string[] GetPersonalRoots()
     {
-        Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments),
-        Environment.GetFolderPath(Environment.SpecialFolder.DesktopDirectory),
-        Environment.GetFolderPath(Environment.SpecialFolder.MyPictures),
-        Environment.GetFolderPath(Environment.SpecialFolder.MyVideos),
-        Environment.GetFolderPath(Environment.SpecialFolder.MyMusic),
-        Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "Downloads"),
-        Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "Saved Games")
-    }.Where(path => !string.IsNullOrWhiteSpace(path) && !path.StartsWith("\\\\", StringComparison.Ordinal)).Select(Path.GetFullPath).Distinct(StringComparer.OrdinalIgnoreCase).ToArray();
+        var paths = new List<string?>
+        {
+            Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments),
+            Environment.GetFolderPath(Environment.SpecialFolder.DesktopDirectory),
+            Environment.GetFolderPath(Environment.SpecialFolder.MyPictures),
+            Environment.GetFolderPath(Environment.SpecialFolder.MyVideos),
+            Environment.GetFolderPath(Environment.SpecialFolder.MyMusic),
+            Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "Downloads"),
+            Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "Saved Games")
+        };
+        foreach (var profile in GetUserProfileRoots())
+        {
+            paths.Add(Path.Combine(profile, "Documents"));
+            paths.Add(Path.Combine(profile, "Desktop"));
+            paths.Add(Path.Combine(profile, "Pictures"));
+            paths.Add(Path.Combine(profile, "Videos"));
+            paths.Add(Path.Combine(profile, "Music"));
+            paths.Add(Path.Combine(profile, "Downloads"));
+            paths.Add(Path.Combine(profile, "Saved Games"));
+        }
+        return NormalizeRoots(paths);
+    }
+
+    private static string[] GetUserProfileRoots()
+    {
+        var roots = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        AddProfile(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile));
+        foreach (var view in new[] { RegistryView.Registry64, RegistryView.Registry32 })
+        {
+            try
+            {
+                using var machine = RegistryKey.OpenBaseKey(RegistryHive.LocalMachine, view);
+                using var profileList = machine.OpenSubKey(@"SOFTWARE\Microsoft\Windows NT\CurrentVersion\ProfileList");
+                if (profileList is null)
+                {
+                    continue;
+                }
+                foreach (var sid in profileList.GetSubKeyNames())
+                {
+                    try
+                    {
+                        using var profileKey = profileList.OpenSubKey(sid);
+                        if (profileKey is null || Convert.ToInt32(profileKey.GetValue("Special", 0), System.Globalization.CultureInfo.InvariantCulture) != 0)
+                        {
+                            continue;
+                        }
+                        AddProfile(profileKey.GetValue("ProfileImagePath") as string);
+                    }
+                    catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or System.Security.SecurityException or FormatException or InvalidCastException or OverflowException)
+                    {
+                    }
+                }
+            }
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or System.Security.SecurityException or ArgumentException)
+            {
+            }
+        }
+        return roots.OrderBy(path => path, StringComparer.OrdinalIgnoreCase).ToArray();
+
+        void AddProfile(string? path)
+        {
+            if (string.IsNullOrWhiteSpace(path))
+            {
+                return;
+            }
+            try
+            {
+                var fullPath = Path.GetFullPath(Environment.ExpandEnvironmentVariables(path.Trim()));
+                if (!fullPath.StartsWith("\\\\", StringComparison.Ordinal) && IsSafeDirectory(fullPath))
+                {
+                    roots.Add(fullPath);
+                }
+            }
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or System.Security.SecurityException or ArgumentException or NotSupportedException)
+            {
+            }
+        }
+    }
+
+    private static string[] NormalizeRoots(IEnumerable<string?> paths)
+    {
+        var roots = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var path in paths)
+        {
+            if (string.IsNullOrWhiteSpace(path) || path.StartsWith("\\\\", StringComparison.Ordinal))
+            {
+                continue;
+            }
+            try
+            {
+                roots.Add(Path.GetFullPath(path));
+            }
+            catch (Exception ex) when (ex is IOException or ArgumentException or NotSupportedException)
+            {
+            }
+        }
+        return roots.OrderBy(path => path, StringComparer.OrdinalIgnoreCase).ToArray();
+    }
 
     private static bool IsSafeDirectory(string path)
     {

@@ -234,23 +234,64 @@ public partial class MainWindow : Window
             return;
         }
 
-        var selectedPaths = CleanLensDialogService.SelectManualDeletePaths(
+        var selection = CleanLensDialogService.SelectManualDeletePaths(
             this,
             ViewModel.Texts["ManualDeleteTitle"],
             ViewModel.Texts["ManualDeleteIntro"],
             ViewModel.Texts["ManualDeleteCandidateCount"],
+            ViewModel.Texts["ManualDeleteQuarantine"],
             ViewModel.Texts["ManualDeleteSelected"],
             ViewModel.Texts["Cancel"],
             candidates);
-        if (selectedPaths is null)
+        if (selection is null)
         {
             return;
         }
+        var selectedPaths = selection.Paths;
         if (selectedPaths.Count == 0)
         {
             ShowLocalizedMessage(ViewModel.Texts["ManualDeleteTitle"], ViewModel.Texts["ManualDeleteSelectOne"]);
             return;
         }
+
+        if (selection.Action == ManualDeleteSelectionAction.Quarantine)
+        {
+            var selectedSet = selectedPaths.ToHashSet(StringComparer.OrdinalIgnoreCase);
+            var selectedCandidates = candidates.Where(candidate => selectedSet.Contains(candidate.Path)).ToArray();
+            var movedCount = 0;
+            var failures = new List<string>();
+            foreach (var candidate in selectedCandidates)
+            {
+                try
+                {
+                    await ViewModel.QuarantineManualDeleteCandidateAsync(application, candidate.Path);
+                    movedCount++;
+                }
+                catch (Exception ex)
+                {
+                    failures.Add($"{candidate.Path}\n{ex.Message}");
+                }
+            }
+            if (movedCount > 0)
+            {
+                await ShowPageAsync("Quarantine");
+            }
+            if (failures.Count == 0)
+            {
+                ShowLocalizedMessage(
+                    ViewModel.Texts["QuarantinedItems"],
+                    ViewModel.Texts.Format("ManualDeleteQuarantined", movedCount));
+            }
+            else
+            {
+                ShowLocalizedMessage(
+                    ViewModel.Texts["QuarantinedItems"],
+                    ViewModel.Texts.Format("ManualDeleteQuarantinePartial", movedCount, failures.Count, string.Join(Environment.NewLine + Environment.NewLine, failures)),
+                    CleanLensDialogTone.Warning);
+            }
+            return;
+        }
+
         var confirmationText = ViewModel.Texts.Format("ManualDeleteConfirm", selectedPaths.Count, string.Join(Environment.NewLine, selectedPaths));
         if (!CleanLensDialogService.Confirm(this, ViewModel.Texts["ManualDeleteTitle"], confirmationText, ViewModel.Texts["ManualDelete"], ViewModel.Texts["Cancel"], danger: true))
         {

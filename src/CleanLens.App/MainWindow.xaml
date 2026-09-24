@@ -340,7 +340,7 @@
             <Border Grid.Row="2" x:Name="QuarantineWorkspace" Style="{StaticResource Card}" Visibility="Collapsed">
                 <DockPanel>
                     <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Margin="0,0,0,14">
-                        <TextBlock Text="{Binding Texts[QuarantinedFolders]}" FontSize="19" FontWeight="SemiBold" VerticalAlignment="Center" />
+                        <TextBlock Text="{Binding Texts[QuarantinedItems]}" FontSize="19" FontWeight="SemiBold" VerticalAlignment="Center" />
                         <Button Content="{Binding Texts[RestoreSelected]}" Click="RestoreSelected_Click" IsEnabled="{Binding CanRestoreSelected}" Style="{StaticResource SecondaryButton}" Margin="18,0,0,0" />
                     </StackPanel>
                     <Grid>

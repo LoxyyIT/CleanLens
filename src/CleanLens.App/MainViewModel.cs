@@ -391,6 +391,22 @@ public partial class MainViewModel : ObservableObject
         return operationId;
     }
 
+    public async Task QuarantineManualDeleteCandidateAsync(InstalledApplication application, string candidatePath)
+    {
+        if (!SafetyAccepted)
+        {
+            throw new InvalidOperationException(Texts["StatusSafetyRequired"]);
+        }
+        await new ManualDeleteService().MoveCandidateToQuarantineAsync(
+            application,
+            candidatePath,
+            quarantineService,
+            Texts["HistoryQuarantine"],
+            Texts["HistoryMovedQuarantine"]);
+        await RefreshLocalRecordsAsync();
+        StatusText = Texts["StatusQuarantined"];
+    }
+
     public async Task RestoreSelectedAsync()
     {
         if (!SafetyAccepted || SelectedQuarantine is null)

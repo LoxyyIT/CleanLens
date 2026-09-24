@@ -14,6 +14,14 @@ internal enum CleanLensDialogTone
     Danger
 }
 
+internal enum ManualDeleteSelectionAction
+{
+    Quarantine,
+    Delete
+}
+
+internal sealed record ManualDeleteSelectionResult(IReadOnlyList<string> Paths, ManualDeleteSelectionAction Action);
+
 internal static class CleanLensDialogService
 {
     private static readonly Brush Ink = Brush("#14243A");
@@ -39,7 +47,7 @@ internal static class CleanLensDialogService
         return dialog.ShowDialog() == true;
     }
 
-    public static IReadOnlyList<string>? SelectManualDeletePaths(Window owner, string title, string intro, string candidateCount, string deleteText, string cancelText, IReadOnlyList<ManualDeleteCandidate> candidates)
+    public static ManualDeleteSelectionResult? SelectManualDeletePaths(Window owner, string title, string intro, string candidateCount, string quarantineText, string deleteText, string cancelText, IReadOnlyList<ManualDeleteCandidate> candidates)
     {
         var dialog = CreateShell(owner, title, CleanLensDialogTone.Danger, 800, 700);
         var body = new DockPanel();
@@ -116,13 +124,21 @@ internal static class CleanLensDialogService
             CanContentScroll = true
         });
         SetBody(dialog, body);
+        var action = ManualDeleteSelectionAction.Delete;
         AddFooterButton(dialog, cancelText, isPrimary: false, isDanger: false, () => dialog.DialogResult = false);
+        AddFooterButton(dialog, quarantineText, isPrimary: false, isDanger: false, () =>
+        {
+            action = ManualDeleteSelectionAction.Quarantine;
+            dialog.DialogResult = true;
+        });
         AddFooterButton(dialog, deleteText, isPrimary: true, isDanger: true, () => dialog.DialogResult = true);
         if (dialog.ShowDialog() != true)
         {
             return null;
         }
-        return checkboxes.Where(item => item.IsChecked == true).Select(item => (string)item.Tag).ToArray();
+        return new ManualDeleteSelectionResult(
+            checkboxes.Where(item => item.IsChecked == true).Select(item => (string)item.Tag).ToArray(),
+            action);
     }
 
     public static Window ShowProgress(Window owner, string title, string message, string cancelText, Action cancel)
