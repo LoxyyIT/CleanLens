@@ -116,8 +116,8 @@ public partial class MainViewModel : ObservableObject
         SafetyNoticeAcknowledged = SafetyAccepted;
         SelectedLanguage = language;
         StatusText = Texts["StatusInitial"];
-        PageTitle = Texts["Overview"];
-        PageSubtitle = Texts["OverviewSubtitle"];
+        PageTitle = Texts["Applications"];
+        PageSubtitle = Texts["ApplicationsSubtitle"];
         DisclaimerVisibility = SafetyNoticeAcknowledged ? Visibility.Collapsed : Visibility.Visible;
         _ = LoadLocalRecordsAsync();
     }
@@ -185,7 +185,7 @@ public partial class MainViewModel : ObservableObject
         SaveUserSettings();
     }
 
-    private string CurrentPageKey { get; set; } = "Overview";
+    private string CurrentPageKey { get; set; } = "Applications";
 
     public void UpdateSearch(string value)
     {
@@ -208,7 +208,7 @@ public partial class MainViewModel : ObservableObject
             "History" => "History",
             "Quarantine" => "Quarantine",
             "Settings" => "Settings",
-            _ => "Overview"
+            _ => "Applications"
         };
         PageTitle = Texts[CurrentPageKey];
         PageSubtitle = page switch
@@ -220,7 +220,7 @@ public partial class MainViewModel : ObservableObject
             "History" => Texts["HistoryPage"],
             "Quarantine" => Texts["QuarantinePage"],
             "Settings" => Texts["SettingsSubtitle"],
-            _ => Texts["OverviewSubtitle"]
+            _ => Texts["ApplicationsSubtitle"]
         };
     }
 

@@ -6,6 +6,7 @@
         <ResourceDictionary>
             <local:LocalizationValueConverter x:Key="LocalizationValueConverter" />
             <local:ApplicationMonogramConverter x:Key="ApplicationMonogramConverter" />
+            <local:ApplicationIconConverter x:Key="ApplicationIconConverter" />
             <Color x:Key="Ink">#14243A</Color>
             <Color x:Key="Muted">#687B91</Color>
             <Color x:Key="Line">#DEE7F0</Color>

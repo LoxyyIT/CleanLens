@@ -12,6 +12,7 @@
     <InformationalVersion>0.1.0</InformationalVersion>
   </PropertyGroup>
   <ItemGroup>
+    <Resource Include="..\..\logo.png" Link="logo.png" />
     <ProjectReference Include="..\CleanLens.Core\CleanLens.Core.csproj" />
     <ProjectReference Include="..\CleanLens.Windows\CleanLens.Windows.csproj" />
     <ProjectReference Include="..\CleanLens.Data\CleanLens.Data.csproj" />

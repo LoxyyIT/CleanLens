@@ -2,7 +2,7 @@
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:models="clr-namespace:CleanLens.Core.Models;assembly=CleanLens.Core"
-        Title="{Binding Texts[AppName]}" Width="1440" Height="920" MinWidth="1120" MinHeight="720"
+        Title="{Binding Texts[AppName]}" Icon="/CleanLens;component/logo.png" Width="1440" Height="920" MinWidth="1120" MinHeight="720"
         WindowStartupLocation="CenterScreen" Background="#F3F7FB" Foreground="{StaticResource InkBrush}" FontFamily="Segoe UI">
     <Grid>
         <Grid.ColumnDefinitions>
@@ -13,12 +13,8 @@
             <DockPanel Margin="18,22" LastChildFill="False">
                 <StackPanel DockPanel.Dock="Top">
                     <StackPanel Orientation="Horizontal" Margin="5,4,0,34">
-                        <Border Width="35" Height="35" CornerRadius="12" Background="#183D5D">
-                            <Canvas Width="35" Height="35">
-                                <Path Data="M 4,17 C 9,7 25,7 31,17 C 25,27 9,27 4,17 Z" Stroke="#57D2D7" StrokeThickness="2" />
-                                <Ellipse Canvas.Left="13" Canvas.Top="12" Width="9" Height="9" Fill="White" />
-                                <Path Data="M 21,21 L 28,28" Stroke="#75DDCF" StrokeThickness="2.5" StrokeStartLineCap="Round" StrokeEndLineCap="Round" />
-                            </Canvas>
+                        <Border Width="40" Height="40" CornerRadius="12" Background="#183D5D" Padding="3">
+                            <Image Source="/CleanLens;component/logo.png" Stretch="Uniform" />
                         </Border>
                         <StackPanel Margin="11,1,0,0">
                             <TextBlock Text="CleanLens" Foreground="White" FontSize="17" FontWeight="SemiBold" />
@@ -26,7 +22,6 @@
                         </StackPanel>
                     </StackPanel>
                     <TextBlock Text="{Binding Texts[Workspace]}" Foreground="#7890A8" FontSize="10" FontWeight="Bold" Margin="10,0,0,9" />
-                    <Button x:Name="OverviewNav" Style="{StaticResource NavButton}" Click="Overview_Click" Margin="0,2"><StackPanel Orientation="Horizontal"><TextBlock Text="◫" Width="28" /><TextBlock Text="{Binding Texts[Overview]}" /></StackPanel></Button>
                     <Button x:Name="ApplicationsNav" Style="{StaticResource NavButton}" Click="Applications_Click" Margin="0,2"><StackPanel Orientation="Horizontal"><TextBlock Text="▦" Width="28" /><TextBlock Text="{Binding Texts[Applications]}" /></StackPanel></Button>
                     <Button x:Name="LeftoversNav" Style="{StaticResource NavButton}" Click="Leftovers_Click" Margin="0,2"><StackPanel Orientation="Horizontal"><TextBlock Text="⌕" Width="28" /><TextBlock Text="{Binding Texts[LeftoverReview]}" /></StackPanel></Button>
                     <Button x:Name="HistoryNav" Style="{StaticResource NavButton}" Click="History_Click" Margin="0,2"><StackPanel Orientation="Horizontal"><TextBlock Text="◷" Width="28" /><TextBlock Text="{Binding Texts[History]}" /></StackPanel></Button>
@@ -38,6 +33,8 @@
                         <TextBlock Text="{Binding Texts[Principle]}" Foreground="#73D6D4" FontSize="9" FontWeight="Bold" />
                         <TextBlock Text="{Binding Texts[LocalTagline]}" Foreground="#D0DCE8" FontSize="11" TextWrapping="Wrap" Margin="0,6,0,0" />
                         <TextBlock Text="{Binding Texts[LocalOnly]}" Foreground="#89A1B7" FontSize="10" Margin="0,8,0,0" />
+                        <Border Height="1" Background="#29435C" Margin="0,12,0,9" />
+                        <Button Content="GitHub  ↗" Click="OpenGitHub_Click" HorizontalAlignment="Left" Padding="0" Background="Transparent" BorderThickness="0" Foreground="#B8D8F3" FontSize="11" FontWeight="SemiBold" Cursor="Hand" />
                     </StackPanel>
                 </Border>
             </DockPanel>
@@ -90,7 +87,10 @@
                                     <DataGridTemplateColumn.CellTemplate>
                                         <DataTemplate>
                                             <Border Width="35" Height="35" CornerRadius="11" Background="{StaticResource AccentSoft}" HorizontalAlignment="Center" AutomationProperties.Name="{Binding Name}">
-                                                <TextBlock Text="{Binding Name, Converter={StaticResource ApplicationMonogramConverter}}" Foreground="{StaticResource BlueBrush}" FontSize="11" FontWeight="Bold" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                                <Grid>
+                                                    <TextBlock Text="{Binding Name, Converter={StaticResource ApplicationMonogramConverter}}" Foreground="{StaticResource BlueBrush}" FontSize="11" FontWeight="Bold" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                                    <Image Source="{Binding DisplayIcon, Converter={StaticResource ApplicationIconConverter}}" Stretch="Uniform" Margin="5" />
+                                                </Grid>
                                             </Border>
                                         </DataTemplate>
                                     </DataGridTemplateColumn.CellTemplate>
@@ -162,6 +162,7 @@
                             </Border>
                             <Button Content="{Binding Texts[RunUninstaller]}" Click="Uninstall_Click" IsEnabled="{Binding CanUninstallSelected}" Style="{StaticResource PrimaryButton}" HorizontalAlignment="Stretch" Margin="0,18,0,0" />
                             <Button Content="{Binding Texts[ReviewLeftovers]}" Click="Leftovers_Click" IsEnabled="{Binding CanReviewLeftovers}" Style="{StaticResource SecondaryButton}" HorizontalAlignment="Stretch" Margin="0,8,0,0" />
+                            <Button Content="{Binding Texts[ManualDelete]}" Click="ManualDelete_Click" IsEnabled="{Binding SafetyAccepted}" Style="{StaticResource SecondaryButton}" Background="#B4233D" BorderBrush="#B4233D" Foreground="White" HorizontalAlignment="Stretch" Margin="0,8,0,0" />
                             <TextBlock Text="{Binding StatusText}" Foreground="{StaticResource MutedBrush}" FontSize="11" TextWrapping="Wrap" Margin="0,11,0,0" />
                         </StackPanel>
                     </ScrollViewer>
