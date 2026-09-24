@@ -63,6 +63,10 @@ The WPF application and static website support English, Italian, Spanish and Fre
 
 The project site includes an actual Windows capture of the CleanLens app. It shows a local inventory filtered to Microsoft Visual C++ entries; application data and inventory counts vary by PC.
 
+## Download
+
+The first self-contained Windows x64 build is available from [GitHub Releases](https://github.com/LoxyyIT/CleanLens/releases/latest). Download the portable ZIP, extract it and run `CleanLens.exe`. The build is unsigned and does not include an installer or updater; Windows SmartScreen may show a warning.
+
 ## Build
 
 Requirements: Windows, .NET 10 SDK and a network connection for the first NuGet restore.
@@ -75,7 +79,7 @@ Create a self-contained Windows x64 publish directory:
 
     dotnet publish src/CleanLens.App/CleanLens.App.csproj -c Release -r win-x64 --self-contained true -o artifacts/CleanLens-win-x64
 
-The publish directory is portable at the .NET runtime level. A signed installer, packaged release, updater and published binaries do not exist yet.
+The publish directory includes the .NET runtime and is suitable for packaging as a portable ZIP. The current public build is unsigned; a signed installer and updater are not provided.
 
 ## Architecture
 
