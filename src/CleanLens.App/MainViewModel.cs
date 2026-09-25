@@ -6,6 +6,7 @@ using System.Text.Json;
 using System.Windows;
 using CleanLens.Core.Models;
 using CleanLens.Core.Localization;
+using CleanLens.Core.Safety;
 using CleanLens.Core.Services;
 using CleanLens.Data;
 using CleanLens.Windows;
@@ -22,8 +23,10 @@ public partial class MainViewModel : ObservableObject
     private readonly CleanLensDatabase database;
     private readonly QuarantineService quarantineService;
     private readonly InstallMonitorService installMonitorService;
+    private readonly DiskScanService diskScanService;
     private readonly string settingsPath;
     private readonly string localDataPath;
+    private readonly Stack<string> diskNavigationHistory = new();
     private bool scanned;
     private bool leftoversScanned;
     private InstalledApplication? pendingUninstallApplication;
@@ -32,8 +35,13 @@ public partial class MainViewModel : ObservableObject
     private string searchText = string.Empty;
     private int searchScope;
     private int filterIndex;
+    private int diskSelectedItemCount;
     private string? applicationSortField;
     private ListSortDirection applicationSortDirection = ListSortDirection.Ascending;
+    private CancellationTokenSource? diskQueryCancellation;
+    private double diskTreemapWidth;
+    private double diskTreemapHeight;
+    private const int DiskPageSize = 1000;
 
     [ObservableProperty]
     private InstalledApplication? selectedApplication;
@@ -77,18 +85,67 @@ public partial class MainViewModel : ObservableObject
     [ObservableProperty]
     private Visibility disclaimerVisibility = Visibility.Visible;
 
+    [ObservableProperty]
+    private DiskScanRootOption? selectedDiskScanRoot;
+
+    [ObservableProperty]
+    private DiskScanSummary? diskScanSummary;
+
+    [ObservableProperty]
+    private string currentDiskDirectory = string.Empty;
+
+    [ObservableProperty]
+    private string diskStatusText = string.Empty;
+
+    [ObservableProperty]
+    private string diskSearchText = string.Empty;
+
+    [ObservableProperty]
+    private bool isDiskScanning;
+
+    [ObservableProperty]
+    private bool isDiskScanStale;
+
+    [ObservableProperty]
+    private DiskListingMode diskListingMode = DiskListingMode.CurrentFolder;
+
+    [ObservableProperty]
+    private long diskPageOffset;
+
+    [ObservableProperty]
+    private long diskEntryTotalCount;
+
+    [ObservableProperty]
+    private DiskScanEntry? selectedDiskEntry;
+
+    [ObservableProperty]
+    private int diskSidePanelMode;
+
     public ObservableCollection<InstalledApplication> Applications { get; } = [];
     public ObservableCollection<LeftoverCandidate> Leftovers { get; } = [];
     public ObservableCollection<HistoryEntry> HistoryEntries { get; } = [];
     public ObservableCollection<QuarantineEntry> QuarantineEntries { get; } = [];
     public ObservableCollection<ManualSearchRootSetting> ManualSearchRoots { get; } = [];
     public ObservableCollection<string> InstallMonitorResults { get; } = [];
+    public ObservableCollection<InstalledApplication> SelectedApplications { get; } = [];
     public ObservableCollection<InstalledApplication> VisibleApplications { get; } = [];
-    public bool HasReviewApplication => SelectedApplication is not null || pendingUninstallApplication is not null;
-    public bool CanUninstallSelected => SafetyAccepted && SelectedApplication is not null &&
+    public ObservableCollection<DiskScanRootOption> DiskScanRoots { get; } = [];
+    public ObservableCollection<DiskScanEntry> DiskEntries { get; } = [];
+    public ObservableCollection<DiskExtensionStat> DiskExtensionStats { get; } = [];
+    public ObservableCollection<DiskTreemapBlock> DiskTreemapItems { get; } = [];
+    public int SelectedApplicationCount => SelectedApplications.Count;
+    public bool HasMultipleApplicationsSelected => SelectedApplicationCount > 1;
+    public Visibility MultiSelectionVisibility => HasMultipleApplicationsSelected ? Visibility.Visible : Visibility.Collapsed;
+    public string SelectedApplicationsSummary => HasMultipleApplicationsSelected
+        ? string.Join(Environment.NewLine, SelectedApplications.Take(12).Select(application => application.Name)) + (SelectedApplications.Count > 12 ? Environment.NewLine + Texts.Format("MultipleAppsMore", SelectedApplications.Count - 12) : string.Empty)
+        : string.Empty;
+    public string ManualDeleteButtonText => HasMultipleApplicationsSelected ? Texts.Format("ManualDeleteMultiple", SelectedApplicationCount) : Texts["ManualDelete"];
+    public bool HasReviewApplication => SelectedApplicationCount == 1 || (SelectedApplicationCount == 0 && pendingUninstallApplication is not null);
+    public bool CanManualDeleteSelected => SafetyAccepted && SelectedApplicationCount > 0;
+    public bool CanUninstallSelected => SafetyAccepted && SelectedApplicationCount == 1 && SelectedApplication is not null &&
         (SelectedApplication.IsAppxPackage ? !SelectedApplication.IsNonRemovablePackage : !string.IsNullOrWhiteSpace(SelectedApplication.UninstallCommand)) &&
         !SelectedApplication.Id.Equals(pendingUninstallApplicationId, StringComparison.Ordinal);
-    public bool CanReviewLeftovers => uninstallRemovalVerified && pendingUninstallApplicationId is not null &&
+    public bool CanReviewLeftovers => SelectedApplicationCount <= 1 && uninstallRemovalVerified && pendingUninstallApplicationId is not null &&
         (SelectedApplication is null || SelectedApplication.Id == pendingUninstallApplicationId);
     public bool CanQuarantineSelected => SafetyAccepted && CanReviewLeftovers && SelectedLeftover is not null &&
         SelectedLeftover.Confidence != ConfidenceLevel.Low && !SelectedLeftover.IsUserData;
@@ -115,17 +172,39 @@ public partial class MainViewModel : ObservableObject
         ? Texts["SizeNotReported"]
         : FormatBytes(Applications.Sum(application => application.EstimatedSizeKilobytes.GetValueOrDefault() * 1024));
     public string LeftoversText => leftoversScanned ? Leftovers.Count.ToString(CultureInfo.GetCultureInfo(Texts.Language)) : Texts["NotScannedYet"];
-    public string SelectedApplicationDisplayName => (SelectedApplication ?? pendingUninstallApplication)?.Name ?? Texts["SelectApplication"];
-    public string SelectedPublisher => string.IsNullOrWhiteSpace((SelectedApplication ?? pendingUninstallApplication)?.Publisher) ? Texts["PublisherNotListed"] : (SelectedApplication ?? pendingUninstallApplication)!.Publisher;
-    public string DetailVersion => (SelectedApplication ?? pendingUninstallApplication) is not { } application ? Texts["SelectDetailsHint"] : $"{Texts.Format("Version", Fallback(application.Version))} · {FormatInstallDate(application.InstalledAt)}";
-    public string DetailLocation => (SelectedApplication ?? pendingUninstallApplication) is { } application ? Texts.Format("InstallLocation", Fallback(application.InstallLocation)) : string.Empty;
-    public string DetailSource => (SelectedApplication ?? pendingUninstallApplication) is not { } application ? string.Empty : application.IsAppxPackage ? $"{Texts["AppxPackage"]} · {Texts["CurrentUserPackage"]}{(application.IsNonRemovablePackage ? $" · {Texts["AppxNonRemovable"]}" : string.Empty)}" : $"{Texts[application.Source.Contains("machine", StringComparison.OrdinalIgnoreCase) ? "MachineRegistry" : "UserRegistry"]} · {Texts[application.Source.Contains("Registry32", StringComparison.OrdinalIgnoreCase) ? "View32" : "View64"]} · {FormatEstimate(application.EstimatedSizeKilobytes)}";
+    public string SelectedApplicationDisplayName => HasMultipleApplicationsSelected ? Texts.Format("MultipleAppsSelected", SelectedApplicationCount) : (SelectedApplication ?? pendingUninstallApplication)?.Name ?? Texts["SelectApplication"];
+    public string SelectedPublisher => HasMultipleApplicationsSelected ? Texts["ManualDeleteOnly"] : string.IsNullOrWhiteSpace((SelectedApplication ?? pendingUninstallApplication)?.Publisher) ? Texts["PublisherNotListed"] : (SelectedApplication ?? pendingUninstallApplication)!.Publisher;
+    public string DetailVersion => HasMultipleApplicationsSelected ? Texts["ManualDeleteOnlyNotice"] : (SelectedApplication ?? pendingUninstallApplication) is not { } application ? Texts["SelectDetailsHint"] : $"{Texts.Format("Version", Fallback(application.Version))} · {FormatInstallDate(application.InstalledAt)}";
+    public string DetailLocation => HasMultipleApplicationsSelected ? Texts["MultipleSelectedPathsNotice"] : (SelectedApplication ?? pendingUninstallApplication) is { } application ? Texts.Format("InstallLocation", Fallback(application.InstallLocation)) : string.Empty;
+    public string DetailSource => HasMultipleApplicationsSelected ? Texts["ManualDeleteOnly"] : (SelectedApplication ?? pendingUninstallApplication) is not { } application ? string.Empty : application.IsAppxPackage ? $"{Texts["AppxPackage"]} · {Texts["CurrentUserPackage"]}{(application.IsNonRemovablePackage ? $" · {Texts["AppxNonRemovable"]}" : string.Empty)}" : $"{Texts[application.Source.Contains("machine", StringComparison.OrdinalIgnoreCase) ? "MachineRegistry" : "UserRegistry"]} · {Texts[application.Source.Contains("Registry32", StringComparison.OrdinalIgnoreCase) ? "View32" : "View64"]} · {FormatEstimate(application.EstimatedSizeKilobytes)}";
     public string LocalDataPath => localDataPath;
     public string RemoveSearchRootText => Texts["RemoveSearchRoot"];
     public string UninstallButtonText => SelectedApplication?.IsAppxPackage == true ? Texts["RemoveStoreApp"] : Texts["RunUninstaller"];
     public bool InstallMonitorRunning => installMonitorService.IsRunning;
     public bool CanStartInstallMonitor => !InstallMonitorRunning;
     public bool CanStopInstallMonitor => InstallMonitorRunning;
+    public bool CanScanDisk => SelectedDiskScanRoot is not null && !IsDiskScanning;
+    public bool CanCancelDiskScan => IsDiskScanning;
+    public bool CanGoBackDiskFolder => HasDiskScan && diskNavigationHistory.Count > 0 && !IsDiskScanStale && !IsDiskScanning;
+    public bool CanGoUpDiskFolder => HasDiskScan && !IsDiskScanStale && !IsDiskScanning && !CurrentDiskDirectory.Equals(DiskScanSummary!.RootPath, StringComparison.OrdinalIgnoreCase);
+    public bool HasDiskScan => DiskScanSummary is not null;
+    public bool CanDeleteDiskEntries => SafetyAccepted && HasDiskScan && !IsDiskScanning && !IsDiskScanStale && diskSelectedItemCount > 0;
+    public string DiskSelectionCountText => Texts.Format("DiskSelectionCount", diskSelectedItemCount.ToString("N0", CultureInfo.GetCultureInfo(Texts.Language)));
+    public bool CanOpenSelectedDiskFolder => SelectedDiskEntry is { IsDirectory: true, IsReparsePoint: false } && HasDiskScan && !IsDiskScanning && !IsDiskScanStale;
+    public Visibility DiskExtensionPanelVisibility => DiskSidePanelMode == 0 ? Visibility.Visible : Visibility.Collapsed;
+    public Visibility DiskTreemapPanelVisibility => DiskSidePanelMode == 1 ? Visibility.Visible : Visibility.Collapsed;
+    public bool CanPageDiskBackward => HasDiskScan && DiskPageOffset > 0 && !IsDiskScanning && !IsDiskScanStale;
+    public bool CanPageDiskForward => HasDiskScan && DiskPageOffset + DiskEntries.Count < DiskEntryTotalCount && !IsDiskScanning && !IsDiskScanStale;
+    public int DiskListingModeIndex => (int)DiskListingMode;
+    public Visibility DiskScanProgressVisibility => IsDiskScanning ? Visibility.Visible : Visibility.Collapsed;
+    public string DiskSummarySizeText => DiskScanSummary?.SizeText ?? Texts["DiskNotScanned"];
+    public string DiskFileCountText => DiskScanSummary?.FileCount.ToString("N0", CultureInfo.GetCultureInfo(Texts.Language)) ?? Texts["DiskNotScanned"];
+    public string DiskFolderCountText => DiskScanSummary?.FolderCount.ToString("N0", CultureInfo.GetCultureInfo(Texts.Language)) ?? Texts["DiskNotScanned"];
+    public string DiskSkippedCountText => DiskScanSummary?.SkippedCount.ToString("N0", CultureInfo.GetCultureInfo(Texts.Language)) ?? Texts["DiskNotScanned"];
+    public string DiskPageIndicatorText => DiskEntryTotalCount == 0
+        ? Texts["DiskNoItems"]
+        : Texts.Format("DiskPageIndicator", DiskPageOffset + 1, Math.Min(DiskPageOffset + DiskEntries.Count, DiskEntryTotalCount), DiskEntryTotalCount);
+    public string DiskCurrentDirectoryText => string.IsNullOrWhiteSpace(CurrentDiskDirectory) ? Texts["DiskChooseRoot"] : CurrentDiskDirectory;
     private const string RegisteredLocationsRootKey = "@builtin:registered-locations";
     private const string SteamLocationsRootKey = "@builtin:steam-locations";
 
@@ -160,6 +239,38 @@ public partial class MainViewModel : ObservableObject
         ManualSearchRoots.Add(setting);
     }
 
+    public void UpdateSelectedApplications(IEnumerable<InstalledApplication> applications)
+    {
+        var selected = applications.DistinctBy(application => application.Id).ToArray();
+        if (SelectedApplications.SequenceEqual(selected)) return;
+        SelectedApplications.Clear();
+        foreach (var application in selected) SelectedApplications.Add(application);
+        if (selected.Length == 1 && SelectedApplication?.Id != selected[0].Id) SelectedApplication = selected[0];
+        OnPropertyChanged(nameof(SelectedApplicationCount));
+        OnPropertyChanged(nameof(HasMultipleApplicationsSelected));
+        OnPropertyChanged(nameof(MultiSelectionVisibility));
+        OnPropertyChanged(nameof(SelectedApplicationsSummary));
+        OnPropertyChanged(nameof(SelectedApplicationDisplayName));
+        OnPropertyChanged(nameof(SelectedPublisher));
+        OnPropertyChanged(nameof(DetailVersion));
+        OnPropertyChanged(nameof(DetailLocation));
+        OnPropertyChanged(nameof(DetailSource));
+        OnPropertyChanged(nameof(DetailVersion));
+        OnPropertyChanged(nameof(DetailLocation));
+        OnPropertyChanged(nameof(DetailSource));
+        OnPropertyChanged(nameof(ManualDeleteButtonText));
+        OnPropertyChanged(nameof(CanManualDeleteSelected));
+        OnPropertyChanged(nameof(CanUninstallSelected));
+        OnPropertyChanged(nameof(CanManualDeleteSelected));
+        OnPropertyChanged(nameof(CanReviewLeftovers));
+        OnPropertyChanged(nameof(CanQuarantineSelected));
+        ScanLeftoversCommand.NotifyCanExecuteChanged();
+    }
+
+    public IReadOnlyList<InstalledApplication> GetSelectedApplications() => SelectedApplications.Count > 0
+        ? SelectedApplications.ToArray()
+        : SelectedApplication is null ? [] : [SelectedApplication];
+
     public async Task StartInstallMonitorAsync()
     {
         await installMonitorService.StartAsync(GetEnabledManualSearchRoots());
@@ -185,6 +296,336 @@ public partial class MainViewModel : ObservableObject
 
     public void DisposeInstallMonitor() => installMonitorService.Dispose();
 
+    public void DisposeDiskScan()
+    {
+        diskQueryCancellation?.Cancel();
+        diskQueryCancellation?.Dispose();
+        diskScanService.Dispose();
+    }
+
+    public void RefreshDiskRoots()
+    {
+        var previousPath = SelectedDiskScanRoot?.Path;
+        DiskScanRoots.Clear();
+        foreach (var root in diskScanService.GetScanRoots()) DiskScanRoots.Add(root);
+        if (!string.IsNullOrWhiteSpace(previousPath) && Directory.Exists(previousPath) && !DiskScanRoots.Any(root => root.Path.Equals(previousPath, StringComparison.OrdinalIgnoreCase)))
+            DiskScanRoots.Add(new DiskScanRootOption(previousPath, previousPath));
+        SelectedDiskScanRoot = DiskScanRoots.FirstOrDefault(root => root.Path.Equals(previousPath, StringComparison.OrdinalIgnoreCase)) ?? DiskScanRoots.FirstOrDefault();
+        OnPropertyChanged(nameof(CanScanDisk));
+    }
+
+    public void SetDiskScanFolder(string path)
+    {
+        var rootPath = diskScanService.ValidateRoot(path);
+        var selected = DiskScanRoots.FirstOrDefault(root => root.Path.Equals(rootPath, StringComparison.OrdinalIgnoreCase));
+        var rootOption = selected ?? new DiskScanRootOption(rootPath, rootPath);
+        SelectedDiskScanRoot = rootOption;
+        if (selected is null) DiskScanRoots.Add(rootOption);
+        OnPropertyChanged(nameof(CanScanDisk));
+    }
+
+    public async Task StartDiskScanAsync(CancellationToken cancellationToken, IProgress<DiskScanProgress>? progress = null)
+    {
+        if (SelectedDiskScanRoot is null) throw new InvalidOperationException(Texts["DiskChooseRoot"]);
+        diskQueryCancellation?.Cancel();
+        IsDiskScanning = true;
+        IsDiskScanStale = false;
+        DiskEntries.Clear();
+        SelectedDiskEntry = null;
+        DiskTreemapItems.Clear();
+        UpdateDiskSelectionCount(0);
+        DiskExtensionStats.Clear();
+        DiskScanSummary = null;
+        diskNavigationHistory.Clear();
+        CurrentDiskDirectory = SelectedDiskScanRoot.Path;
+        DiskListingMode = DiskListingMode.CurrentFolder;
+        OnPropertyChanged(nameof(DiskListingModeIndex));
+        DiskPageOffset = 0;
+        DiskEntryTotalCount = 0;
+        DiskSearchText = string.Empty;
+        DiskStatusText = Texts["DiskScanStarted"];
+        NotifyDiskStateChanged();
+        try
+        {
+            var summary = await diskScanService.ScanAsync(SelectedDiskScanRoot.Path, progress, cancellationToken);
+            DiskScanSummary = summary;
+            CurrentDiskDirectory = summary.RootPath;
+            DiskListingMode = DiskListingMode.CurrentFolder;
+            DiskPageOffset = 0;
+            await LoadDiskPageAsync();
+            DiskStatusText = summary.IsIncomplete
+                ? Texts.Format("DiskScanPartial", summary.SkippedCount)
+                : Texts["DiskScanComplete"];
+        }
+        catch (OperationCanceledException)
+        {
+            DiskStatusText = Texts["DiskScanCancelled"];
+            throw;
+        }
+        finally
+        {
+            IsDiskScanning = false;
+            NotifyDiskStateChanged();
+            OnPropertyChanged(nameof(DiskScanProgressVisibility));
+        }
+    }
+
+    public void UpdateDiskScanProgress(DiskScanProgress progress) =>
+        DiskStatusText = progress.BuildingIndex
+            ? Texts["DiskIndexing"]
+            : Texts.Format("DiskProgress", progress.EntriesVisited.ToString("N0", CultureInfo.GetCultureInfo(Texts.Language)), FormatBytes(progress.BytesMeasured), progress.SkippedEntries.ToString("N0", CultureInfo.GetCultureInfo(Texts.Language)));
+
+    public async Task LoadDiskPageAsync(long? offset = null)
+    {
+        if (!diskScanService.HasScan || DiskScanSummary is null || string.IsNullOrWhiteSpace(CurrentDiskDirectory)) return;
+        if (offset is not null) DiskPageOffset = Math.Max(0, offset.Value);
+        diskQueryCancellation?.Cancel();
+        diskQueryCancellation?.Dispose();
+        diskQueryCancellation = new CancellationTokenSource();
+        var cancellationToken = diskQueryCancellation.Token;
+        try
+        {
+            var page = await diskScanService.GetPageAsync(DiskListingMode, CurrentDiskDirectory, DiskPageOffset, DiskPageSize, DiskSearchText, cancellationToken);
+            if (cancellationToken.IsCancellationRequested) return;
+            DiskEntries.Clear();
+            SelectedDiskEntry = null;
+            UpdateDiskSelectionCount(0);
+            foreach (var entry in page.Entries) DiskEntries.Add(entry);
+            var statisticsRoot = DiskListingMode == DiskListingMode.CurrentFolder ? CurrentDiskDirectory : DiskScanSummary.RootPath;
+            var extensions = await diskScanService.GetExtensionStatsAsync(statisticsRoot, cancellationToken);
+            DiskExtensionStats.Clear();
+            foreach (var extension in extensions) DiskExtensionStats.Add(extension);
+            DiskEntryTotalCount = page.TotalCount;
+            DiskPageOffset = page.Offset;
+            LayoutDiskTreemap(diskTreemapWidth, diskTreemapHeight);
+            OnPropertyChanged(nameof(DiskPageIndicatorText));
+            NotifyDiskStateChanged();
+        }
+        catch (OperationCanceledException)
+        {
+        }
+    }
+
+    public void LayoutDiskTreemap(double width, double height)
+    {
+        DiskTreemapItems.Clear();
+        if (width < 4 || height < 4) return;
+        var entries = DiskEntries.Where(entry => entry.SizeBytes is > 0).OrderByDescending(entry => entry.SizeBytes).ToArray();
+        if (entries.Length == 0) return;
+        var tiles = entries.Take(60).ToList();
+        if (entries.Length > tiles.Count)
+        {
+            var rest = entries.Skip(tiles.Count).Aggregate(0L, (total, entry) => entry.SizeBytes.GetValueOrDefault() > long.MaxValue - total ? long.MaxValue : total + entry.SizeBytes.GetValueOrDefault());
+            if (rest > 0)
+            {
+                tiles.Add(new DiskScanEntry(Texts.Format("DiskTreemapOthers", entries.Length - 60), string.Empty, string.Empty, false, false, rest,
+                    string.Empty, 0, null, 0, 0, 0, false));
+            }
+        }
+        var rectangles = new List<(DiskScanEntry Entry, double X, double Y, double Width, double Height)>(tiles.Count);
+        LayoutTreemap(tiles, 0, tiles.Count, 0, 0, width, height, rectangles);
+        foreach (var rectangle in rectangles)
+        {
+            var entry = rectangle.Entry;
+            var size = entry.SizeText;
+            var label = entry.IsDirectory ? "▣  " + entry.Name + Environment.NewLine + size : entry.Name + Environment.NewLine + size;
+            var tooltip = entry.Path.Length == 0 ? entry.Name + Environment.NewLine + size : entry.Path + Environment.NewLine + size;
+            var color = entry.IsIncomplete ? "#8A96A8" : entry.IsDirectory ? "#177E89" : TreemapColor(entry.Extension);
+            DiskTreemapItems.Add(new DiskTreemapBlock(entry.Path, label, tooltip, color, rectangle.X, rectangle.Y,
+                rectangle.Width, rectangle.Height, entry.Path.Length == 0, rectangle.Width >= 86 && rectangle.Height >= 46));
+        }
+    }
+
+    public void ResizeDiskTreemap(double width, double height)
+    {
+        diskTreemapWidth = width;
+        diskTreemapHeight = height;
+        LayoutDiskTreemap(width, height);
+    }
+
+    public async Task NavigateDiskTreemapBlockAsync(DiskTreemapBlock block)
+    {
+        if (block.IsOther || string.IsNullOrWhiteSpace(block.Path)) return;
+        var entry = DiskEntries.FirstOrDefault(item => item.Path.Equals(block.Path, StringComparison.OrdinalIgnoreCase));
+        if (entry is not null) await NavigateDiskEntryAsync(entry);
+    }
+
+    private static void LayoutTreemap(IReadOnlyList<DiskScanEntry> items, int start, int count, double x, double y, double width, double height,
+        ICollection<(DiskScanEntry Entry, double X, double Y, double Width, double Height)> result)
+    {
+        if (count <= 0 || width <= 0 || height <= 0) return;
+        if (count == 1)
+        {
+            result.Add((items[start], x, y, width, height));
+            return;
+        }
+        var total = items.Skip(start).Take(count).Sum(item => (double)item.SizeBytes.GetValueOrDefault());
+        if (total <= 0)
+        {
+            result.Add((items[start], x, y, width, height));
+            return;
+        }
+        var splitCount = 1;
+        var leftTotal = (double)items[start].SizeBytes.GetValueOrDefault();
+        while (splitCount < count - 1 && leftTotal < total / 2)
+        {
+            leftTotal += items[start + splitCount].SizeBytes.GetValueOrDefault();
+            splitCount++;
+        }
+        var ratio = Math.Clamp(leftTotal / total, 0.03, 0.97);
+        if (width >= height)
+        {
+            var leftWidth = width * ratio;
+            LayoutTreemap(items, start, splitCount, x, y, leftWidth, height, result);
+            LayoutTreemap(items, start + splitCount, count - splitCount, x + leftWidth, y, width - leftWidth, height, result);
+        }
+        else
+        {
+            var topHeight = height * ratio;
+            LayoutTreemap(items, start, splitCount, x, y, width, topHeight, result);
+            LayoutTreemap(items, start + splitCount, count - splitCount, x, y + topHeight, width, height - topHeight, result);
+        }
+    }
+
+    private static string TreemapColor(string extension)
+    {
+        string[] palette = ["#396BE8", "#13A8B8", "#17998E", "#805AD5", "#D17A24", "#B44D76", "#4B7B53", "#657A9A"];
+        var hash = 17;
+        foreach (var character in extension) hash = unchecked(hash * 31 + char.ToUpperInvariant(character));
+        return palette[(hash & int.MaxValue) % palette.Length];
+    }
+
+    public async Task UpdateDiskSearchAsync(string value)
+    {
+        DiskSearchText = value.Trim();
+        await LoadDiskPageAsync(0);
+    }
+
+    public async Task SetDiskListingModeAsync(DiskListingMode mode)
+    {
+        DiskListingMode = mode;
+        OnPropertyChanged(nameof(DiskListingModeIndex));
+        await LoadDiskPageAsync(0);
+    }
+
+    public void SetDiskSidePanelMode(int mode)
+    {
+        DiskSidePanelMode = Math.Clamp(mode, 0, 1);
+        OnPropertyChanged(nameof(DiskExtensionPanelVisibility));
+        OnPropertyChanged(nameof(DiskTreemapPanelVisibility));
+    }
+
+    public async Task OpenSelectedDiskFolderAsync()
+    {
+        if (SelectedDiskEntry is { IsDirectory: true, IsReparsePoint: false } entry) await NavigateDiskEntryAsync(entry);
+    }
+
+    public async Task NavigateDiskEntryAsync(DiskScanEntry entry)
+    {
+        if (!entry.IsDirectory || entry.IsReparsePoint || DiskScanSummary is null || IsDiskScanStale || IsDiskScanning) return;
+        if (!DeletionPathPolicy.IsPathWithin(entry.Path, DiskScanSummary.RootPath)) return;
+        if (!CurrentDiskDirectory.Equals(entry.Path, StringComparison.OrdinalIgnoreCase)) diskNavigationHistory.Push(CurrentDiskDirectory);
+        CurrentDiskDirectory = entry.Path;
+        DiskListingMode = DiskListingMode.CurrentFolder;
+        OnPropertyChanged(nameof(DiskListingModeIndex));
+        await LoadDiskPageAsync(0);
+    }
+
+    public async Task GoBackDiskFolderAsync()
+    {
+        if (!CanGoBackDiskFolder || DiskScanSummary is null) return;
+        var previous = diskNavigationHistory.Pop();
+        if (!DeletionPathPolicy.IsPathWithin(previous, DiskScanSummary.RootPath) && !previous.Equals(DiskScanSummary.RootPath, StringComparison.OrdinalIgnoreCase))
+        {
+            diskNavigationHistory.Clear();
+            NotifyDiskStateChanged();
+            return;
+        }
+        CurrentDiskDirectory = previous;
+        DiskListingMode = DiskListingMode.CurrentFolder;
+        OnPropertyChanged(nameof(DiskListingModeIndex));
+        await LoadDiskPageAsync(0);
+    }
+
+    public async Task GoUpDiskFolderAsync()
+    {
+        if (DiskScanSummary is null || !CanGoUpDiskFolder) return;
+        var parent = Path.GetDirectoryName(CurrentDiskDirectory);
+        if (string.IsNullOrWhiteSpace(parent) || !DeletionPathPolicy.IsPathWithin(parent, DiskScanSummary.RootPath) && !parent.Equals(DiskScanSummary.RootPath, StringComparison.OrdinalIgnoreCase))
+        {
+            diskNavigationHistory.Push(CurrentDiskDirectory);
+            CurrentDiskDirectory = DiskScanSummary.RootPath;
+        }
+        else
+        {
+            diskNavigationHistory.Push(CurrentDiskDirectory);
+            CurrentDiskDirectory = parent;
+        }
+        DiskListingMode = DiskListingMode.CurrentFolder;
+        OnPropertyChanged(nameof(DiskListingModeIndex));
+        await LoadDiskPageAsync(0);
+    }
+
+    public async Task PageDiskEntriesAsync(int direction)
+    {
+        var nextOffset = Math.Max(0, DiskPageOffset + direction * DiskPageSize);
+        await LoadDiskPageAsync(nextOffset);
+    }
+
+    public void UpdateDiskSelectionCount(int count)
+    {
+        if (diskSelectedItemCount == count) return;
+        diskSelectedItemCount = count;
+        OnPropertyChanged(nameof(CanDeleteDiskEntries));
+        OnPropertyChanged(nameof(DiskSelectionCountText));
+    }
+
+    public async Task<DiskDeletionReport> DeleteDiskEntriesAsync(IReadOnlyList<DiskScanEntry> entries, CancellationToken cancellationToken = default)
+    {
+        if (!SafetyAccepted) throw new InvalidOperationException(Texts["StatusSafetyRequired"]);
+        var report = await diskScanService.DeleteSelectedAsync(entries, cancellationToken);
+        IsDiskScanStale = report.RequiresRescan;
+        if (report.RequiresRescan)
+        {
+            DiskScanSummary = null;
+            DiskEntries.Clear();
+            SelectedDiskEntry = null;
+            DiskExtensionStats.Clear();
+            DiskTreemapItems.Clear();
+            DiskEntryTotalCount = 0;
+            UpdateDiskSelectionCount(0);
+            DiskStatusText = Texts["DiskRescanRequired"];
+        }
+        else
+        {
+            DiskScanSummary = report.UpdatedSummary;
+            DiskStatusText = Texts.Format("DiskDeleteComplete", report.DeletedItems);
+            await LoadDiskPageAsync();
+        }
+        NotifyDiskStateChanged();
+        return report;
+    }
+
+    private void NotifyDiskStateChanged()
+    {
+        OnPropertyChanged(nameof(CanScanDisk));
+        OnPropertyChanged(nameof(CanCancelDiskScan));
+        OnPropertyChanged(nameof(DiskScanProgressVisibility));
+        OnPropertyChanged(nameof(CanGoUpDiskFolder));
+        OnPropertyChanged(nameof(CanGoBackDiskFolder));
+        OnPropertyChanged(nameof(HasDiskScan));
+        OnPropertyChanged(nameof(CanDeleteDiskEntries));
+        OnPropertyChanged(nameof(CanOpenSelectedDiskFolder));
+        OnPropertyChanged(nameof(CanPageDiskBackward));
+        OnPropertyChanged(nameof(CanPageDiskForward));
+        OnPropertyChanged(nameof(DiskPageIndicatorText));
+        OnPropertyChanged(nameof(DiskCurrentDirectoryText));
+        OnPropertyChanged(nameof(DiskSummarySizeText));
+        OnPropertyChanged(nameof(DiskFileCountText));
+        OnPropertyChanged(nameof(DiskFolderCountText));
+        OnPropertyChanged(nameof(DiskSkippedCountText));
+    }
+
     private void NotifyMonitorStateChanged()
     {
         OnPropertyChanged(nameof(InstallMonitorRunning));
@@ -200,10 +641,13 @@ public partial class MainViewModel : ObservableObject
         this.quarantineService = quarantineService;
         installMonitorService = new InstallMonitorService(inventory, Path.GetFullPath(localDataPath));
         this.localDataPath = Path.GetFullPath(localDataPath);
+        diskScanService = new DiskScanService(this.localDataPath);
+        RefreshDiskRoots();
         settingsPath = Path.Combine(this.localDataPath, "settings.json");
         var settings = LoadUserSettings();
         var language = LocalizationCatalog.Languages.Contains(settings.Language ?? string.Empty, StringComparer.OrdinalIgnoreCase) ? settings.Language! : "en";
         Texts = new LocalizationCatalog { Language = language };
+        DiskStatusText = Texts["DiskReadyMessage"];
         SafetyAccepted = settings.SafetyAccepted && settings.SafetyNoticeVersion >= CurrentSafetyNoticeVersion;
         SafetyNoticeAcknowledged = SafetyAccepted;
         SelectedLanguage = language;
@@ -262,6 +706,16 @@ public partial class MainViewModel : ObservableObject
         ScanLeftoversCommand.NotifyCanExecuteChanged();
     }
 
+    partial void OnSelectedDiskScanRootChanged(DiskScanRootOption? value) => OnPropertyChanged(nameof(CanScanDisk));
+    partial void OnSelectedDiskEntryChanged(DiskScanEntry? value) => OnPropertyChanged(nameof(CanOpenSelectedDiskFolder));
+
+    partial void OnCurrentDiskDirectoryChanged(string value)
+    {
+        OnPropertyChanged(nameof(DiskCurrentDirectoryText));
+        OnPropertyChanged(nameof(CanGoUpDiskFolder));
+        OnPropertyChanged(nameof(CanGoBackDiskFolder));
+    }
+
     partial void OnSelectedLeftoverChanged(LeftoverCandidate? value)
     {
         OnPropertyChanged(nameof(CanQuarantineSelected));
@@ -275,8 +729,11 @@ public partial class MainViewModel : ObservableObject
     partial void OnSafetyAcceptedChanged(bool value)
     {
         OnPropertyChanged(nameof(CanUninstallSelected));
+        OnPropertyChanged(nameof(CanManualDeleteSelected));
         OnPropertyChanged(nameof(CanQuarantineSelected));
         OnPropertyChanged(nameof(CanRestoreSelected));
+        OnPropertyChanged(nameof(CanDeleteDiskEntries));
+        OnPropertyChanged(nameof(CanOpenSelectedDiskFolder));
         if (!value)
         {
             SafetyNoticeAcknowledged = false;
@@ -299,8 +756,19 @@ public partial class MainViewModel : ObservableObject
     partial void OnSelectedLanguageChanged(string value)
     {
         Texts.Language = value;
+        if (!HasDiskScan && !IsDiskScanning) DiskStatusText = Texts["DiskReadyMessage"];
         OnPropertyChanged(nameof(RemoveSearchRootText));
         OnPropertyChanged(nameof(UninstallButtonText));
+        OnPropertyChanged(nameof(SelectedApplicationDisplayName));
+        OnPropertyChanged(nameof(SelectedPublisher));
+        OnPropertyChanged(nameof(DetailVersion));
+        OnPropertyChanged(nameof(DetailLocation));
+        OnPropertyChanged(nameof(DetailSource));
+        OnPropertyChanged(nameof(SelectedApplicationsSummary));
+        OnPropertyChanged(nameof(ManualDeleteButtonText));
+        OnPropertyChanged(nameof(DiskPageIndicatorText));
+        OnPropertyChanged(nameof(DiskSelectionCountText));
+        NotifyDiskStateChanged();
         ManualSearchRoots.FirstOrDefault(root => root.Key == RegisteredLocationsRootKey)?.UpdateDisplayPath(Texts["DefaultRootRegisteredLocations"]);
         ManualSearchRoots.FirstOrDefault(root => root.Key == SteamLocationsRootKey)?.UpdateDisplayPath(Texts["DefaultRootSteamLocations"]);
         StatusText = Texts["StatusInitial"];
@@ -354,6 +822,7 @@ public partial class MainViewModel : ObservableObject
             "History" => "History",
             "Quarantine" => "Quarantine",
             "Settings" => "Settings",
+            "Disk" => "Disk",
             _ => "Applications"
         };
         PageTitle = Texts[CurrentPageKey];
@@ -366,6 +835,7 @@ public partial class MainViewModel : ObservableObject
             "History" => Texts["HistoryPage"],
             "Quarantine" => Texts["QuarantinePage"],
             "Settings" => Texts["SettingsSubtitle"],
+            "Disk" => Texts["DiskSubtitle"],
             _ => Texts["ApplicationsSubtitle"]
         };
     }
@@ -617,12 +1087,35 @@ public partial class MainViewModel : ObservableObject
         filtered = ApplyApplicationSort(filtered);
         var orderedApplications = filtered.ToArray();
         var selectedApplication = SelectedApplication;
-        VisibleApplications.Clear();
-        foreach (var application in orderedApplications)
+        var visibleIds = orderedApplications.Select(application => application.Id).ToHashSet(StringComparer.OrdinalIgnoreCase);
+        for (var index = VisibleApplications.Count - 1; index >= 0; index--)
         {
-            VisibleApplications.Add(application);
+            if (!visibleIds.Contains(VisibleApplications[index].Id)) VisibleApplications.RemoveAt(index);
         }
-        if (selectedApplication is not null && orderedApplications.Contains(selectedApplication)) SelectedApplication = selectedApplication;
+        for (var targetIndex = 0; targetIndex < orderedApplications.Length; targetIndex++)
+        {
+            var application = orderedApplications[targetIndex];
+            var currentIndex = -1;
+            for (var index = targetIndex; index < VisibleApplications.Count; index++)
+            {
+                if (VisibleApplications[index].Id.Equals(application.Id, StringComparison.OrdinalIgnoreCase))
+                {
+                    currentIndex = index;
+                    break;
+                }
+            }
+            if (currentIndex < 0)
+            {
+                VisibleApplications.Insert(targetIndex, application);
+            }
+            else
+            {
+                if (!VisibleApplications[currentIndex].Equals(application)) VisibleApplications[currentIndex] = application;
+                if (currentIndex != targetIndex) VisibleApplications.Move(currentIndex, targetIndex);
+            }
+        }
+        if (selectedApplication is not null && orderedApplications.FirstOrDefault(application => application.Id.Equals(selectedApplication.Id, StringComparison.OrdinalIgnoreCase)) is { } refreshedSelection)
+            SelectedApplication = refreshedSelection;
         OnPropertyChanged(nameof(InventoryEmptyStateVisibility));
         OnPropertyChanged(nameof(InventoryEmptyTitle));
         OnPropertyChanged(nameof(InventoryEmptyCopy));

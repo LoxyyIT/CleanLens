@@ -7,7 +7,7 @@ using System.Text.RegularExpressions;
 
 namespace CleanLens.Windows;
 
-public sealed record ManualDeleteCandidate(string Path, string Source, bool IsDirectory);
+public sealed record ManualDeleteCandidate(string Path, string Source, bool IsDirectory, InstalledApplication? Application = null);
 public sealed record DiskUsageMeasurement(long Bytes, int Locations, int Files, int Skipped, bool IsIncomplete);
 
 public sealed class ManualDeleteService
@@ -20,6 +20,9 @@ public sealed class ManualDeleteService
 
     public Task<IReadOnlyList<ManualDeleteCandidate>> FindExactNameMatchesAsync(InstalledApplication application, CancellationToken cancellationToken = default, IProgress<int>? progress = null, IEnumerable<string>? additionalRoots = null, IEnumerable<string>? enabledDefaultRoots = null, bool includeRegisteredLocations = true, bool includeSteamLocations = true) =>
         Task.Run<IReadOnlyList<ManualDeleteCandidate>>(() => FindExactNameMatches(application, cancellationToken, progress, additionalRoots, enabledDefaultRoots, includeRegisteredLocations, includeSteamLocations), cancellationToken);
+
+    public Task<IReadOnlyList<ManualDeleteCandidate>> FindExactNameMatchesAsync(IEnumerable<InstalledApplication> applications, CancellationToken cancellationToken = default, IProgress<int>? progress = null, IEnumerable<string>? additionalRoots = null, IEnumerable<string>? enabledDefaultRoots = null, bool includeRegisteredLocations = true, bool includeSteamLocations = true) =>
+        Task.Run<IReadOnlyList<ManualDeleteCandidate>>(() => FindExactNameMatches(applications, cancellationToken, progress, additionalRoots, enabledDefaultRoots, includeRegisteredLocations, includeSteamLocations), cancellationToken);
 
     public async Task<DiskUsageMeasurement> MeasureApplicationFootprintAsync(InstalledApplication application, CancellationToken cancellationToken = default, IEnumerable<string>? additionalRoots = null, IProgress<int>? progress = null, IEnumerable<string>? enabledDefaultRoots = null, bool includeRegisteredLocations = true, bool includeSteamLocations = true)
     {
@@ -155,7 +158,7 @@ public sealed class ManualDeleteService
             }
         }, cancellationToken);
 
-    private static IReadOnlyList<ManualDeleteCandidate> FindExactNameMatches(InstalledApplication application, CancellationToken cancellationToken, IProgress<int>? progress, IEnumerable<string>? additionalRoots, IEnumerable<string>? enabledDefaultRoots, bool includeRegisteredLocations, bool includeSteamLocations)
+    private static IReadOnlyList<ManualDeleteCandidate> FindExactNameMatches(InstalledApplication application, CancellationToken cancellationToken, IProgress<int>? progress, IEnumerable<string>? additionalRoots, IEnumerable<string>? enabledDefaultRoots, bool includeRegisteredLocations, bool includeSteamLocations, bool includeRecursiveRootScans = true)
     {
         var results = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
         var productTokens = GetProductTokens(application);
@@ -203,17 +206,27 @@ public sealed class ManualDeleteService
                 "Exact publisher/product folders under a user profile");
         }
 
-        foreach (var root in NormalizeAdditionalRoots(additionalRoots))
+        if (includeRecursiveRootScans)
         {
-            cancellationToken.ThrowIfCancellationRequested();
-            AddExactDirectoryMatches(root, application.Publisher, productTokens, results,
-                "Exact app-name folder under a user-added search root",
-                "Exact publisher/product folders under a user-added search root");
-            ScanPersonalTree(root, productTokens, results, cancellationToken, () =>
+            foreach (var root in NormalizeAdditionalRoots(additionalRoots))
             {
-                var visited = Interlocked.Increment(ref visitedDirectories);
-                if ((visited & 127) == 0) progress?.Report(visited);
-            }, "Exact app-name folder under a user-added search root");
+                cancellationToken.ThrowIfCancellationRequested();
+                AddExactDirectoryMatches(root, application.Publisher, productTokens, results,
+                    "Exact app-name folder under a user-added search root",
+                    "Exact publisher/product folders under a user-added search root");
+                ScanPersonalTree(root, productTokens, results, cancellationToken, () =>
+                {
+                    var visited = Interlocked.Increment(ref visitedDirectories);
+                    if ((visited & 127) == 0) progress?.Report(visited);
+                }, "Exact app-name folder under a user-added search root");
+            }
+        }
+
+        if (!includeRecursiveRootScans)
+        {
+            return results.OrderBy(pair => pair.Key, StringComparer.OrdinalIgnoreCase)
+                .Select(pair => new ManualDeleteCandidate(pair.Key, pair.Value, Directory.Exists(pair.Key)))
+                .ToArray();
         }
 
         var resultsLock = new object();
@@ -248,6 +261,94 @@ public sealed class ManualDeleteService
         return results.OrderBy(pair => pair.Key, StringComparer.OrdinalIgnoreCase)
             .Select(pair => new ManualDeleteCandidate(pair.Key, pair.Value, Directory.Exists(pair.Key)))
             .ToArray();
+    }
+
+    private static IReadOnlyList<ManualDeleteCandidate> FindExactNameMatches(
+        IEnumerable<InstalledApplication> applications,
+        CancellationToken cancellationToken,
+        IProgress<int>? progress,
+        IEnumerable<string>? additionalRoots,
+        IEnumerable<string>? enabledDefaultRoots,
+        bool includeRegisteredLocations,
+        bool includeSteamLocations)
+    {
+        var appList = applications.DistinctBy(application => application.Id).ToArray();
+        if (appList.Length == 0) return [];
+        var results = new Dictionary<string, ManualDeleteCandidate>(StringComparer.OrdinalIgnoreCase);
+        foreach (var application in appList)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            foreach (var candidate in FindExactNameMatches(application, cancellationToken, null, additionalRoots, enabledDefaultRoots,
+                includeRegisteredLocations, includeSteamLocations, includeRecursiveRootScans: false))
+            {
+                if (!results.ContainsKey(candidate.Path)) results.Add(candidate.Path, candidate with { Application = application, Source = $"{application.Name} · {candidate.Source}" });
+            }
+        }
+
+        var tokenOwners = new Dictionary<string, List<InstalledApplication>>(StringComparer.OrdinalIgnoreCase);
+        foreach (var application in appList)
+        {
+            foreach (var token in GetProductTokens(application))
+            {
+                if (!tokenOwners.TryGetValue(token, out var owners)) tokenOwners[token] = owners = [];
+                owners.Add(application);
+            }
+        }
+        if (tokenOwners.Count == 0) return results.Values.OrderBy(candidate => candidate.Path, StringComparer.OrdinalIgnoreCase).ToArray();
+
+        var visitedDirectories = 0;
+        var customRoots = NormalizeAdditionalRoots(additionalRoots).ToHashSet(StringComparer.OrdinalIgnoreCase);
+        var candidateRoots = FilterEnabledRoots(GetPersonalRoots(), enabledDefaultRoots)
+            .Concat(customRoots)
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .Where(IsSafeDirectory)
+            .OrderBy(path => path.Length)
+            .ToArray();
+        var roots = new List<string>();
+        foreach (var candidateRoot in candidateRoots)
+        {
+            if (!roots.Any(existingRoot => DeletionPathPolicy.IsPathWithin(candidateRoot, existingRoot))) roots.Add(candidateRoot);
+        }
+        foreach (var root in roots)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            var pending = new Stack<string>();
+            pending.Push(root);
+            while (pending.Count > 0)
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                var current = pending.Pop();
+                try
+                {
+                    foreach (var child in Directory.EnumerateDirectories(current, "*", SearchOption.TopDirectoryOnly))
+                    {
+                        cancellationToken.ThrowIfCancellationRequested();
+                        if (!IsTraversableDirectory(child)) continue;
+                        var visited = Interlocked.Increment(ref visitedDirectories);
+                        if ((visited & 127) == 0) progress?.Report(visited);
+                        var token = NormalizeToken(Path.GetFileName(child));
+                        if (tokenOwners.TryGetValue(token, out var matches))
+                        {
+                            var source = customRoots.Any(customRoot => DeletionPathPolicy.IsPathWithin(child, customRoot))
+                                ? "Exact app-name folder under a user-added search root"
+                                : "Exact registered app-name folder in a personal library";
+                            foreach (var application in matches)
+                            {
+                                if (!results.ContainsKey(child))
+                                    results.Add(child, new ManualDeleteCandidate(child, $"{application.Name} · {source}", true, application));
+                            }
+                            continue;
+                        }
+                        pending.Push(child);
+                    }
+                }
+                catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or System.Security.SecurityException or ArgumentException)
+                {
+                }
+            }
+        }
+        progress?.Report(visitedDirectories);
+        return results.Values.OrderBy(candidate => candidate.Path, StringComparer.OrdinalIgnoreCase).ToArray();
     }
 
     private static void AddRegisteredLocation(string? path, string source, InstalledApplication application, IReadOnlySet<string> productTokens, IDictionary<string, string> results, bool allowNameMismatch = false)

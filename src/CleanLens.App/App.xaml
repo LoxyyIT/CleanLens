@@ -7,6 +7,7 @@
             <local:LocalizationValueConverter x:Key="LocalizationValueConverter" />
             <local:ApplicationMonogramConverter x:Key="ApplicationMonogramConverter" />
             <local:ApplicationIconConverter x:Key="ApplicationIconConverter" />
+            <local:DiskEntryIconConverter x:Key="DiskEntryIconConverter" />
             <Color x:Key="Ink">#14243A</Color>
             <Color x:Key="Muted">#687B91</Color>
             <Color x:Key="Line">#DEE7F0</Color>
@@ -210,6 +211,46 @@
                     </Setter.Value>
                 </Setter>
             </Style>
+            <Style x:Key="WindowCaptionButton" TargetType="Button">
+                <Setter Property="Width" Value="46" />
+                <Setter Property="Height" Value="42" />
+                <Setter Property="Padding" Value="0" />
+                <Setter Property="Background" Value="Transparent" />
+                <Setter Property="Foreground" Value="#C8D7E5" />
+                <Setter Property="BorderThickness" Value="0" />
+                <Setter Property="Cursor" Value="Hand" />
+                <Setter Property="FocusVisualStyle" Value="{x:Null}" />
+                <Setter Property="Template">
+                    <Setter.Value>
+                        <ControlTemplate TargetType="Button">
+                            <Border x:Name="CaptionSurface" Background="{TemplateBinding Background}">
+                                <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+                            </Border>
+                            <ControlTemplate.Triggers>
+                                <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="CaptionSurface" Property="Background" Value="#16344C" /><Setter Property="Foreground" Value="White" /></Trigger>
+                                <Trigger Property="IsPressed" Value="True"><Setter TargetName="CaptionSurface" Property="Background" Value="#214A66" /></Trigger>
+                                <Trigger Property="IsEnabled" Value="False"><Setter TargetName="CaptionSurface" Property="Opacity" Value="0.45" /></Trigger>
+                            </ControlTemplate.Triggers>
+                        </ControlTemplate>
+                    </Setter.Value>
+                </Setter>
+            </Style>
+            <Style x:Key="WindowCloseButton" TargetType="Button" BasedOn="{StaticResource WindowCaptionButton}">
+                <Setter Property="Template">
+                    <Setter.Value>
+                        <ControlTemplate TargetType="Button">
+                            <Border x:Name="CaptionSurface" Background="{TemplateBinding Background}">
+                                <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+                            </Border>
+                            <ControlTemplate.Triggers>
+                                <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="CaptionSurface" Property="Background" Value="#C93645" /><Setter Property="Foreground" Value="White" /></Trigger>
+                                <Trigger Property="IsPressed" Value="True"><Setter TargetName="CaptionSurface" Property="Background" Value="#A92735" /></Trigger>
+                                <Trigger Property="IsEnabled" Value="False"><Setter TargetName="CaptionSurface" Property="Opacity" Value="0.45" /></Trigger>
+                            </ControlTemplate.Triggers>
+                        </ControlTemplate>
+                    </Setter.Value>
+                </Setter>
+            </Style>
             <Style TargetType="Button" BasedOn="{StaticResource SecondaryButton}" />
 
             <Style TargetType="TextBox">
@@ -274,7 +315,7 @@
                     <Setter.Value>
                         <ControlTemplate TargetType="ComboBox">
                             <Grid>
-                                <ToggleButton x:Name="DropToggle" Template="{StaticResource BareToggleButton}" IsChecked="{Binding IsDropDownOpen, Mode=TwoWay, RelativeSource={RelativeSource TemplatedParent}}" Focusable="False" ClickMode="Press" Background="Transparent" BorderThickness="0">
+                                <ToggleButton x:Name="DropToggle" Template="{StaticResource BareToggleButton}" IsChecked="{Binding IsDropDownOpen, Mode=TwoWay, RelativeSource={RelativeSource TemplatedParent}}" Focusable="False" ClickMode="Press" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" Background="Transparent" BorderThickness="0">
                                     <Border x:Name="ComboSurface" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="9" Padding="{TemplateBinding Padding}">
                                         <Grid>
                                             <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="18" /></Grid.ColumnDefinitions>
@@ -420,11 +461,11 @@
 
             <Style TargetType="DataGridCell">
                 <Setter Property="Foreground" Value="{StaticResource InkBrush}" />
-                <Setter Property="Padding" Value="14,5" />
+                <Setter Property="Padding" Value="12,5" />
                 <Setter Property="BorderThickness" Value="0" />
                 <Setter Property="FocusVisualStyle" Value="{x:Null}" />
                 <Style.Triggers>
-                    <Trigger Property="IsSelected" Value="True"><Setter Property="Background" Value="{StaticResource AccentSoft}" /></Trigger>
+                    <Trigger Property="IsSelected" Value="True"><Setter Property="Background" Value="Transparent" /></Trigger>
                 </Style.Triggers>
             </Style>
 
@@ -436,13 +477,16 @@
             <Style x:Key="ApplicationNameCell" TargetType="TextBlock" BasedOn="{StaticResource GridTextCell}">
                 <Setter Property="ToolTip" Value="{Binding Name}" />
                 <Setter Property="FontWeight" Value="SemiBold" />
+                <Setter Property="FontSize" Value="12" />
             </Style>
             <Style x:Key="PublisherCell" TargetType="TextBlock" BasedOn="{StaticResource GridTextCell}">
                 <Setter Property="ToolTip" Value="{Binding Publisher}" />
                 <Setter Property="Foreground" Value="{StaticResource MutedBrush}" />
+                <Setter Property="FontSize" Value="11" />
             </Style>
             <Style x:Key="VersionCell" TargetType="TextBlock" BasedOn="{StaticResource GridTextCell}">
                 <Setter Property="ToolTip" Value="{Binding Version}" />
+                <Setter Property="FontSize" Value="11" />
             </Style>
             <Style x:Key="SizeCell" TargetType="TextBlock" BasedOn="{StaticResource GridTextCell}">
                 <Setter Property="TextAlignment" Value="Right" />
@@ -450,12 +494,15 @@
             </Style>
 
             <Style TargetType="DataGridRow">
-                <Setter Property="MinHeight" Value="52" />
+                <Setter Property="MinHeight" Value="60" />
                 <Setter Property="BorderBrush" Value="{StaticResource LineBrush}" />
                 <Setter Property="BorderThickness" Value="0,0,0,1" />
+                <Setter Property="SnapsToDevicePixels" Value="True" />
+                <Setter Property="VerticalContentAlignment" Value="Center" />
                 <Style.Triggers>
-                    <Trigger Property="IsMouseOver" Value="True"><Setter Property="Background" Value="#F7FAFE" /></Trigger>
-                    <Trigger Property="IsSelected" Value="True"><Setter Property="Background" Value="{StaticResource AccentSoft}" /></Trigger>
+                    <DataTrigger Binding="{Binding (ItemsControl.AlternationIndex), RelativeSource={RelativeSource Self}}" Value="1"><Setter Property="Background" Value="#FBFCFE" /></DataTrigger>
+                    <Trigger Property="IsMouseOver" Value="True"><Setter Property="Background" Value="#F1F6FF" /><Setter Property="BorderBrush" Value="#D5E2FA" /></Trigger>
+                    <Trigger Property="IsSelected" Value="True"><Setter Property="Background" Value="#EAF1FF" /><Setter Property="BorderBrush" Value="#C9D9F6" /></Trigger>
                 </Style.Triggers>
             </Style>
 

@@ -76,7 +76,7 @@ public sealed class ApplicationIconConverter : IValueConverter
         }
     }
 
-    private static BitmapSource? ExtractIcon(string path)
+    internal static BitmapSource? ExtractIcon(string path)
     {
         var info = new ShellFileInfo();
         var result = SHGetFileInfo(path, 0, ref info, (uint)Marshal.SizeOf<ShellFileInfo>(), 0x000000100 | 0x000000000);

@@ -1,22 +1,31 @@
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Media;
 using System.ComponentModel;
 using System.Diagnostics;
 using System.IO;
 using Microsoft.Win32;
 using CleanLens.Core.Models;
+using CleanLens.Core.Safety;
 using CleanLens.Windows;
 
 namespace CleanLens.App;
 
 public partial class MainWindow : Window
 {
+    private CancellationTokenSource? diskSearchDebounce;
     public MainWindow()
     {
         InitializeComponent();
         DataContextChanged += MainWindow_DataContextChanged;
         Loaded += Window_Loaded;
-        Closed += (_, _) => ViewModel.DisposeInstallMonitor();
+        Closed += (_, _) =>
+        {
+            diskSearchDebounce?.Cancel();
+            diskSearchDebounce?.Dispose();
+            ViewModel.DisposeInstallMonitor();
+            ViewModel.DisposeDiskScan();
+        };
     }
 
     private MainViewModel ViewModel => (MainViewModel)DataContext;
@@ -31,6 +40,8 @@ public partial class MainWindow : Window
         {
             newViewModel.PropertyChanged += ViewModel_PropertyChanged;
             UpdateLocalizedColumnHeaders(newViewModel);
+            UpdateDiskSidePanelButtons(newViewModel);
+            UpdateWindowCaptionButtons(newViewModel);
         }
     }
 
@@ -39,20 +50,52 @@ public partial class MainWindow : Window
         if (e.PropertyName == nameof(MainViewModel.SelectedLanguage) && sender is MainViewModel viewModel)
         {
             UpdateLocalizedColumnHeaders(viewModel);
+            UpdateWindowCaptionButtons(viewModel);
         }
     }
 
+    private void UpdateWindowCaptionButtons(MainViewModel viewModel)
+    {
+        var isMaximized = WindowState == WindowState.Maximized;
+        var minimizeText = viewModel.Texts["WindowMinimize"];
+        var maximizeText = viewModel.Texts[isMaximized ? "WindowRestore" : "WindowMaximize"];
+        var closeText = viewModel.Texts["WindowClose"];
+        MaximizeWindowGlyph.Text = isMaximized ? "\uE923" : "\uE922";
+        MinimizeWindowButton.ToolTip = minimizeText;
+        MaximizeWindowButton.ToolTip = maximizeText;
+        CloseWindowButton.ToolTip = closeText;
+        System.Windows.Automation.AutomationProperties.SetName(MinimizeWindowButton, minimizeText);
+        System.Windows.Automation.AutomationProperties.SetName(MaximizeWindowButton, maximizeText);
+        System.Windows.Automation.AutomationProperties.SetName(CloseWindowButton, closeText);
+    }
+
+    private void Window_StateChanged(object? sender, EventArgs e)
+    {
+        if (DataContext is MainViewModel viewModel) UpdateWindowCaptionButtons(viewModel);
+    }
+
+    private void WindowMinimize_Click(object sender, RoutedEventArgs e) => WindowState = WindowState.Minimized;
+
+    private void WindowMaximizeRestore_Click(object sender, RoutedEventArgs e) =>
+        WindowState = WindowState == WindowState.Maximized ? WindowState.Normal : WindowState.Maximized;
+
+    private void WindowClose_Click(object sender, RoutedEventArgs e) => Close();
+
     private void UpdateLocalizedColumnHeaders(MainViewModel viewModel)
     {
-        ApplicationsDataGrid.Columns[1].Header = viewModel.Texts["HeaderApplication"];
-        ApplicationsDataGrid.Columns[2].Header = viewModel.Texts["HeaderPublisher"];
-        ApplicationsDataGrid.Columns[3].Header = viewModel.Texts["HeaderVersion"];
-        ApplicationsDataGrid.Columns[4].Header = viewModel.Texts["HeaderSize"];
+        ApplicationsDataGrid.Columns[2].Header = viewModel.Texts["HeaderApplication"];
+        ApplicationsDataGrid.Columns[3].Header = viewModel.Texts["HeaderPublisher"];
+        ApplicationsDataGrid.Columns[4].Header = viewModel.Texts["HeaderVersion"];
+        ApplicationsDataGrid.Columns[5].Header = viewModel.Texts["HeaderSize"];
         LeftoversDataGrid.Columns[0].Header = viewModel.Texts["HeaderPath"];
         LeftoversDataGrid.Columns[1].Header = viewModel.Texts["HeaderSizeSimple"];
         LeftoversDataGrid.Columns[2].Header = viewModel.Texts["HeaderType"];
         LeftoversDataGrid.Columns[3].Header = viewModel.Texts["HeaderConfidence"];
         LeftoversDataGrid.Columns[4].Header = viewModel.Texts["HeaderReason"];
+        DiskEntriesGrid.Columns[0].Header = viewModel.Texts["DiskItemHeader"];
+        DiskEntriesGrid.Columns[1].Header = viewModel.Texts["DiskExtensionHeader"];
+        DiskEntriesGrid.Columns[2].Header = viewModel.Texts["DiskSizeHeader"];
+        DiskEntriesGrid.Columns[3].Header = viewModel.Texts["DiskModifiedHeader"];
     }
 
     private void Search_Changed(object sender, TextChangedEventArgs e)
@@ -61,6 +104,25 @@ public partial class MainWindow : Window
         {
             viewModel.UpdateSearch(SearchBox.Text);
         }
+    }
+
+    private void Applications_SelectionChanged(object sender, SelectionChangedEventArgs e)
+    {
+        if (DataContext is MainViewModel viewModel && sender is DataGrid grid)
+            viewModel.UpdateSelectedApplications(grid.SelectedItems.OfType<InstalledApplication>());
+    }
+
+    private void ApplicationsDataGrid_PreviewMouseLeftButtonDown(object sender, System.Windows.Input.MouseButtonEventArgs e)
+    {
+        if (sender is not DataGrid grid) return;
+        var current = e.OriginalSource as DependencyObject;
+        while (current is not null && current is not CheckBox)
+            current = VisualTreeHelper.GetParent(current);
+        if (current is not CheckBox { DataContext: InstalledApplication application }) return;
+
+        e.Handled = true;
+        if (grid.SelectedItems.Contains(application)) grid.SelectedItems.Remove(application);
+        else grid.SelectedItems.Add(application);
     }
 
     private void Filter_Changed(object sender, SelectionChangedEventArgs e)
@@ -115,6 +177,12 @@ public partial class MainWindow : Window
     }
 
     private async void History_Click(object sender, RoutedEventArgs e) => await ShowPageAsync("History");
+
+    private async void Disk_Click(object sender, RoutedEventArgs e)
+    {
+        ViewModel.RefreshDiskRoots();
+        await ShowPageAsync("Disk");
+    }
 
     private async void Quarantine_Click(object sender, RoutedEventArgs e) => await ShowPageAsync("Quarantine");
 
@@ -198,12 +266,15 @@ public partial class MainWindow : Window
         LeftoversNav.Tag = page == "Leftover review" ? "Active" : null;
         HistoryNav.Tag = page == "History" ? "Active" : null;
         QuarantineNav.Tag = page == "Quarantine" ? "Active" : null;
+        DiskNav.Tag = page == "Disk" ? "Active" : null;
         SettingsNav.Tag = page == "Settings" ? "Active" : null;
         ApplicationWorkspace.Visibility = page == "Applications" ? Visibility.Visible : Visibility.Collapsed;
         LeftoverWorkspace.Visibility = page == "Leftover review" ? Visibility.Visible : Visibility.Collapsed;
         HistoryWorkspace.Visibility = page == "History" ? Visibility.Visible : Visibility.Collapsed;
         QuarantineWorkspace.Visibility = page == "Quarantine" ? Visibility.Visible : Visibility.Collapsed;
+        DiskWorkspace.Visibility = page == "Disk" ? Visibility.Visible : Visibility.Collapsed;
         SettingsWorkspace.Visibility = page == "Settings" ? Visibility.Visible : Visibility.Collapsed;
+        HeaderScanButton.Visibility = page == "Disk" ? Visibility.Collapsed : Visibility.Visible;
         SummaryMetrics.Visibility = page is "Applications" or "Leftover review" ? Visibility.Visible : Visibility.Collapsed;
         ViewModel.SetPage(page);
         if (page is "History" or "Quarantine")
@@ -234,6 +305,167 @@ public partial class MainWindow : Window
         catch (Exception ex)
         {
             ShowLocalizedMessage(ViewModel.Texts["AppName"], ViewModel.Texts.Format("ActionFailed", ex.Message), CleanLensDialogTone.Warning);
+        }
+    }
+
+    private void DiskBrowse_Click(object sender, RoutedEventArgs e)
+    {
+        var picker = new OpenFolderDialog { Title = ViewModel.Texts["DiskChooseFolder"], Multiselect = false };
+        if (picker.ShowDialog(this) != true) return;
+        try { ViewModel.SetDiskScanFolder(picker.FolderName); }
+        catch (Exception ex) { ShowLocalizedMessage(ViewModel.Texts["Disk"], ViewModel.Texts.Format("ActionFailed", ex.Message), CleanLensDialogTone.Warning); }
+    }
+
+    private void DiskRefreshRoots_Click(object sender, RoutedEventArgs e) => ViewModel.RefreshDiskRoots();
+
+    private async void DiskScan_Click(object sender, RoutedEventArgs e)
+    {
+        using var cancellation = new CancellationTokenSource();
+        var progressWindow = CleanLensDialogService.ShowProgress(this, ViewModel.Texts["DiskScan"], ViewModel.Texts["DiskScanWorking"], ViewModel.Texts["Cancel"], cancellation.Cancel);
+        var progress = new Progress<DiskScanProgress>(value =>
+        {
+            ViewModel.UpdateDiskScanProgress(value);
+            var message = value.BuildingIndex
+                ? ViewModel.Texts["DiskIndexing"]
+                : ViewModel.Texts.Format("DiskProgress", value.EntriesVisited.ToString("N0"), FormatBytes(value.BytesMeasured), value.SkippedEntries.ToString("N0"));
+            CleanLensDialogService.SetProgressMessage(progressWindow, message);
+        });
+        try
+        {
+            await ViewModel.StartDiskScanAsync(cancellation.Token, progress);
+            progressWindow.Close();
+        }
+        catch (OperationCanceledException)
+        {
+            progressWindow.Close();
+        }
+        catch (Exception ex)
+        {
+            progressWindow.Close();
+            ShowLocalizedMessage(ViewModel.Texts["DiskScan"], ViewModel.Texts.Format("ActionFailed", ex.Message), CleanLensDialogTone.Warning);
+        }
+        finally
+        {
+            if (progressWindow.IsVisible) progressWindow.Close();
+        }
+    }
+
+    private async void DiskListingMode_Changed(object sender, SelectionChangedEventArgs e)
+    {
+        if (sender is not ComboBox comboBox || DataContext is not MainViewModel viewModel || comboBox.SelectedIndex is < 0 or > 2) return;
+        await viewModel.SetDiskListingModeAsync((DiskListingMode)comboBox.SelectedIndex);
+    }
+
+    private async void DiskSearch_Changed(object sender, TextChangedEventArgs e)
+    {
+        if (DataContext is not MainViewModel viewModel || sender is not TextBox box) return;
+        diskSearchDebounce?.Cancel();
+        diskSearchDebounce?.Dispose();
+        diskSearchDebounce = new CancellationTokenSource();
+        var token = diskSearchDebounce.Token;
+        try
+        {
+            await Task.Delay(180, token);
+            await viewModel.UpdateDiskSearchAsync(box.Text);
+        }
+        catch (OperationCanceledException) { }
+    }
+
+    private async void DiskEntry_DoubleClick(object sender, System.Windows.Input.MouseButtonEventArgs e)
+    {
+        if (sender is DataGrid { SelectedItem: DiskScanEntry entry } && DataContext is MainViewModel viewModel)
+            await viewModel.NavigateDiskEntryAsync(entry);
+    }
+
+    private async void DiskOpenSelectedFolder_Click(object sender, RoutedEventArgs e) => await ViewModel.OpenSelectedDiskFolderAsync();
+
+    private void DiskTypeView_Click(object sender, RoutedEventArgs e)
+    {
+        ViewModel.SetDiskSidePanelMode(0);
+        UpdateDiskSidePanelButtons(ViewModel);
+    }
+
+    private void DiskTreemapView_Click(object sender, RoutedEventArgs e)
+    {
+        ViewModel.SetDiskSidePanelMode(1);
+        UpdateDiskSidePanelButtons(ViewModel);
+    }
+
+    private void UpdateDiskSidePanelButtons(MainViewModel viewModel)
+    {
+        var typesSelected = viewModel.DiskSidePanelMode == 0;
+        DiskTypeViewButton.Background = typesSelected ? (Brush)FindResource("AccentSoft") : Brushes.White;
+        DiskTypeViewButton.BorderBrush = typesSelected ? (Brush)FindResource("BlueBrush") : (Brush)FindResource("LineBrush");
+        DiskTypeViewButton.Foreground = typesSelected ? (Brush)FindResource("BlueBrush") : (Brush)FindResource("InkBrush");
+        DiskTreemapViewButton.Background = typesSelected ? Brushes.White : (Brush)FindResource("AccentSoft");
+        DiskTreemapViewButton.BorderBrush = typesSelected ? (Brush)FindResource("LineBrush") : (Brush)FindResource("BlueBrush");
+        DiskTreemapViewButton.Foreground = typesSelected ? (Brush)FindResource("InkBrush") : (Brush)FindResource("BlueBrush");
+    }
+
+    private void DiskTreemap_SizeChanged(object sender, SizeChangedEventArgs e)
+    {
+        if (DataContext is MainViewModel viewModel && sender is FrameworkElement surface)
+            viewModel.ResizeDiskTreemap(surface.ActualWidth, surface.ActualHeight);
+    }
+
+    private async void DiskTreemapBlock_Click(object sender, System.Windows.Input.MouseButtonEventArgs e)
+    {
+        if (DataContext is MainViewModel viewModel && sender is FrameworkElement { DataContext: DiskTreemapBlock block })
+            await viewModel.NavigateDiskTreemapBlockAsync(block);
+    }
+
+    private void DiskEntries_SelectionChanged(object sender, SelectionChangedEventArgs e)
+    {
+        if (DataContext is MainViewModel viewModel && sender is DataGrid grid)
+            viewModel.UpdateDiskSelectionCount(grid.SelectedItems.Count);
+    }
+
+    private async void DiskBack_Click(object sender, RoutedEventArgs e) => await ViewModel.GoUpDiskFolderAsync();
+    private async void DiskHistoryBack_Click(object sender, RoutedEventArgs e) => await ViewModel.GoBackDiskFolderAsync();
+    private async void DiskPreviousPage_Click(object sender, RoutedEventArgs e) => await ViewModel.PageDiskEntriesAsync(-1);
+    private async void DiskNextPage_Click(object sender, RoutedEventArgs e) => await ViewModel.PageDiskEntriesAsync(1);
+
+    private async void DiskDeleteSelected_Click(object sender, RoutedEventArgs e)
+    {
+        if (!ViewModel.SafetyAccepted)
+        {
+            ShowLocalizedMessage(ViewModel.Texts["SafetyNoticeTitle"], ViewModel.Texts["SafetyRequired"], CleanLensDialogTone.Warning);
+            return;
+        }
+        var selection = DiskEntriesGrid.SelectedItems.OfType<DiskScanEntry>().ToArray();
+        if (selection.Length == 0)
+        {
+            ShowLocalizedMessage(ViewModel.Texts["Disk"], ViewModel.Texts["DiskSelectItems"], CleanLensDialogTone.Warning);
+            return;
+        }
+        var selected = selection.Where(item => !selection.Any(parent => !parent.Path.Equals(item.Path, StringComparison.OrdinalIgnoreCase) && DeletionPathPolicy.IsPathWithin(item.Path, parent.Path))).ToArray();
+        var totalBytes = selected.Where(item => item.SizeBytes is not null).Aggregate(0L, (total, item) =>
+        {
+            var bytes = item.SizeBytes.GetValueOrDefault();
+            return bytes > long.MaxValue - total ? long.MaxValue : total + bytes;
+        });
+        var paths = string.Join(Environment.NewLine, selected.Select(item => item.Path));
+        var partial = selected.Any(item => item.IsIncomplete || item.SizeBytes is null);
+        var confirmKey = partial ? "DiskDeleteConfirmPartial" : "DiskDeleteConfirm";
+        var confirm = ViewModel.Texts.Format(confirmKey, selected.Length, FormatBytes(totalBytes), paths);
+        if (!CleanLensDialogService.Confirm(this, ViewModel.Texts["DiskDeleteTitle"], confirm, ViewModel.Texts["DiskDeleteSelectedText"], ViewModel.Texts["Cancel"], danger: true)) return;
+
+        try
+        {
+            var report = await ViewModel.DeleteDiskEntriesAsync(selected);
+            if (report.Failures.Count == 0)
+            {
+                ShowLocalizedMessage(ViewModel.Texts["DiskDeleteTitle"], ViewModel.Texts.Format("DiskDeleteComplete", report.DeletedItems));
+            }
+            else
+            {
+                var failureDetails = string.Join(Environment.NewLine + Environment.NewLine, report.Failures.Select(failure => $"{failure.Path}\n{failure.Error}"));
+                ShowLocalizedMessage(ViewModel.Texts["DiskDeleteTitle"], ViewModel.Texts.Format("DiskDeletePartial", report.DeletedItems, report.Failures.Count, failureDetails), CleanLensDialogTone.Warning);
+            }
+        }
+        catch (Exception ex)
+        {
+            ShowLocalizedMessage(ViewModel.Texts["DiskDeleteTitle"], ViewModel.Texts.Format("ActionFailed", ex.Message), CleanLensDialogTone.Warning);
         }
     }
 
@@ -313,8 +545,8 @@ public partial class MainWindow : Window
 
     private async void ManualDelete_Click(object sender, RoutedEventArgs e)
     {
-        var application = ViewModel.SelectedApplication;
-        if (application is null)
+        var applications = ViewModel.GetSelectedApplications();
+        if (applications.Count == 0)
         {
             ShowLocalizedMessage(ViewModel.Texts["AppName"], ViewModel.Texts["SelectFirst"]);
             return;
@@ -326,19 +558,38 @@ public partial class MainWindow : Window
         }
 
         IReadOnlyList<ManualDeleteCandidate> candidates;
+        var isMultiApp = applications.Count > 1;
         using var cancellation = new CancellationTokenSource();
-        var progress = CleanLensDialogService.ShowProgress(this, ViewModel.Texts["ManualDeleteTitle"], ViewModel.Texts["ManualDeleteScanning"], ViewModel.Texts["Cancel"], cancellation.Cancel);
+        var progress = CleanLensDialogService.ShowProgress(this, ViewModel.Texts["ManualDeleteTitle"], isMultiApp ? ViewModel.Texts["ManualDeleteMultiScanning"] : ViewModel.Texts["ManualDeleteScanning"], ViewModel.Texts["Cancel"], cancellation.Cancel);
         var scanProgress = new Progress<int>(count => CleanLensDialogService.SetProgressMessage(progress, ViewModel.Texts.Format("ManualDeleteScanProgress", count)));
         try
         {
-            candidates = await new ManualDeleteService().FindExactNameMatchesAsync(
-                application,
-                cancellation.Token,
-                scanProgress,
-                ViewModel.GetEnabledManualSearchRoots(),
-                ViewModel.GetEnabledDefaultManualSearchRoots(),
-                ViewModel.IncludeRegisteredInstallLocations,
-                ViewModel.IncludeSteamLocations);
+            var service = new ManualDeleteService();
+            var additionalRoots = ViewModel.GetEnabledManualSearchRoots();
+            var defaultRoots = ViewModel.GetEnabledDefaultManualSearchRoots();
+            if (isMultiApp)
+            {
+                candidates = await service.FindExactNameMatchesAsync(
+                    applications,
+                    cancellation.Token,
+                    scanProgress,
+                    additionalRoots,
+                    defaultRoots,
+                    ViewModel.IncludeRegisteredInstallLocations,
+                    ViewModel.IncludeSteamLocations);
+            }
+            else
+            {
+                var application = applications[0];
+                candidates = (await service.FindExactNameMatchesAsync(
+                    application,
+                    cancellation.Token,
+                    scanProgress,
+                    additionalRoots,
+                    defaultRoots,
+                    ViewModel.IncludeRegisteredInstallLocations,
+                    ViewModel.IncludeSteamLocations)).Select(candidate => candidate with { Application = application }).ToArray();
+            }
         }
         catch (OperationCanceledException)
         {
@@ -363,7 +614,7 @@ public partial class MainWindow : Window
         var selection = CleanLensDialogService.SelectManualDeletePaths(
             this,
             ViewModel.Texts["ManualDeleteTitle"],
-            ViewModel.Texts["ManualDeleteIntro"],
+            isMultiApp ? ViewModel.Texts.Format("ManualDeleteMultipleIntro", applications.Count) : ViewModel.Texts["ManualDeleteIntro"],
             ViewModel.Texts["ManualDeleteCandidateCount"],
             ViewModel.Texts["ManualDeleteQuarantine"],
             ViewModel.Texts["ManualDeleteSelected"],
@@ -380,17 +631,19 @@ public partial class MainWindow : Window
             return;
         }
 
+        var selectedSet = selectedPaths.ToHashSet(StringComparer.OrdinalIgnoreCase);
+        var selectedCandidates = candidates.Where(candidate => selectedSet.Contains(candidate.Path))
+            .GroupBy(candidate => candidate.Path, StringComparer.OrdinalIgnoreCase).Select(group => group.First()).ToArray();
+
         if (selection.Action == ManualDeleteSelectionAction.Quarantine)
         {
-            var selectedSet = selectedPaths.ToHashSet(StringComparer.OrdinalIgnoreCase);
-            var selectedCandidates = candidates.Where(candidate => selectedSet.Contains(candidate.Path)).ToArray();
             var movedCount = 0;
             var failures = new List<string>();
             foreach (var candidate in selectedCandidates)
             {
                 try
                 {
-                    await ViewModel.QuarantineManualDeleteCandidateAsync(application, candidate.Path);
+                    await ViewModel.QuarantineManualDeleteCandidateAsync(candidate.Application ?? applications[0], candidate.Path);
                     movedCount++;
                 }
                 catch (Exception ex)
@@ -421,26 +674,48 @@ public partial class MainWindow : Window
             return;
         }
 
-        var confirmationText = ViewModel.Texts.Format("ManualDeleteConfirm", selectedPaths.Count, string.Join(Environment.NewLine, selectedPaths));
-        if (!CleanLensDialogService.Confirm(this, ViewModel.Texts["ManualDeleteTitle"], confirmationText, ViewModel.Texts["ManualDelete"], ViewModel.Texts["Cancel"], danger: true))
+        var confirmationPaths = selectedCandidates.Select(candidate =>
+        {
+            var owner = candidate.Application ?? applications[0];
+            return isMultiApp ? $"{candidate.Path}  [{owner.Name}]" : candidate.Path;
+        }).ToArray();
+        var confirmationText = isMultiApp
+            ? ViewModel.Texts.Format("ManualDeleteConfirmMultiple", confirmationPaths.Length, selectedCandidates.Select(candidate => candidate.Application?.Id ?? applications[0].Id).Distinct(StringComparer.OrdinalIgnoreCase).Count(), string.Join(Environment.NewLine, confirmationPaths))
+            : ViewModel.Texts.Format("ManualDeleteConfirm", selectedPaths.Count, string.Join(Environment.NewLine, confirmationPaths));
+        if (!CleanLensDialogService.Confirm(this, ViewModel.Texts["ManualDeleteTitle"], confirmationText, ViewModel.ManualDeleteButtonText, ViewModel.Texts["Cancel"], danger: true))
         {
             return;
         }
-        try
+        var deletedCount = 0;
+        var deletionFailures = new List<string>();
+        foreach (var group in selectedCandidates.GroupBy(candidate => (candidate.Application ?? applications[0]).Id, StringComparer.OrdinalIgnoreCase))
         {
-            await new ManualDeleteService().DeleteSelectedAsync(
-                application,
-                selectedPaths,
-                additionalRoots: ViewModel.GetEnabledManualSearchRoots(),
-                enabledDefaultRoots: ViewModel.GetEnabledDefaultManualSearchRoots(),
-                includeRegisteredLocations: ViewModel.IncludeRegisteredInstallLocations,
-                includeSteamLocations: ViewModel.IncludeSteamLocations);
-            ViewModel.StatusText = ViewModel.Texts["ManualDeleteDone"];
-            ShowLocalizedMessage(ViewModel.Texts["AppName"], ViewModel.Texts["ManualDeleteDone"]);
+            var candidatesForApp = group.ToArray();
+            var app = candidatesForApp[0].Application ?? applications[0];
+            try
+            {
+                await new ManualDeleteService().DeleteSelectedAsync(
+                    app,
+                    candidatesForApp.Select(candidate => candidate.Path),
+                    additionalRoots: ViewModel.GetEnabledManualSearchRoots(),
+                    enabledDefaultRoots: ViewModel.GetEnabledDefaultManualSearchRoots(),
+                    includeRegisteredLocations: ViewModel.IncludeRegisteredInstallLocations,
+                    includeSteamLocations: ViewModel.IncludeSteamLocations);
+                deletedCount += candidatesForApp.Length;
+            }
+            catch (Exception ex)
+            {
+                deletionFailures.AddRange(candidatesForApp.Select(candidate => $"{candidate.Path}\n{ex.Message}"));
+            }
         }
-        catch (Exception ex)
+        if (deletionFailures.Count == 0)
         {
-            ShowLocalizedMessage(ViewModel.Texts["AppName"], ViewModel.Texts.Format("ActionFailed", ex.Message), CleanLensDialogTone.Warning);
+            ViewModel.StatusText = ViewModel.Texts["ManualDeleteDone"];
+            ShowLocalizedMessage(ViewModel.Texts["AppName"], ViewModel.Texts.Format("ManualDeleteDoneCount", deletedCount));
+        }
+        else
+        {
+            ShowLocalizedMessage(ViewModel.Texts["ManualDeleteTitle"], ViewModel.Texts.Format("ManualDeleteDeletePartial", deletedCount, deletionFailures.Count, string.Join(Environment.NewLine + Environment.NewLine, deletionFailures)), CleanLensDialogTone.Warning);
         }
     }
 
