@@ -47,14 +47,14 @@ img { max-width: 100%; }
 .hero-orb-one { width: 650px; height: 650px; right: -210px; top: -375px; }
 .hero-orb-two { width: 500px; height: 500px; right: -120px; top: -285px; }
 .hero-grid { position: relative; z-index: 1; display: grid; grid-template-columns: minmax(0, 1fr); gap: 0; align-items: center; }
-.hero-copy { max-width: 900px; }
+.hero-copy { max-width: 980px; margin: 0 auto; text-align: center; }
 .eyebrow { margin: 0 0 14px; color: var(--blue); font-size: 10px; font-weight: 800; letter-spacing: .16em; }
 .eyebrow.light { color: #72d1d6; }
 h1, h2, h3, p { margin-top: 0; }
-h1 { max-width: 760px; margin-bottom: 21px; font-size: clamp(40px, 5.1vw, 62px); line-height: 1.075; letter-spacing: -.055em; }
+h1 { max-width: 940px; margin: 0 auto 21px; font-size: clamp(40px, 5.1vw, 62px); line-height: 1.075; letter-spacing: -.055em; }
 h1 span { color: #8edbe0; }
-.hero-lede { max-width: 700px; margin-bottom: 27px; color: #d3dfeb; font-size: 16px; }
-.button-row { display: flex; flex-wrap: wrap; gap: 12px; }
+.hero-lede { max-width: 760px; margin: 0 auto 27px; color: #d3dfeb; font-size: 16px; }
+.button-row { display: flex; flex-wrap: wrap; justify-content: center; gap: 12px; }
 .button { display: inline-flex; min-height: 46px; align-items: center; justify-content: center; padding: 11px 18px; border: 1px solid transparent; border-radius: 11px; font-size: 13px; font-weight: 700; transition: transform .18s ease, background .18s ease, border-color .18s ease; }
 .button:hover { transform: translateY(-2px); }
 .button-primary { color: #fff; background: var(--blue); box-shadow: 0 9px 24px rgba(62,114,238,.26); }
@@ -62,9 +62,9 @@ h1 span { color: #8edbe0; }
 .button-ghost { color: #fff; border-color: rgba(255,255,255,.28); background: rgba(255,255,255,.04); }
 .button-ghost:hover { background: rgba(255,255,255,.11); }
 .button-light { color: var(--navy); background: #fff; }
-.hero-note { margin: 17px 0 0; color: #a9bdce; font-size: 11px; }
-.hero-points { display: grid; gap: 9px; margin-top: 32px; color: #d4e0ea; font-size: 12px; }
-.hero-points > span { display: flex; align-items: center; gap: 9px; }
+.hero-note { margin: 17px 0 0; color: #a9bdce; font-size: 11px; text-align: center; }
+.hero-points { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px 12px; margin-top: 30px; color: #d4e0ea; font-size: 11px; }
+.hero-points > span { display: flex; align-items: center; gap: 8px; padding: 8px 12px; border: 1px solid rgba(199,220,235,.16); border-radius: 999px; background: rgba(255,255,255,.035); }
 .point-dot { width: 7px; height: 7px; border-radius: 50%; }
 .cyan { background: var(--cyan); }.teal { background: #4bd0b8; }.violet { background: #a895ff; }
 .principle-strip { padding: 22px 0; border-bottom: 1px solid var(--line); background: #fff; }
