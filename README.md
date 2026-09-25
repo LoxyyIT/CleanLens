@@ -1,7 +1,3 @@
-<p align="center">
-  <img src="logo.png" alt="CleanLens" width="120">
-</p>
-
 # CleanLens
 
 <p align="center">
@@ -20,10 +16,12 @@
   <img src="https://img.shields.io/badge/platform-Windows-0b6cff" alt="Windows">
   <img src="https://img.shields.io/badge/UI-WPF-1677ff" alt="WPF">
   <img src="https://img.shields.io/badge/runtime-.NET%2010-512bd4" alt=".NET 10">
-  <a href="https://github.com/LoxyyIT/CleanLens/releases/tag/v0.2.0"><img src="https://img.shields.io/badge/release-v0.2.0-396be8" alt="CleanLens 0.2.0 release"></a>
+  <a href="https://github.com/LoxyyIT/CleanLens/releases/tag/v0.2.1"><img src="https://img.shields.io/badge/release-v0.2.1-396be8" alt="CleanLens 0.2.1 release"></a>
   <img src="https://img.shields.io/badge/license-MIT-18a06f" alt="MIT">
   <img src="https://img.shields.io/badge/status-early%20development-c78b2f" alt="Early development">
 </p>
+
+<p align="center"><img src="logo.png" alt="CleanLens" width="110"></p>
 
 <p align="center">
   <img src="docs/assets/images/cleanlens-app-capture.png" alt="CleanLens showing a local application inventory and selected app details" width="920">
@@ -34,7 +32,9 @@
 ## Contents
 
 - [Why CleanLens](#why-cleanlens)
+- [Quick start](#quick-start)
 - [Features](#features)
+- [Using CleanLens](#using-cleanlens)
 - [Safety boundaries](#safety-boundaries)
 - [Interface](#interface)
 - [Download](#download)
@@ -49,20 +49,43 @@
 
 An application's official uninstaller can leave settings, caches and other application data behind. CleanLens aims to make that cleanup understandable: see the path, see why it matched, and choose whether to move it.
 
-The project is in early development. The current release and source include expanded Windows inventory, install monitoring, disk usage review and carefully gated cleanup.
+CleanLens combines an installed-app inventory, reviewed cleanup paths and an on-demand disk explorer. It is local-first: you inspect the paths and choose what happens to them.
+
+## Quick start
+
+1. Download the [latest Windows x64 portable ZIP](https://github.com/LoxyyIT/CleanLens/releases/latest).
+2. Extract the ZIP to a folder and run `CleanLens.exe`.
+3. Review the safety notice, then scan installed applications or open **Disco** and choose a drive or folder to scan.
+
+The ZIP includes the .NET runtime. CleanLens is unsigned and has no installer or updater; Windows SmartScreen may show a warning. CleanLens does not elevate itself. If a quarantine move is denied, it explains how to restart with administrator permissions and retry.
 
 ## Features
 
-- **Installed app inventory:** reads uninstall entries from HKLM and HKCU in both 32-bit and 64-bit Registry views, and lists AppX/MSIX packages registered for the current Windows user. Windows-marked non-removable packages are blocked from removal.
-- **Search, filters and selection:** search all fields or narrow by app name, publisher, version or install path. Filter by uninstaller availability, publisher information and reported size. Checkbox-select one or multiple apps; batch cleanup is limited to Manual delete.
+- **Installed app inventory:** reads uninstall entries from HKLM and HKCU in both 32-bit and 64-bit Registry views, and lists AppX/MSIX packages registered for the current Windows user. Windows-marked non-removable packages are blocked from removal. Windows app icons are used when available.
+- **Search, filters and selection:** search all fields or narrow by app name, publisher, version or install path. Filter by uninstaller availability, publisher information and reported size. Checkbox-select one or multiple apps; multi-app cleanup is limited to Manual delete.
 - **Reviewed uninstall:** inspect the registered command and Windows Authenticode trust result before launch. The signature belongs to the executable; for MSI entries CleanLens verifies Windows `msiexec.exe`, not the MSI package.
 - **Leftover review:** after a fresh inventory confirms the app is no longer registered, scan exact product folders in AppData and ProgramData, plus matching Windows services, scheduled tasks and startup entries. System artifacts are read-only reports and cannot be quarantined or deleted from this page.
 - **Manual delete scan:** separately review registered install and Windows Installer locations, Program Files and Program Files (x86), app-data folders in accessible Windows profiles, Steam app-ID paths and exact-name matches in supported personal libraries. Settings lists the default scan roots, lets you disable them individually, and lets you add or remove extra roots.
 - **Measured disk usage:** on request, sum file lengths across matched install, application-data, cache and other candidate locations. This can include user data; unreadable paths are counted and marked as a partial measurement. The result is not allocated disk space.
 - **Install Monitor:** start a local session before an installation, run the installer yourself, then stop the session to compare the registered-app inventory, selected service/startup Registry entries, and file system events under Program Files, the current profile's AppData, ProgramData, scheduled-task files and enabled custom roots. It does not read file contents. Reports are saved locally and flag watcher overflow or inaccessible paths.
-- **Disk:** explicitly scan a selected drive or folder, browse indexed folders, view largest items/files, extension totals and a size-weighted treemap, and delete selected paths after a full-path confirmation. ZIP files are measured as stored files and are never opened. A temporary SQLite index keeps scan results pageable without holding every path in RAM; it is removed when CleanLens closes.
+- **Disk explorer:** explicitly scan a selected drive or folder, browse folders with Back and Parent navigation, view the largest items or files, inspect extension totals and explore a size-weighted treemap. ZIP files are measured as stored files and are never opened. A temporary SQLite index keeps scan results pageable without holding every path in RAM; it is removed when CleanLens closes.
+- **Disk cleanup:** select exact file or folder paths and review them before permanent deletion. CleanLens lists the paths again in a separate confirmation. Disk deletion bypasses the Recycle Bin and cannot be undone.
 - **Quarantine or permanent deletion:** from the manual path list, move selected files and folders into local quarantine for later restore, or permanently delete them after a separate confirmation. If Windows denies a move, CleanLens asks you to restart it as administrator; it does not elevate itself.
 - **Local records and settings:** browse operation history and quarantined items, restore items when their original paths are available, and keep the selected interface language and safety acknowledgement locally.
+
+## Using CleanLens
+
+### Review installed apps
+
+Scan the Windows inventory, then search or filter by name, publisher, version, install path, uninstaller availability or reported size. Select an app row to inspect its registered details. Checkboxes select one or several apps; multiple selection enables Manual delete only.
+
+### Review leftovers and quarantine
+
+After uninstalling an app and scanning the inventory again, open Leftover review to inspect exact application-data matches and read-only service, task and startup reports. Quarantine moves selected supported folders to a local restore location. Permanent deletion is a separate action with a separate confirmation.
+
+### Explore a drive or folder
+
+Open **Disco**, choose a drive or use **Sfoglia cartelle**, and start the scan. Double-click a folder or use **Apri cartella** to inspect its contents; **Indietro** returns to the previous folder and **Su** opens its parent. Sort the list by size, switch to largest-item views, or open the treemap. Scanning reads metadata, not file contents, and measures logical file lengths rather than allocated disk space.
 
 ## Safety boundaries
 
@@ -82,13 +105,13 @@ CleanLens starts only an existing, fully qualified executable path, apart from M
 
 ## Interface
 
-The WPF application and static website support English, Italian, Spanish and French. The desktop language choice is saved locally. Overview has been consolidated into the Applications page. Appearance themes and accessibility validation are still planned.
+The WPF application and static website support English, Italian, Spanish and French. The desktop language choice is saved locally. The app includes custom window controls, native Windows file icons and checkbox selection for application lists. Appearance themes and accessibility validation are still planned.
 
 ## Download
 
-The first self-contained Windows x64 build is available from [GitHub Releases](https://github.com/LoxyyIT/CleanLens/releases/latest). Download the portable ZIP, extract it and run `CleanLens.exe`. The build is unsigned and does not include an installer or updater; Windows SmartScreen may show a warning.
+The current self-contained Windows x64 build is available from [GitHub Releases](https://github.com/LoxyyIT/CleanLens/releases/latest). Download the portable ZIP, extract it and run `CleanLens.exe`. The build is unsigned and does not include an installer or updater; Windows SmartScreen may show a warning.
 
-The v0.2.0 portable ZIP includes the features described above. Review the release notes for its exact scope and known boundaries.
+The v0.2.1 portable ZIP includes the features described above. Review the release notes for its exact scope and known boundaries.
 
 ## Build
 
