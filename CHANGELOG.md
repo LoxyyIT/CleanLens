@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.2.0 — Disk explorer and desktop polish
+
+- Added on-demand drive and folder scans with paged browsing, largest-item views, file-type totals and a size-weighted treemap.
+- Added Windows file and folder icons, navigation history, folder breadcrumbs, and clearer scan progress.
+- Added permanent disk-item deletion with exact-path review and confirmation.
+- Added checkbox-based single and multiple app selection; multiple apps use Manual delete only.
+- Reworked application and disk list rows, selection states, and the Windows title bar.
+- Updated the README and project website for the new release.
+
 ## 0.1.1 — Manual quarantine options
 
 - Expanded manual cleanup matching to registered user profiles, Program Files x64/x86 and additional app-data roots.
@@ -17,4 +26,4 @@
 - Added English, Italian, Spanish and French desktop localization with a saved language choice.
 - Added a static four-language project website.
 
-The 0.1.1 release is an early Windows x64 preview distributed as an unsigned portable ZIP. It is not an installer and does not include an updater.
+The 0.2.0 release is an early Windows x64 preview distributed as an unsigned portable ZIP. It is not an installer and does not include an updater.

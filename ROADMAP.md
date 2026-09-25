@@ -11,6 +11,7 @@ Roadmap entries are plans, not implemented features.
 - On-demand measured file-length totals across matched application install and data folders.
 - Local install-monitor sessions with before/after app inventory and file system event review.
 - Locally saved manual search roots that can be enabled, disabled or removed.
+- On-demand disk scans with paged folder browsing, largest-item views, extension totals, and explicit permanent deletion.
 - Selected-folder quarantine move and restore to an unoccupied original path.
 - Local SQLite operation and quarantine history.
 
@@ -28,6 +29,7 @@ Roadmap entries are plans, not implemented features.
 - Separate personal-data discovery and explicit warnings, only after safe evidence and recovery are designed.
 - Batch uninstall, history details, retention settings and safe permanent-quarantine removal.
 - More complete installation snapshots, root coverage and saved-session comparison without invasive process hooking.
+- Deeper treemap navigation, scan export/reopen, allocated-space measurement, and optional NTFS-specific acceleration after compatibility and performance evaluation.
 - System, light and dark themes; accessibility and DPI validation.
 - Windows version matrix, signing and portable package automation.
 
