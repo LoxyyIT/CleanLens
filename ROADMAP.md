@@ -5,8 +5,12 @@ Roadmap entries are plans, not implemented features.
 ## Current source prototype
 
 - Registry uninstall inventory for machine and current-user entries in both Registry views.
-- Registered uninstaller launch after showing the command and requesting confirmation.
-- Limited exact product-folder and publisher/product AppData and ProgramData candidate scan.
+- Current-user AppX/MSIX inventory and package removal after confirmation, respecting Windows' non-removable marker.
+- Registered uninstaller launch after command review, Authenticode verification and confirmation.
+- Exact product-folder and publisher/product AppData and ProgramData scan, with read-only service, scheduled-task and startup matches.
+- On-demand measured file-length totals across matched application install and data folders.
+- Local install-monitor sessions with before/after app inventory and file system event review.
+- Locally saved manual search roots that can be enabled, disabled or removed.
 - Selected-folder quarantine move and restore to an unoccupied original path.
 - Local SQLite operation and quarantine history.
 
@@ -14,20 +18,17 @@ Roadmap entries are plans, not implemented features.
 
 - Extend sandbox coverage for junctions, nested reparse points, races and blocked paths.
 - Make quarantine metadata and recovery records transactional and resilient to interrupted operations.
-- Add a dedicated publisher/signature review and verification flow for the registered command.
 - Expand desktop localization validation to cover new strings and runtime UI flows.
 
 ## Planned product work
 
 - More complete application identity and duplicate-resolution rules.
-- Real measured directory sizes, progress reporting, cancellation and bounded concurrency.
-- Read-only services, scheduled tasks and startup relationship inventory.
 - Carefully scoped Registry candidates with backups and tested restore.
-- MSIX/AppX inventory and official package-removal flow.
+- AppX package management across user profiles, where Windows permissions and package deployment support it.
 - Separate personal-data discovery and explicit warnings, only after safe evidence and recovery are designed.
 - Batch uninstall, history details, retention settings and safe permanent-quarantine removal.
-- Installation before/after snapshots without invasive process hooking.
+- More complete installation snapshots, root coverage and saved-session comparison without invasive process hooking.
 - System, light and dark themes; accessibility and DPI validation.
 - Windows version matrix, signing and portable package automation.
 
-No planned capability should be advertised as available until its UI, backend, error handling, localization and tests are complete.
+System-artifact detection is read-only. Install Monitor covers only roots Windows allowed CleanLens to watch and reports event overflow. Disk measurement sums file lengths and does not claim allocated space. No planned capability should be advertised as available until its UI, backend, error handling, localization and tests are complete.

@@ -2,7 +2,7 @@
   <img src="logo.png" alt="CleanLens" width="120">
 </p>
 
-<h1 align="center">CleanLens</h1>
+# CleanLens
 
 <p align="center">
   <strong>Remove the app. See what it leaves behind.</strong><br>
@@ -31,35 +31,51 @@
 
 <p align="center"><em>Real Windows capture. Inventory and app details vary by PC.</em></p>
 
+## Contents
+
+- [Why CleanLens](#why-cleanlens)
+- [Features](#features)
+- [Safety boundaries](#safety-boundaries)
+- [Interface](#interface)
+- [Download](#download)
+- [Build](#build)
+- [Architecture](#architecture)
+- [Roadmap](#roadmap)
+- [Privacy](#privacy)
+- [Contributing](#contributing)
+- [License](#license)
+
 ## Why CleanLens
 
 An application's official uninstaller can leave settings, caches and other application data behind. CleanLens aims to make that cleanup understandable: see the path, see why it matched, and choose whether to move it.
 
-The project is in early development. The current source is a deliberately narrow Windows prototype; it is not yet the complete uninstaller described in the long-term roadmap.
+The project is in early development. The current source includes expanded Windows inventory, install monitoring and carefully gated cleanup review; the public portable build may lag behind the source.
 
 ## Features
 
-- **Installed app inventory:** reads uninstall entries from HKLM and HKCU in both 32-bit and 64-bit Registry views. App icons come from Windows, with a monogram fallback when an icon is unavailable.
+- **Installed app inventory:** reads uninstall entries from HKLM and HKCU in both 32-bit and 64-bit Registry views, and lists AppX/MSIX packages registered for the current Windows user. Windows-marked non-removable packages are blocked from removal.
 - **Search and filters:** search all fields or narrow by app name, publisher, version or install path. Filter by uninstaller availability, publisher information and reported size.
-- **Reviewed uninstall:** inspect the registered uninstall command before CleanLens asks Windows to launch it. The command comes from local Registry metadata and remains under the app's own uninstall logic.
-- **Leftover review:** after the uninstall completes and a fresh inventory confirms the app is no longer registered, scan exact product folders and publisher/product pairs in the current user's AppData and shared ProgramData. Each result includes its full path, reason, size estimate and confidence; nothing is selected automatically.
-- **Manual delete scan:** separately review registered install and Windows Installer locations, Program Files and Program Files (x86), app-data folders in accessible Windows profiles, Steam app-ID paths and exact-name matches in supported personal libraries.
+- **Reviewed uninstall:** inspect the registered command and Windows Authenticode trust result before launch. The signature belongs to the executable; for MSI entries CleanLens verifies Windows `msiexec.exe`, not the MSI package.
+- **Leftover review:** after a fresh inventory confirms the app is no longer registered, scan exact product folders in AppData and ProgramData, plus matching Windows services, scheduled tasks and startup entries. System artifacts are read-only reports and cannot be quarantined or deleted from this page.
+- **Manual delete scan:** separately review registered install and Windows Installer locations, Program Files and Program Files (x86), app-data folders in accessible Windows profiles, Steam app-ID paths and exact-name matches in supported personal libraries. Settings lists the default scan roots, lets you disable them individually, and lets you add or remove extra roots.
+- **Measured disk usage:** on request, sum file lengths across matched install, application-data, cache and other candidate locations. This can include user data; unreadable paths are counted and marked as a partial measurement. The result is not allocated disk space.
+- **Install Monitor:** start a local session before an installation, run the installer yourself, then stop the session to compare the registered-app inventory, selected service/startup Registry entries, and file system events under Program Files, the current profile's AppData, ProgramData, scheduled-task files and enabled custom roots. It does not read file contents. Reports are saved locally and flag watcher overflow or inaccessible paths.
 - **Quarantine or permanent deletion:** from the manual path list, move selected files and folders into local quarantine for later restore, or permanently delete them after a separate confirmation. If Windows denies a move, CleanLens asks you to restart it as administrator; it does not elevate itself.
 - **Local records and settings:** browse operation history and quarantined items, restore items when their original paths are available, and keep the selected interface language and safety acknowledgement locally.
 
 ## Safety boundaries
 
-The standard leftover scan checks exact product-named folders in the current user's AppData and shared ProgramData only after an uninstall is confirmed. Manual delete checks the additional locations listed above, including Program Files x64/x86, app data from accessible user profiles and selected personal libraries. It uses exact folder-name or publisher/product matches; a matching name is not proof that a path belongs to the app. Every result starts unchecked. Moving to quarantine is reversible when the original path is free; permanent deletion has a separate confirmation and may remove program or personal files.
+The standard leftover scan checks exact product-named folders in the current user's AppData and shared ProgramData only after an uninstall is confirmed. It also reports service, scheduled-task and startup matches as read-only entries. Manual delete checks the additional locations listed above, including user-configured search roots. It uses exact folder-name or publisher/product matches; a matching name is not proof that a path belongs to the app. Every result starts unchecked. Moving to quarantine is reversible when the original path is free; permanent deletion has a separate confirmation and may remove program or personal files.
 
-CleanLens does not scan the whole disk, inspect file contents, or cover every Windows app type and every leftover location. MSIX inventory, services, scheduled tasks and startup entries are not part of the current cleanup scan. Junctions and symbolic links are refused by cleanup guards, but path checks cannot eliminate every race with other software.
+CleanLens does not scan the whole disk, inspect file contents, or cover every Windows app type and every leftover location. AppX inventory and removal apply to the current user; they do not provision or remove packages for other user profiles. Install Monitor observes only selected Registry areas and file system events under roots it can watch; it can lose events when Windows buffers overflow. Junctions and symbolic links are refused by cleanup guards, but path checks cannot eliminate every race with other software.
 
 Standard cleanup moves a selected application-data folder to quarantine. Manual deletion is a distinct, irreversible operation. Both actions revalidate selected paths and refuse paths outside supported roots and folders containing reparse points. This reduces risk but cannot eliminate races caused by other software changing filesystem state concurrently. A quarantine move is not a guarantee that an application can be fully restored.
 
 **Warning:** inappropriate use or a wrong path can damage Windows, break applications or permanently remove personal files. Review the full path list and proceed only when you accept responsibility for the selected items.
 
-An uninstall command comes from the Windows Registry and is untrusted input. CleanLens displays it before launching it. The command is executed by Windows as registered; inspect the executable and arguments and cancel if they are unexpected. The application's own uninstaller controls its removal behavior.
+An uninstall command comes from the Windows Registry and is untrusted input. CleanLens displays it and verifies the executable with Windows Authenticode before launch. An untrusted or unsigned result is shown for review; the user still decides whether to continue. For MSI commands, only the system `msiexec.exe` signature is checked, not the installer package. The command is executed by Windows as registered; inspect the executable and arguments and cancel if they are unexpected. The application's own uninstaller controls its removal behavior.
 
-CleanLens starts only an existing, fully qualified executable path, apart from MSI commands which are resolved to Windows' system msiexec.exe. It refuses quiet-only uninstall entries. Authenticode signer verification of third-party uninstallers is not implemented.
+CleanLens starts only an existing, fully qualified executable path, apart from MSI commands which are resolved to Windows' system msiexec.exe. It refuses quiet-only uninstall entries.
 
 ## Interface
 
@@ -68,6 +84,8 @@ The WPF application and static website support English, Italian, Spanish and Fre
 ## Download
 
 The first self-contained Windows x64 build is available from [GitHub Releases](https://github.com/LoxyyIT/CleanLens/releases/latest). Download the portable ZIP, extract it and run `CleanLens.exe`. The build is unsigned and does not include an installer or updater; Windows SmartScreen may show a warning.
+
+The source tree can include newer work than the latest public release. Check the release notes before expecting these recent features in a downloaded build.
 
 ## Build
 
@@ -96,7 +114,7 @@ The publish directory includes the .NET runtime and is suitable for packaging as
 
 ## Roadmap
 
-See ROADMAP.md for planned work and current boundaries. MSIX/AppX inventory, services, scheduled tasks, startup components, file signatures, real measured disk usage, install monitoring, complete desktop localization, light/dark/system themes and broader validation are not implemented.
+See ROADMAP.md for planned work and current boundaries. Per-user AppX removal, measured on-disk file usage, install monitoring, custom search roots and read-only service/task/startup detection are available in the current source. Cleanup support for those system artifacts, all-user package management, complete desktop localization, appearance themes and broader validation remain future work.
 
 ## Privacy
 
