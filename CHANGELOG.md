@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.2.1 — Feature guide refresh
+
+- Expanded the README quick start, app selection, cleanup safety and Disk usage guidance.
+- Updated the four-language website to describe the current app inventory, Monitor, quarantine and Disk explorer workflows.
+- Refreshed the portable build metadata and links for v0.2.1.
+
 ## 0.2.0 — Disk explorer and desktop polish
 
 - Added on-demand drive and folder scans with paged browsing, largest-item views, file-type totals and a size-weighted treemap.
