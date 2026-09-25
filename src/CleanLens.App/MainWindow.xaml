@@ -154,9 +154,9 @@
                                 <ComboBoxItem Content="{Binding Texts[UnreportedSize]}" />
                             </ComboBox>
                         </Grid>
-                        <DataGrid x:Name="ApplicationsDataGrid" Grid.Row="1" ItemsSource="{Binding VisibleApplications}" SelectedItem="{Binding SelectedApplication, Mode=TwoWay}" AutoGenerateColumns="False" CanUserAddRows="False" IsReadOnly="True" HeadersVisibility="Column" RowHeight="55" ColumnHeaderHeight="40" Background="Transparent">
+                        <DataGrid x:Name="ApplicationsDataGrid" Grid.Row="1" ItemsSource="{Binding VisibleApplications}" SelectedItem="{Binding SelectedApplication, Mode=TwoWay}" AutoGenerateColumns="False" CanUserAddRows="False" CanUserSortColumns="True" Sorting="ApplicationsDataGrid_Sorting" ColumnHeaderStyle="{StaticResource SortableColumnHeader}" IsReadOnly="True" HeadersVisibility="Column" RowHeight="55" ColumnHeaderHeight="40" Background="Transparent">
                             <DataGrid.Columns>
-                                <DataGridTemplateColumn Width="54">
+                                <DataGridTemplateColumn Width="54" CanUserSort="False" HeaderStyle="{StaticResource NonSortableColumnHeader}">
                                     <DataGridTemplateColumn.CellTemplate>
                                         <DataTemplate>
                                             <Border Width="35" Height="35" CornerRadius="11" Background="{StaticResource AccentSoft}" HorizontalAlignment="Center" AutomationProperties.Name="{Binding Name}">
@@ -168,10 +168,10 @@
                                         </DataTemplate>
                                     </DataGridTemplateColumn.CellTemplate>
                                 </DataGridTemplateColumn>
-                                <DataGridTextColumn Header="APPLICATION" Binding="{Binding Name}" ElementStyle="{StaticResource ApplicationNameCell}" Width="2*" />
-                                <DataGridTextColumn Header="PUBLISHER" Binding="{Binding Publisher}" ElementStyle="{StaticResource PublisherCell}" Width="1.4*" MinWidth="150" />
-                                <DataGridTextColumn Header="VERSION" Binding="{Binding Version}" ElementStyle="{StaticResource VersionCell}" Width="1.1*" MinWidth="110" />
-                                <DataGridTemplateColumn Header="SIZE · EST." Width="110">
+                                <DataGridTextColumn Header="APPLICATION" SortMemberPath="Name" Binding="{Binding Name}" ElementStyle="{StaticResource ApplicationNameCell}" Width="2*" />
+                                <DataGridTextColumn Header="PUBLISHER" SortMemberPath="Publisher" Binding="{Binding Publisher}" ElementStyle="{StaticResource PublisherCell}" Width="1.4*" MinWidth="150" />
+                                <DataGridTextColumn Header="VERSION" SortMemberPath="Version" Binding="{Binding Version}" ElementStyle="{StaticResource VersionCell}" Width="1.1*" MinWidth="110" />
+                                <DataGridTemplateColumn Header="SIZE · EST." SortMemberPath="EstimatedSizeKilobytes" Width="110">
                                     <DataGridTemplateColumn.CellTemplate>
                                         <DataTemplate>
                                                 <TextBlock Text="{Binding EstimatedSizeText}">
@@ -219,6 +219,7 @@
                             <TextBlock Text="{Binding DetailVersion}" FontSize="12" Margin="0,10,0,0" TextWrapping="Wrap" />
                             <TextBlock Text="{Binding DetailLocation}" FontSize="12" Margin="0,7,0,0" TextWrapping="Wrap" />
                             <TextBlock Text="{Binding DetailSource}" FontSize="11" Foreground="{StaticResource MutedBrush}" Margin="0,7,0,0" />
+                            <Button Content="{Binding Texts[MeasureDiskUsage]}" Click="MeasureDiskUsage_Click" Style="{StaticResource SecondaryButton}" HorizontalAlignment="Stretch" Margin="0,10,0,0" />
                             <Expander Header="{Binding Texts[AdvancedDetails]}" Margin="0,14,0,0">
                                 <StackPanel Margin="0,9,0,0">
                                     <TextBlock Text="{Binding Texts[UninstallCommand]}" FontWeight="SemiBold" FontSize="11" />
@@ -233,7 +234,7 @@
                                     <TextBlock Text="{Binding Texts[PersonalDataMessage]}" Foreground="{StaticResource MutedBrush}" FontSize="11" TextWrapping="Wrap" Margin="0,6,0,0" />
                                 </StackPanel>
                             </Border>
-                            <Button Content="{Binding Texts[RunUninstaller]}" Click="Uninstall_Click" IsEnabled="{Binding CanUninstallSelected}" Style="{StaticResource PrimaryButton}" HorizontalAlignment="Stretch" Margin="0,18,0,0" />
+                            <Button Content="{Binding UninstallButtonText}" Click="Uninstall_Click" IsEnabled="{Binding CanUninstallSelected}" Style="{StaticResource PrimaryButton}" HorizontalAlignment="Stretch" Margin="0,18,0,0" />
                             <Button Content="{Binding Texts[ReviewLeftovers]}" Click="Leftovers_Click" IsEnabled="{Binding CanReviewLeftovers}" Style="{StaticResource SecondaryButton}" HorizontalAlignment="Stretch" Margin="0,8,0,0" />
                             <Button Content="{Binding Texts[ManualDelete]}" Click="ManualDelete_Click" IsEnabled="{Binding SafetyAccepted}" Style="{StaticResource SecondaryButton}" Background="#B4233D" BorderBrush="#B4233D" Foreground="White" HorizontalAlignment="Stretch" Margin="0,8,0,0" />
                             <TextBlock Text="{Binding StatusText}" Foreground="{StaticResource MutedBrush}" FontSize="11" TextWrapping="Wrap" Margin="0,11,0,0" />
@@ -383,9 +384,36 @@
                             </ComboBox>
                         </Grid>
                         <Border Height="1" Background="{StaticResource LineBrush}" Margin="0,24,0,22" />
+                        <TextBlock Text="{Binding Texts[InstallMonitorHeading]}" FontSize="10" Foreground="{StaticResource BlueBrush}" FontWeight="Bold" />
+                        <TextBlock Text="{Binding Texts[InstallMonitorDescription]}" FontSize="12" Foreground="{StaticResource MutedBrush}" TextWrapping="Wrap" Margin="0,7,0,12" />
+                        <StackPanel Orientation="Horizontal">
+                            <Button Content="{Binding Texts[StartMonitor]}" Click="StartMonitor_Click" IsEnabled="{Binding CanStartInstallMonitor}" Style="{StaticResource PrimaryButton}" />
+                            <Button Content="{Binding Texts[StopMonitor]}" Click="StopMonitor_Click" IsEnabled="{Binding CanStopInstallMonitor}" Style="{StaticResource SecondaryButton}" Margin="8,0,0,0" />
+                        </StackPanel>
+                        <ItemsControl ItemsSource="{Binding InstallMonitorResults}" MaxHeight="260" Margin="0,10,0,0">
+                            <ItemsControl.ItemTemplate><DataTemplate><TextBlock Text="{Binding}" TextWrapping="Wrap" FontSize="11" Margin="0,3" /></DataTemplate></ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                        <Border Height="1" Background="{StaticResource LineBrush}" Margin="0,24,0,22" />
                         <TextBlock Text="{Binding Texts[DataStorageHeading]}" FontSize="10" Foreground="{StaticResource BlueBrush}" FontWeight="Bold" />
                         <TextBlock Text="{Binding Texts[DataStorageDescription]}" FontSize="12" Foreground="{StaticResource MutedBrush}" TextWrapping="Wrap" Margin="0,7,0,8" />
                         <TextBlock Text="{Binding LocalDataPath}" FontSize="12" FontFamily="Cascadia Code" TextWrapping="Wrap" />
+                        <Border Height="1" Background="{StaticResource LineBrush}" Margin="0,24,0,22" />
+                        <TextBlock Text="{Binding Texts[CustomSearchRootsHeading]}" FontSize="10" Foreground="{StaticResource BlueBrush}" FontWeight="Bold" />
+                        <TextBlock Text="{Binding Texts[CustomSearchRootsDescription]}" FontSize="12" Foreground="{StaticResource MutedBrush}" TextWrapping="Wrap" Margin="0,7,0,12" />
+                        <Button Content="{Binding Texts[AddSearchRoot]}" Click="AddSearchRoot_Click" Style="{StaticResource SecondaryButton}" HorizontalAlignment="Left" />
+                        <ItemsControl ItemsSource="{Binding ManualSearchRoots}" Margin="0,10,0,0">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <Border Background="#F8FAFC" BorderBrush="{StaticResource LineBrush}" BorderThickness="1" CornerRadius="9" Padding="10,7" Margin="0,3">
+                                        <DockPanel LastChildFill="True">
+                                            <Button DockPanel.Dock="Right" Content="{Binding DataContext.RemoveSearchRootText, RelativeSource={RelativeSource AncestorType=Window}}" Visibility="{Binding RemoveVisibility}" Tag="{Binding}" Click="RemoveSearchRoot_Click" Style="{StaticResource SecondaryButton}" Padding="10,5" Margin="8,0,0,0" />
+                                            <CheckBox DockPanel.Dock="Left" IsChecked="{Binding IsEnabled, UpdateSourceTrigger=PropertyChanged}" VerticalAlignment="Center" Margin="0,0,10,0" />
+                                            <TextBlock Text="{Binding DisplayPath}" VerticalAlignment="Center" TextWrapping="Wrap" FontFamily="Cascadia Code" FontSize="11" />
+                                        </DockPanel>
+                                    </Border>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
                         <Border Height="1" Background="{StaticResource LineBrush}" Margin="0,24,0,22" />
                         <TextBlock Text="{Binding Texts[LocalPrivacyHeading]}" FontSize="10" Foreground="{StaticResource BlueBrush}" FontWeight="Bold" />
                         <TextBlock Text="{Binding Texts[LocalPrivacyDescription]}" FontSize="12" Foreground="{StaticResource MutedBrush}" TextWrapping="Wrap" Margin="0,7,0,0" />

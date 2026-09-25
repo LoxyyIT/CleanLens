@@ -2,6 +2,8 @@ using System.Windows;
 using System.Windows.Controls;
 using System.ComponentModel;
 using System.Diagnostics;
+using System.IO;
+using Microsoft.Win32;
 using CleanLens.Core.Models;
 using CleanLens.Windows;
 
@@ -14,6 +16,7 @@ public partial class MainWindow : Window
         InitializeComponent();
         DataContextChanged += MainWindow_DataContextChanged;
         Loaded += Window_Loaded;
+        Closed += (_, _) => ViewModel.DisposeInstallMonitor();
     }
 
     private MainViewModel ViewModel => (MainViewModel)DataContext;
@@ -68,6 +71,18 @@ public partial class MainWindow : Window
         }
     }
 
+    private void ApplicationsDataGrid_Sorting(object sender, DataGridSortingEventArgs e)
+    {
+        if (DataContext is not MainViewModel viewModel || string.IsNullOrWhiteSpace(e.Column.SortMemberPath)) return;
+        e.Handled = true;
+        var direction = e.Column.SortDirection == ListSortDirection.Ascending
+            ? ListSortDirection.Descending
+            : ListSortDirection.Ascending;
+        foreach (var column in ApplicationsDataGrid.Columns) column.SortDirection = null;
+        e.Column.SortDirection = direction;
+        viewModel.SortApplications(e.Column.SortMemberPath, direction);
+    }
+
     private void SearchScope_Changed(object sender, SelectionChangedEventArgs e)
     {
         if (sender is ComboBox comboBox && DataContext is MainViewModel viewModel)
@@ -104,6 +119,77 @@ public partial class MainWindow : Window
     private async void Quarantine_Click(object sender, RoutedEventArgs e) => await ShowPageAsync("Quarantine");
 
     private async void Settings_Click(object sender, RoutedEventArgs e) => await ShowPageAsync("Settings");
+
+    private void AddSearchRoot_Click(object sender, RoutedEventArgs e)
+    {
+        var picker = new OpenFolderDialog { Title = ViewModel.Texts["SelectSearchRoot"], Multiselect = false };
+        if (picker.ShowDialog(this) != true) return;
+        try
+        {
+            ViewModel.AddManualSearchRoot(picker.FolderName);
+        }
+        catch (Exception ex)
+        {
+            ShowLocalizedMessage(ViewModel.Texts["CustomSearchRootsHeading"], ex.Message, CleanLensDialogTone.Warning);
+        }
+    }
+
+    private void RemoveSearchRoot_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is Button { Tag: ManualSearchRootSetting setting }) ViewModel.RemoveManualSearchRoot(setting);
+    }
+
+    private async void StartMonitor_Click(object sender, RoutedEventArgs e)
+    {
+        try { await ViewModel.StartInstallMonitorAsync(); }
+        catch (Exception ex) { ShowLocalizedMessage(ViewModel.Texts["InstallMonitorHeading"], ViewModel.Texts.Format("ActionFailed", ex.Message), CleanLensDialogTone.Warning); }
+    }
+
+    private async void StopMonitor_Click(object sender, RoutedEventArgs e)
+    {
+        try { await ViewModel.StopInstallMonitorAsync(); }
+        catch (Exception ex) { ShowLocalizedMessage(ViewModel.Texts["InstallMonitorHeading"], ViewModel.Texts.Format("ActionFailed", ex.Message), CleanLensDialogTone.Warning); }
+    }
+
+    private async void MeasureDiskUsage_Click(object sender, RoutedEventArgs e)
+    {
+        var application = ViewModel.SelectedApplication;
+        if (application is null) return;
+        using var cancellation = new CancellationTokenSource();
+        var progress = CleanLensDialogService.ShowProgress(this, ViewModel.Texts["MeasureDiskUsage"], ViewModel.Texts["DiskUsageScanning"], ViewModel.Texts["Cancel"], cancellation.Cancel);
+        var progressReporter = new Progress<int>(count => CleanLensDialogService.SetProgressMessage(progress, ViewModel.Texts.Format("DiskUsageProgress", count)));
+        try
+        {
+            var result = await new ManualDeleteService().MeasureApplicationFootprintAsync(
+                application,
+                cancellation.Token,
+                ViewModel.GetEnabledManualSearchRoots(),
+                progressReporter,
+                ViewModel.GetEnabledDefaultManualSearchRoots(),
+                ViewModel.IncludeRegisteredInstallLocations,
+                ViewModel.IncludeSteamLocations);
+            var message = ViewModel.Texts.Format("MeasuredDiskUsage", FormatBytes(result.Bytes), result.Locations, result.Files, result.Skipped);
+            if (result.IsIncomplete) message += "\n\n" + ViewModel.Texts["DiskUsagePartial"];
+            progress.Close();
+            ShowLocalizedMessage(ViewModel.Texts["MeasureDiskUsage"], message, result.IsIncomplete ? CleanLensDialogTone.Warning : CleanLensDialogTone.Information);
+        }
+        catch (OperationCanceledException) { }
+        catch (Exception ex)
+        {
+            progress.Close();
+            ShowLocalizedMessage(ViewModel.Texts["MeasureDiskUsage"], ViewModel.Texts.Format("ActionFailed", ex.Message), CleanLensDialogTone.Warning);
+        }
+        finally { if (progress.IsVisible) progress.Close(); }
+    }
+
+    private static string FormatBytes(long bytes)
+    {
+        string[] units = ["B", "KB", "MB", "GB", "TB"];
+        var value = (double)bytes;
+        var unit = 0;
+        while (value >= 1024 && unit < units.Length - 1) { value /= 1024; unit++; }
+        return $"{value:0.#} {units[unit]}";
+    }
 
     private async Task ShowPageAsync(string page)
     {
@@ -164,6 +250,26 @@ public partial class MainWindow : Window
             ShowLocalizedMessage(ViewModel.Texts["SafetyNoticeTitle"], ViewModel.Texts["SafetyRequired"], CleanLensDialogTone.Warning);
             return;
         }
+        if (application.IsAppxPackage)
+        {
+            if (application.IsNonRemovablePackage)
+            {
+                ShowLocalizedMessage(ViewModel.Texts["AppxPackage"], ViewModel.Texts["AppxNonRemovable"], CleanLensDialogTone.Warning);
+                return;
+            }
+            if (!CleanLensDialogService.Confirm(this, ViewModel.Texts["AppxPackage"], ViewModel.Texts.Format("AppxRemoveConfirm", application.Name, application.PackageFullName), ViewModel.Texts["Continue"], ViewModel.Texts["Cancel"], danger: true)) return;
+            try
+            {
+                await new AppxPackageManager().RemoveForCurrentUserAsync(application.PackageFullName);
+                await ViewModel.RecordUninstallAsync(application, null);
+                ViewModel.StatusText = ViewModel.Texts["StatusOfficialStarted"];
+            }
+            catch (Exception ex)
+            {
+                ShowLocalizedMessage(ViewModel.Texts["AppxPackage"], ViewModel.Texts.Format("UninstallerError", ex.Message), CleanLensDialogTone.Warning);
+            }
+            return;
+        }
         var command = application.UninstallCommand;
         if (string.IsNullOrWhiteSpace(command) && !string.IsNullOrWhiteSpace(application.QuietUninstallCommand))
         {
@@ -175,7 +281,20 @@ public partial class MainWindow : Window
             ShowLocalizedMessage(ViewModel.Texts["AppName"], ViewModel.Texts["NoUninstaller"]);
             return;
         }
-        var answer = CleanLensDialogService.Confirm(this, ViewModel.Texts["ReviewUninstallerTitle"], ViewModel.Texts.Format("ReviewUninstallerMessage", application.Name, command), ViewModel.Texts["Continue"], ViewModel.Texts["Cancel"]);
+        (string FileName, string Arguments) parsed;
+        try { parsed = UninstallerLauncher.ParseExecutable(command); }
+        catch (Exception ex)
+        {
+            ShowLocalizedMessage(ViewModel.Texts["UninstallerErrorTitle"], ViewModel.Texts.Format("UninstallerError", ex.Message), CleanLensDialogTone.Warning);
+            return;
+        }
+        var executablePath = Path.GetFileName(parsed.FileName).Equals("msiexec.exe", StringComparison.OrdinalIgnoreCase)
+            ? Path.Combine(Environment.SystemDirectory, "msiexec.exe")
+            : parsed.FileName;
+        var trust = new AuthenticodeVerifier().Verify(executablePath);
+        var signerInfo = ViewModel.Texts.Format("UninstallerSignature", trust.IsTrusted ? ViewModel.Texts["SignatureTrusted"] : ViewModel.Texts["SignatureNotTrusted"], string.IsNullOrWhiteSpace(trust.Publisher) ? ViewModel.Texts["SignaturePublisherUnknown"] : trust.Publisher, trust.Status);
+        if (Path.GetFileName(executablePath).Equals("msiexec.exe", StringComparison.OrdinalIgnoreCase)) signerInfo += "\n" + ViewModel.Texts["MsiSignatureNote"];
+        var answer = CleanLensDialogService.Confirm(this, ViewModel.Texts["ReviewUninstallerTitle"], ViewModel.Texts.Format("ReviewUninstallerMessage", application.Name, command) + "\n\n" + signerInfo, ViewModel.Texts["Continue"], ViewModel.Texts["Cancel"]);
         if (!answer)
         {
             return;
@@ -212,7 +331,14 @@ public partial class MainWindow : Window
         var scanProgress = new Progress<int>(count => CleanLensDialogService.SetProgressMessage(progress, ViewModel.Texts.Format("ManualDeleteScanProgress", count)));
         try
         {
-            candidates = await new ManualDeleteService().FindExactNameMatchesAsync(application, cancellation.Token, scanProgress);
+            candidates = await new ManualDeleteService().FindExactNameMatchesAsync(
+                application,
+                cancellation.Token,
+                scanProgress,
+                ViewModel.GetEnabledManualSearchRoots(),
+                ViewModel.GetEnabledDefaultManualSearchRoots(),
+                ViewModel.IncludeRegisteredInstallLocations,
+                ViewModel.IncludeSteamLocations);
         }
         catch (OperationCanceledException)
         {
@@ -302,7 +428,13 @@ public partial class MainWindow : Window
         }
         try
         {
-            await new ManualDeleteService().DeleteSelectedAsync(application, selectedPaths);
+            await new ManualDeleteService().DeleteSelectedAsync(
+                application,
+                selectedPaths,
+                additionalRoots: ViewModel.GetEnabledManualSearchRoots(),
+                enabledDefaultRoots: ViewModel.GetEnabledDefaultManualSearchRoots(),
+                includeRegisteredLocations: ViewModel.IncludeRegisteredInstallLocations,
+                includeSteamLocations: ViewModel.IncludeSteamLocations);
             ViewModel.StatusText = ViewModel.Texts["ManualDeleteDone"];
             ShowLocalizedMessage(ViewModel.Texts["AppName"], ViewModel.Texts["ManualDeleteDone"]);
         }

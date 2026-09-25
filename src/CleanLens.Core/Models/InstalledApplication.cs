@@ -13,9 +13,14 @@ public sealed record InstalledApplication(
     string RegistryKeyPath,
     bool IsSystemComponent,
     long? EstimatedSizeKilobytes,
-    string Source)
+    string Source,
+    string PackageFullName = "",
+    bool IsNonRemovablePackage = false,
+    string PackageLogo = "",
+    string PackageFamilyName = "")
 {
-    public string SearchText => string.Join(' ', Name, Publisher, Version, InstallLocation, DisplayIcon, UninstallCommand);
+    public bool IsAppxPackage => !string.IsNullOrWhiteSpace(PackageFullName);
+    public string SearchText => string.Join(' ', Name, Publisher, Version, InstallLocation, DisplayIcon, UninstallCommand, PackageFullName, PackageFamilyName);
     public string EstimatedSizeText => EstimatedSizeKilobytes is null ? string.Empty : FormatSize(EstimatedSizeKilobytes.Value * 1024);
 
     private static string FormatSize(long bytes)

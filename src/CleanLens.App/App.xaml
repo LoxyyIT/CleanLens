@@ -384,6 +384,40 @@
                 <Setter Property="HorizontalContentAlignment" Value="Left" />
             </Style>
 
+            <Style x:Key="SortableColumnHeader" TargetType="DataGridColumnHeader" BasedOn="{StaticResource {x:Type DataGridColumnHeader}}">
+                <Setter Property="Cursor" Value="Hand" />
+                <Setter Property="ToolTip" Value="{Binding DataContext.Texts[SortableColumnTooltip], RelativeSource={RelativeSource AncestorType=Window}}" />
+                <Setter Property="Template">
+                    <Setter.Value>
+                        <ControlTemplate TargetType="DataGridColumnHeader">
+                            <Border x:Name="HeaderSurface" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" Padding="{TemplateBinding Padding}">
+                                <DockPanel LastChildFill="True" VerticalAlignment="Center">
+                                    <TextBlock x:Name="SortGlyph" DockPanel.Dock="Right" Text="↕" Foreground="#9AAABD" FontSize="12" FontWeight="SemiBold" Margin="10,0,2,0" VerticalAlignment="Center" />
+                                    <ContentPresenter Content="{TemplateBinding Content}" ContentTemplate="{TemplateBinding ContentTemplate}" ContentStringFormat="{TemplateBinding ContentStringFormat}" VerticalAlignment="Center" HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}" RecognizesAccessKey="True" />
+                                </DockPanel>
+                            </Border>
+                            <ControlTemplate.Triggers>
+                                <Trigger Property="IsMouseOver" Value="True">
+                                    <Setter TargetName="HeaderSurface" Property="Background" Value="#EEF4FF" />
+                                    <Setter Property="Foreground" Value="{StaticResource BlueBrush}" />
+                                    <Setter TargetName="SortGlyph" Property="Foreground" Value="{StaticResource BlueBrush}" />
+                                </Trigger>
+                                <DataTrigger Binding="{Binding SortDirection, RelativeSource={RelativeSource TemplatedParent}}" Value="Ascending">
+                                    <Setter TargetName="SortGlyph" Property="Visibility" Value="Collapsed" />
+                                </DataTrigger>
+                                <DataTrigger Binding="{Binding SortDirection, RelativeSource={RelativeSource TemplatedParent}}" Value="Descending">
+                                    <Setter TargetName="SortGlyph" Property="Visibility" Value="Collapsed" />
+                                </DataTrigger>
+                                <Trigger Property="IsKeyboardFocused" Value="True">
+                                    <Setter TargetName="HeaderSurface" Property="BorderBrush" Value="{StaticResource BlueBrush}" />
+                                </Trigger>
+                            </ControlTemplate.Triggers>
+                        </ControlTemplate>
+                    </Setter.Value>
+                </Setter>
+            </Style>
+            <Style x:Key="NonSortableColumnHeader" TargetType="DataGridColumnHeader" BasedOn="{StaticResource {x:Type DataGridColumnHeader}}" />
+
             <Style TargetType="DataGridCell">
                 <Setter Property="Foreground" Value="{StaticResource InkBrush}" />
                 <Setter Property="Padding" Value="14,5" />
