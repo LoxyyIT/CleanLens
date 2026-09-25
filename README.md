@@ -23,12 +23,6 @@
 
 <p align="center"><img src="logo.png" alt="CleanLens" width="110"></p>
 
-<p align="center">
-  <img src="docs/assets/images/cleanlens-app-capture-v0.2.1.png" alt="CleanLens 0.2.1 showing app inventory, checkbox selection and selected Microsoft Edge details" width="920">
-</p>
-
-<p align="center"><em>Real Windows capture. Inventory and app details vary by PC.</em></p>
-
 ## Contents
 
 - [Why CleanLens](#why-cleanlens)
