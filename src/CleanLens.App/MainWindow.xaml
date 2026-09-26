@@ -3,21 +3,22 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:models="clr-namespace:CleanLens.Core.Models;assembly=CleanLens.Core"
         xmlns:shell="clr-namespace:System.Windows.Shell;assembly=PresentationFramework"
-        Title="{Binding Texts[AppName]}" Icon="/CleanLens;component/Assets/CleanLens.ico" Width="1440" Height="920" MinWidth="1120" MinHeight="720"
-        WindowStartupLocation="CenterScreen" WindowStyle="None" ResizeMode="CanResize" Background="#F3F7FB" Foreground="{StaticResource InkBrush}" FontFamily="Segoe UI" StateChanged="Window_StateChanged">
+        Title="{Binding Texts[AppName]}" Icon="/CleanLens;component/Assets/CleanLens.ico" Width="1490" Height="940" MinWidth="1160" MinHeight="740"
+        WindowStartupLocation="CenterScreen" WindowStyle="None" ResizeMode="CanResize" Background="#EDF3FA" Foreground="{StaticResource InkBrush}" FontFamily="Segoe UI" StateChanged="Window_StateChanged">
     <shell:WindowChrome.WindowChrome>
-        <shell:WindowChrome CaptionHeight="42" ResizeBorderThickness="6" GlassFrameThickness="0" CornerRadius="0" UseAeroCaptionButtons="False" />
+        <shell:WindowChrome CaptionHeight="52" ResizeBorderThickness="6" GlassFrameThickness="0" CornerRadius="0" UseAeroCaptionButtons="False" />
     </shell:WindowChrome.WindowChrome>
     <Grid>
         <Grid.RowDefinitions>
-            <RowDefinition Height="42" />
+            <RowDefinition Height="52" />
             <RowDefinition Height="*" />
         </Grid.RowDefinitions>
         <Grid.ColumnDefinitions>
-            <ColumnDefinition Width="248" />
+            <ColumnDefinition Width="260" />
             <ColumnDefinition Width="*" />
         </Grid.ColumnDefinitions>
-        <Border Grid.Row="0" Grid.ColumnSpan="2" Background="#071827" BorderBrush="#19354E" BorderThickness="0,0,0,1" shell:WindowChrome.IsHitTestVisibleInChrome="False">
+        <Border Grid.Row="0" Grid.ColumnSpan="2" BorderBrush="#24506C" BorderThickness="0,0,0,1" shell:WindowChrome.IsHitTestVisibleInChrome="False">
+            <Border.Background><LinearGradientBrush StartPoint="0,0" EndPoint="1,0"><GradientStop Color="#071725" Offset="0" /><GradientStop Color="#0E2B43" Offset="0.62" /><GradientStop Color="#123A50" Offset="1" /></LinearGradientBrush></Border.Background>
             <Grid>
                 <Grid.ColumnDefinitions><ColumnDefinition Width="Auto" /><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
                 <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center" Margin="13,0,0,0">
@@ -25,7 +26,7 @@
                         <Image Source="/CleanLens;component/logo.png" Stretch="Uniform" />
                     </Border>
                     <TextBlock Text="CleanLens" Foreground="#F2F7FC" FontSize="12" FontWeight="SemiBold" VerticalAlignment="Center" Margin="9,0,0,0" />
-                    <Border Background="#102A3F" CornerRadius="6" Padding="7,3" Margin="10,0,0,0">
+                    <Border Background="#1A4258" BorderBrush="#2A6075" BorderThickness="1" CornerRadius="7" Padding="8,4" Margin="11,0,0,0">
                         <TextBlock Text="{Binding Texts[ProductSubtitle]}" Foreground="#89A7BF" FontSize="8" FontWeight="Bold" VerticalAlignment="Center" />
                     </Border>
                 </StackPanel>
@@ -119,6 +120,12 @@
                             <TextBlock Text="{Binding Texts[Disk]}" VerticalAlignment="Center" />
                         </StackPanel>
                     </Button>
+                    <Button x:Name="AnalysisNav" Style="{StaticResource NavButton}" Click="Analysis_Click" Margin="0,2">
+                        <StackPanel Orientation="Horizontal">
+                            <Border Width="34" Height="34" CornerRadius="11" Background="#122B41" Margin="0,0,12,0"><TextBlock Text="&#xE9D9;" FontFamily="Segoe MDL2 Assets" FontSize="16" HorizontalAlignment="Center" VerticalAlignment="Center" /></Border>
+                            <TextBlock Text="{Binding Texts[Analysis]}" VerticalAlignment="Center" />
+                        </StackPanel>
+                    </Button>
                     <Grid Margin="0,22,0,8">
                         <Grid.ColumnDefinitions><ColumnDefinition Width="Auto" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
                         <TextBlock Text="{Binding Texts[Protection]}" Foreground="#7890A8" FontSize="9" FontWeight="Bold" Margin="10,0,10,0" VerticalAlignment="Center" />
@@ -133,17 +140,18 @@
                 </StackPanel>
             </DockPanel>
         </Border>
-        <Grid Grid.Row="1" Grid.Column="1" Margin="30,24,30,28">
+        <Grid Grid.Row="1" Grid.Column="1" Margin="29,25,29,27">
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto" />
                 <RowDefinition Height="Auto" />
                 <RowDefinition Height="*" />
             </Grid.RowDefinitions>
-            <DockPanel Grid.Row="0" Margin="0,0,0,22">
+            <DockPanel Grid.Row="0" Margin="0,0,0,23">
                 <Button x:Name="HeaderScanButton" DockPanel.Dock="Right" Content="{Binding Texts[ScanApplications]}" Command="{Binding ScanCommand}" Style="{StaticResource PrimaryButton}" />
+                <Button DockPanel.Dock="Right" Content="{Binding Texts[ExportReport]}" Click="ExportReport_Click" Style="{StaticResource SecondaryButton}" Margin="0,0,10,0" />
                 <StackPanel>
-                    <TextBlock Text="{Binding PageTitle}" FontSize="27" FontWeight="SemiBold" />
-                    <TextBlock Text="{Binding PageSubtitle}" Foreground="{StaticResource MutedBrush}" FontSize="13" Margin="0,4,0,0" />
+                    <TextBlock Text="{Binding PageTitle}" FontSize="31" FontWeight="Bold" />
+                    <TextBlock Text="{Binding PageSubtitle}" Foreground="{StaticResource MutedBrush}" FontSize="13" Margin="1,5,0,0" />
                 </StackPanel>
             </DockPanel>
             <Grid x:Name="SummaryMetrics" Grid.Row="1" Margin="0,0,0,20">
@@ -154,15 +162,15 @@
                     <ColumnDefinition Width="16" />
                     <ColumnDefinition Width="*" />
                 </Grid.ColumnDefinitions>
-                <Border Grid.Column="0" Style="{StaticResource Card}" Padding="17,14"><StackPanel><TextBlock Text="{Binding Texts[InstalledApps]}" FontSize="10" Foreground="{StaticResource MutedBrush}" FontWeight="Bold" /><TextBlock Text="{Binding AppCountText}" FontSize="22" FontWeight="SemiBold" Margin="0,6,0,0" /></StackPanel></Border>
-                <Border Grid.Column="2" Style="{StaticResource Card}" Padding="17,14"><StackPanel><TextBlock Text="{Binding Texts[ReportedAppSize]}" FontSize="10" Foreground="{StaticResource MutedBrush}" FontWeight="Bold" /><TextBlock Text="{Binding TotalSizeText}" FontSize="22" FontWeight="SemiBold" Margin="0,6,0,0" /><TextBlock Text="{Binding Texts[ReportedEstimateNote]}" FontSize="9" Foreground="{StaticResource MutedBrush}" /></StackPanel></Border>
-                <Border Grid.Column="4" Style="{StaticResource Card}" Padding="17,14"><StackPanel><TextBlock Text="{Binding Texts[CandidatesFound]}" FontSize="10" Foreground="{StaticResource MutedBrush}" FontWeight="Bold" /><TextBlock Text="{Binding LeftoversText}" FontSize="22" FontWeight="SemiBold" Margin="0,6,0,0" /></StackPanel></Border>
+                <Border Grid.Column="0" Style="{StaticResource Card}" Padding="17,14"><Grid><Grid.ColumnDefinitions><ColumnDefinition Width="47" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions><Border Width="38" Height="38" CornerRadius="12" Background="#EAF0FF" VerticalAlignment="Center"><TextBlock Text="&#xE71D;" FontFamily="Segoe MDL2 Assets" Foreground="{StaticResource BlueBrush}" FontSize="17" HorizontalAlignment="Center" VerticalAlignment="Center" /></Border><StackPanel Grid.Column="1" VerticalAlignment="Center"><TextBlock Text="{Binding Texts[InstalledApps]}" FontSize="10" Foreground="{StaticResource MutedBrush}" FontWeight="Bold" /><TextBlock Text="{Binding AppCountText}" FontSize="23" FontWeight="Bold" Margin="0,3,0,0" /></StackPanel></Grid></Border>
+                <Border Grid.Column="2" Style="{StaticResource Card}" Padding="17,14"><Grid><Grid.ColumnDefinitions><ColumnDefinition Width="47" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions><Border Width="38" Height="38" CornerRadius="12" Background="#E5F8F6" VerticalAlignment="Center"><TextBlock Text="&#xE9D2;" FontFamily="Segoe MDL2 Assets" Foreground="{StaticResource TealBrush}" FontSize="17" HorizontalAlignment="Center" VerticalAlignment="Center" /></Border><StackPanel Grid.Column="1" VerticalAlignment="Center"><TextBlock Text="{Binding Texts[ReportedAppSize]}" FontSize="10" Foreground="{StaticResource MutedBrush}" FontWeight="Bold" /><TextBlock Text="{Binding TotalSizeText}" FontSize="23" FontWeight="Bold" Margin="0,3,0,0" /><TextBlock Text="{Binding Texts[ReportedEstimateNote]}" FontSize="9" Foreground="{StaticResource MutedBrush}" /></StackPanel></Grid></Border>
+                <Border Grid.Column="4" Style="{StaticResource Card}" Padding="17,14"><Grid><Grid.ColumnDefinitions><ColumnDefinition Width="47" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions><Border Width="38" Height="38" CornerRadius="12" Background="#E8F7F9" VerticalAlignment="Center"><TextBlock Text="&#xE721;" FontFamily="Segoe MDL2 Assets" Foreground="{StaticResource CyanBrush}" FontSize="17" HorizontalAlignment="Center" VerticalAlignment="Center" /></Border><StackPanel Grid.Column="1" VerticalAlignment="Center"><TextBlock Text="{Binding Texts[CandidatesFound]}" FontSize="10" Foreground="{StaticResource MutedBrush}" FontWeight="Bold" /><TextBlock Text="{Binding LeftoversText}" FontSize="23" FontWeight="Bold" Margin="0,3,0,0" /></StackPanel></Grid></Border>
             </Grid>
             <Grid Grid.Row="2" x:Name="ApplicationWorkspace">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="*" />
-                    <ColumnDefinition Width="20" />
-                    <ColumnDefinition Width="340" />
+                    <ColumnDefinition Width="16" />
+                    <ColumnDefinition Width="310" />
                 </Grid.ColumnDefinitions>
                 <Border Grid.Column="0" Style="{StaticResource Card}" Padding="18">
                     <Grid>
@@ -195,7 +203,7 @@
                             </ComboBox>
                             <TextBlock Grid.Row="1" Grid.ColumnSpan="5" Text="{Binding Texts[MultiSelectionHint]}" FontSize="10" Foreground="{StaticResource MutedBrush}" Margin="1,8,0,0" />
                         </Grid>
-                        <DataGrid x:Name="ApplicationsDataGrid" Grid.Row="1" ItemsSource="{Binding VisibleApplications}" SelectedItem="{Binding SelectedApplication, Mode=TwoWay}" SelectionMode="Extended" SelectionUnit="FullRow" SelectionChanged="Applications_SelectionChanged" PreviewMouseLeftButtonDown="ApplicationsDataGrid_PreviewMouseLeftButtonDown" AutoGenerateColumns="False" CanUserAddRows="False" CanUserSortColumns="True" Sorting="ApplicationsDataGrid_Sorting" ColumnHeaderStyle="{StaticResource SortableColumnHeader}" IsReadOnly="True" HeadersVisibility="Column" RowHeight="64" AlternationCount="2" ColumnHeaderHeight="42" Background="Transparent">
+                        <DataGrid x:Name="ApplicationsDataGrid" Grid.Row="1" ItemsSource="{Binding VisibleApplications}" SelectedItem="{Binding SelectedApplication, Mode=TwoWay}" SelectionMode="Extended" SelectionUnit="FullRow" SelectionChanged="Applications_SelectionChanged" PreviewMouseLeftButtonDown="ApplicationsDataGrid_PreviewMouseLeftButtonDown" AutoGenerateColumns="False" CanUserAddRows="False" CanUserSortColumns="True" Sorting="ApplicationsDataGrid_Sorting" ColumnHeaderStyle="{StaticResource SortableColumnHeader}" IsReadOnly="True" HeadersVisibility="Column" RowHeight="70" AlternationCount="2" ColumnHeaderHeight="44" Background="Transparent">
                             <DataGrid.Columns>
                                 <DataGridTemplateColumn Header="✓" Width="42" CanUserSort="False" HeaderStyle="{StaticResource NonSortableColumnHeader}">
                                     <DataGridTemplateColumn.CellTemplate>
@@ -207,7 +215,7 @@
                                 <DataGridTemplateColumn Width="54" CanUserSort="False" HeaderStyle="{StaticResource NonSortableColumnHeader}">
                                     <DataGridTemplateColumn.CellTemplate>
                                         <DataTemplate>
-                                            <Border Width="42" Height="42" CornerRadius="13" Background="#F0F5FD" BorderBrush="#E1E9F4" BorderThickness="1" HorizontalAlignment="Center" AutomationProperties.Name="{Binding Name}">
+                                            <Border Width="40" Height="40" CornerRadius="12" Background="#EDF4FF" BorderBrush="#DCE8F6" BorderThickness="1" HorizontalAlignment="Center" AutomationProperties.Name="{Binding Name}">
                                                 <Grid>
                                                     <TextBlock Text="{Binding Name, Converter={StaticResource ApplicationMonogramConverter}}" Foreground="{StaticResource BlueBrush}" FontSize="11" FontWeight="Bold" HorizontalAlignment="Center" VerticalAlignment="Center" />
                                                     <Image Source="{Binding DisplayIcon, Converter={StaticResource ApplicationIconConverter}}" Stretch="Uniform" Margin="6" RenderOptions.BitmapScalingMode="HighQuality" />
@@ -216,10 +224,12 @@
                                         </DataTemplate>
                                     </DataGridTemplateColumn.CellTemplate>
                                 </DataGridTemplateColumn>
-                                <DataGridTextColumn Header="APPLICATION" SortMemberPath="Name" Binding="{Binding Name}" ElementStyle="{StaticResource ApplicationNameCell}" Width="2*" />
-                                <DataGridTextColumn Header="PUBLISHER" SortMemberPath="Publisher" Binding="{Binding Publisher}" ElementStyle="{StaticResource PublisherCell}" Width="1.4*" MinWidth="150" />
-                                <DataGridTextColumn Header="VERSION" SortMemberPath="Version" Binding="{Binding Version}" ElementStyle="{StaticResource VersionCell}" Width="1.1*" MinWidth="110" />
-                                <DataGridTemplateColumn Header="SIZE · EST." SortMemberPath="EstimatedSizeKilobytes" Width="120">
+                                <DataGridTemplateColumn Header="APPLICATION" SortMemberPath="Name" Width="2.5*" MinWidth="210">
+                                    <DataGridTemplateColumn.CellTemplate><DataTemplate><StackPanel VerticalAlignment="Center"><TextBlock Text="{Binding Name}" FontSize="13" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" ToolTip="{Binding Name}" /><TextBlock Text="{Binding Source}" FontSize="10" Foreground="{StaticResource MutedBrush}" TextTrimming="CharacterEllipsis" Margin="0,4,0,0" /></StackPanel></DataTemplate></DataGridTemplateColumn.CellTemplate>
+                                </DataGridTemplateColumn>
+                                <DataGridTextColumn Header="PUBLISHER" SortMemberPath="Publisher" Binding="{Binding Publisher}" ElementStyle="{StaticResource PublisherCell}" Width="1.6*" MinWidth="160" />
+                                <DataGridTextColumn Header="VERSION" SortMemberPath="Version" Binding="{Binding Version}" ElementStyle="{StaticResource VersionCell}" Width="112" />
+                                <DataGridTemplateColumn Header="SIZE · EST." SortMemberPath="EstimatedSizeKilobytes" Width="116">
                                     <DataGridTemplateColumn.CellTemplate>
                                         <DataTemplate>
                                             <Border x:Name="ApplicationSizeBadge" Background="#F1F5FB" BorderBrush="#E2EAF4" BorderThickness="1" CornerRadius="8" Padding="8,4" Width="94" Height="28" HorizontalAlignment="Right" VerticalAlignment="Center">
@@ -256,12 +266,8 @@
                 <Border Grid.Column="2" Style="{StaticResource Card}" Padding="20">
                     <ScrollViewer VerticalScrollBarVisibility="Auto">
                         <StackPanel>
-                            <Border Width="48" Height="48" CornerRadius="16" Background="#EAF2FF" HorizontalAlignment="Left">
-                                <Canvas Width="35" Height="35" HorizontalAlignment="Center" VerticalAlignment="Center">
-                                    <Path Data="M 3,17 C 9,6 26,6 32,17 C 26,28 9,28 3,17 Z" Stroke="{StaticResource BlueBrush}" StrokeThickness="2" />
-                                    <Ellipse Canvas.Left="13" Canvas.Top="12" Width="9" Height="9" Fill="{StaticResource InkBrush}" />
-                                    <Path Data="M 21,21 L 28,28" Stroke="{StaticResource TealBrush}" StrokeThickness="2.5" StrokeStartLineCap="Round" StrokeEndLineCap="Round" />
-                                </Canvas>
+                            <Border Width="58" Height="58" CornerRadius="18" Background="#EAF2FF" BorderBrush="#D6E4FC" BorderThickness="1" HorizontalAlignment="Left">
+                                <Grid><TextBlock Text="&#xE71D;" FontFamily="Segoe MDL2 Assets" FontSize="23" Foreground="{StaticResource BlueBrush}" HorizontalAlignment="Center" VerticalAlignment="Center" /><Image Source="{Binding SelectedApplication.DisplayIcon, Converter={StaticResource ApplicationIconConverter}}" Stretch="Uniform" Margin="9" RenderOptions.BitmapScalingMode="HighQuality" /></Grid>
                             </Border>
                             <TextBlock Text="{Binding SelectedApplicationDisplayName}" FontSize="23" FontWeight="SemiBold" Margin="0,16,0,3" TextWrapping="Wrap" />
                             <TextBlock Text="{Binding SelectedPublisher}" Foreground="{StaticResource MutedBrush}" FontSize="12" />
@@ -301,7 +307,12 @@
                     <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Margin="0,0,0,14">
                         <Button Content="{Binding Texts[ScanSelectedApplication]}" Command="{Binding ScanLeftoversCommand}" IsEnabled="{Binding CanReviewLeftovers}" Style="{StaticResource PrimaryButton}" />
                         <Button Content="{Binding Texts[MoveToQuarantine]}" Click="QuarantineSelected_Click" IsEnabled="{Binding CanQuarantineSelected}" Style="{StaticResource SecondaryButton}" Margin="10,0,0,0" />
+                        <Border Style="{StaticResource StatusPill}" Margin="18,0,0,0" VerticalAlignment="Center"><StackPanel Orientation="Horizontal"><TextBlock Text="{Binding FolderLeftoversCount, Mode=OneWay}" FontWeight="SemiBold" FontSize="11" /><TextBlock Text=" folders" FontWeight="SemiBold" FontSize="11" /></StackPanel></Border>
+                        <Border Style="{StaticResource StatusPill}" Margin="7,0,0,0" VerticalAlignment="Center"><StackPanel Orientation="Horizontal"><TextBlock Text="{Binding SystemLeftoversCount, Mode=OneWay}" FontWeight="SemiBold" FontSize="11" /><TextBlock Text=" system entries · read only" FontWeight="SemiBold" FontSize="11" /></StackPanel></Border>
                     </StackPanel>
+                    <Border DockPanel.Dock="Bottom" Background="{StaticResource AccentSoft}" BorderBrush="{StaticResource LineBrush}" BorderThickness="1" CornerRadius="12" Padding="15,12" Margin="0,12,0,0">
+                        <StackPanel><TextBlock Text="{Binding Texts[WhyFound]}" Foreground="{StaticResource BlueBrush}" FontSize="10" FontWeight="Bold" /><TextBlock Text="{Binding SelectedLeftoverExplanation}" TextWrapping="Wrap" FontSize="11" LineHeight="17" Margin="0,6,0,0" /></StackPanel>
+                    </Border>
                     <Grid>
                     <DataGrid x:Name="LeftoversDataGrid" ItemsSource="{Binding Leftovers}" SelectedItem="{Binding SelectedLeftover, Mode=TwoWay}" AutoGenerateColumns="False" CanUserAddRows="False" IsReadOnly="True" HeadersVisibility="Column" RowHeight="58" ColumnHeaderHeight="40" Background="Transparent">
                         <DataGrid.Columns>
@@ -370,11 +381,12 @@
                     <ListBox ItemsSource="{Binding HistoryEntries}" BorderThickness="0">
                         <ListBox.ItemTemplate>
                             <DataTemplate>
-                                <Border BorderBrush="{StaticResource LineBrush}" BorderThickness="0,0,0,1" Padding="5,12">
+                                <Border Background="#F8FAFD" BorderBrush="{StaticResource LineBrush}" BorderThickness="1" CornerRadius="13" Padding="15,13" Margin="0,0,0,8">
                                     <Grid>
-                                        <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
-                                        <StackPanel><TextBlock Text="{Binding ApplicationName}" FontWeight="SemiBold" /><TextBlock FontSize="11" Foreground="{StaticResource MutedBrush}" Margin="0,3,0,0"><Run Text="{Binding Operation}" /><Run Text=" · " /><Run Text="{Binding Result}" /></TextBlock></StackPanel>
-                                        <TextBlock Grid.Column="1" Text="{Binding CreatedAt, StringFormat={}{0:g}}" Foreground="{StaticResource MutedBrush}" FontSize="10" VerticalAlignment="Center" Margin="12,0,0,0" />
+                                        <Grid.ColumnDefinitions><ColumnDefinition Width="42" /><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+                                        <Border Width="34" Height="34" CornerRadius="11" Background="{StaticResource AccentSoft}" VerticalAlignment="Center"><TextBlock Text="&#xE81C;" FontFamily="Segoe MDL2 Assets" Foreground="{StaticResource BlueBrush}" FontSize="16" HorizontalAlignment="Center" VerticalAlignment="Center" /></Border>
+                                        <StackPanel Grid.Column="1" VerticalAlignment="Center"><TextBlock Text="{Binding ApplicationName}" FontWeight="SemiBold" FontSize="13" /><TextBlock FontSize="11" Foreground="{StaticResource MutedBrush}" Margin="0,4,0,0" TextWrapping="Wrap"><Run Text="{Binding Operation, Mode=OneWay}" /><Run Text=" · " /><Run Text="{Binding Result, Mode=OneWay}" /></TextBlock></StackPanel>
+                                        <Border Grid.Column="2" Style="{StaticResource StatusPill}" Margin="14,0,0,0" VerticalAlignment="Center"><TextBlock Text="{Binding CreatedAt, StringFormat={}{0:g}}" Foreground="{StaticResource MutedBrush}" FontSize="10" FontWeight="SemiBold" /></Border>
                                     </Grid>
                                 </Border>
                             </DataTemplate>
@@ -397,13 +409,18 @@
                     <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Margin="0,0,0,14">
                         <TextBlock Text="{Binding Texts[QuarantinedItems]}" FontSize="19" FontWeight="SemiBold" VerticalAlignment="Center" />
                         <Button Content="{Binding Texts[RestoreSelected]}" Click="RestoreSelected_Click" IsEnabled="{Binding CanRestoreSelected}" Style="{StaticResource SecondaryButton}" Margin="18,0,0,0" />
+                        <Button Content="{Binding Texts[RestoreMultiple]}" Click="RestoreMultiple_Click" Style="{StaticResource PrimaryButton}" Margin="8,0,0,0" />
                     </StackPanel>
                     <Grid>
-                    <ListBox ItemsSource="{Binding QuarantineEntries}" SelectedItem="{Binding SelectedQuarantine, Mode=TwoWay}" BorderThickness="0">
+                    <ListBox x:Name="QuarantineList" ItemsSource="{Binding QuarantineEntries}" SelectedItem="{Binding SelectedQuarantine, Mode=TwoWay}" SelectionMode="Extended" BorderThickness="0">
                         <ListBox.ItemTemplate>
                             <DataTemplate>
-                                <Border BorderBrush="{StaticResource LineBrush}" BorderThickness="0,0,0,1" Padding="5,12">
-                                    <StackPanel><TextBlock Text="{Binding ApplicationName}" FontWeight="SemiBold" /><TextBlock Text="{Binding OriginalPath}" FontSize="11" Foreground="{StaticResource MutedBrush}" Margin="0,3,0,0" TextWrapping="Wrap" /><TextBlock Text="{Binding CreatedAt, StringFormat={}{0:g}}" FontSize="10" Foreground="{StaticResource MutedBrush}" Margin="0,4,0,0" /></StackPanel>
+                                <Border Background="#F8FAFD" BorderBrush="{StaticResource LineBrush}" BorderThickness="1" CornerRadius="13" Padding="15,13" Margin="0,0,0,8">
+                                    <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="42" /><ColumnDefinition Width="*" /><ColumnDefinition Width="180" /></Grid.ColumnDefinitions>
+                                        <Border Width="34" Height="34" CornerRadius="11" Background="#E8F7F9" VerticalAlignment="Center"><TextBlock Text="&#xE8D7;" FontFamily="Segoe MDL2 Assets" Foreground="{StaticResource TealBrush}" FontSize="16" HorizontalAlignment="Center" VerticalAlignment="Center" /></Border>
+                                        <StackPanel Grid.Column="1" VerticalAlignment="Center"><TextBlock Text="{Binding ApplicationName}" FontWeight="SemiBold" FontSize="13" /><TextBlock Text="{Binding OriginalPath}" FontSize="11" Foreground="{StaticResource MutedBrush}" Margin="0,4,0,0" TextWrapping="Wrap" /><TextBlock Text="{Binding CreatedAt, StringFormat={}{0:g}}" FontSize="10" Foreground="{StaticResource MutedBrush}" Margin="0,5,0,0" /></StackPanel>
+                                        <Border Grid.Column="2" Style="{StaticResource StatusPill}" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="12,0,0,0"><TextBlock FontSize="10" FontWeight="SemiBold"><TextBlock.Text><MultiBinding Converter="{StaticResource LocalizationValueConverter}" ConverterParameter="Restore"><Binding Path="RestoreStatusKey" /><Binding Path="DataContext.Texts.Language" RelativeSource="{RelativeSource AncestorType={x:Type Window}}" /></MultiBinding></TextBlock.Text></TextBlock></Border>
+                                    </Grid>
                                 </Border>
                             </DataTemplate>
                         </ListBox.ItemTemplate>
@@ -428,7 +445,7 @@
                         <RowDefinition Height="Auto" />
                         <RowDefinition Height="*" />
                     </Grid.RowDefinitions>
-                    <Border Grid.Row="0" Background="#F8FAFD" BorderBrush="{StaticResource LineBrush}" BorderThickness="1" CornerRadius="13" Padding="16,13" Margin="0,0,0,12">
+                    <Border Grid.Row="0" Background="#F7FAFF" BorderBrush="{StaticResource LineBrush}" BorderThickness="1" CornerRadius="16" Padding="19,16" Margin="0,0,0,12">
                         <Grid>
                             <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
                             <StackPanel>
@@ -436,14 +453,14 @@
                                 <TextBlock Text="{Binding Texts[DiskReadOnlyNotice]}" ToolTip="{Binding Texts[DiskReadOnlyDetail]}" Foreground="{StaticResource MutedBrush}" FontSize="10" TextWrapping="Wrap" Margin="0,4,0,0" />
                             </StackPanel>
                             <Grid Grid.Row="1" Margin="0,12,0,0">
-                                <Grid.ColumnDefinitions><ColumnDefinition Width="300" /><ColumnDefinition Width="Auto" /><ColumnDefinition Width="Auto" /><ColumnDefinition Width="Auto" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
-                                <StackPanel Grid.Column="0" HorizontalAlignment="Stretch" Margin="0,0,10,0">
-                                    <TextBlock Text="{Binding Texts[DiskRootLabel]}" FontSize="9" Foreground="{StaticResource MutedBrush}" FontWeight="Bold" Margin="0,0,0,4" />
-                                    <ComboBox x:Name="DiskRootSelector" ItemsSource="{Binding DiskScanRoots}" SelectedItem="{Binding SelectedDiskScanRoot, Mode=TwoWay}" DisplayMemberPath="DisplayName" Width="290" HorizontalAlignment="Left" HorizontalContentAlignment="Left" Height="38" ToolTip="{Binding Texts[DiskChooseRoot]}" />
+                                <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /><ColumnDefinition Width="Auto" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+                                <StackPanel Grid.Column="0" HorizontalAlignment="Stretch" Margin="0,0,14,0">
+                                    <TextBlock Text="{Binding Texts[DiskRootLabel]}" FontSize="10" Foreground="{StaticResource MutedBrush}" FontWeight="Bold" Margin="0,0,0,7" />
+                                    <ComboBox x:Name="DiskRootSelector" ItemsSource="{Binding DiskScanRoots}" SelectedItem="{Binding SelectedDiskScanRoot, Mode=TwoWay}" DisplayMemberPath="DisplayName" HorizontalAlignment="Stretch" HorizontalContentAlignment="Left" Height="42" ToolTip="{Binding Texts[DiskChooseRoot]}" />
                                 </StackPanel>
-                                <Button Grid.Column="1" Content="{Binding Texts[DiskBrowse]}" Click="DiskBrowse_Click" Style="{StaticResource SecondaryButton}" VerticalAlignment="Bottom" Margin="0,0,8,0" />
-                                <Button Grid.Column="2" Content="{Binding Texts[DiskRefreshDrives]}" Click="DiskRefreshRoots_Click" Style="{StaticResource SecondaryButton}" VerticalAlignment="Bottom" Margin="0,0,8,0" />
-                                <Button Grid.Column="3" Content="{Binding Texts[DiskScan]}" Click="DiskScan_Click" IsEnabled="{Binding CanScanDisk}" Style="{StaticResource PrimaryButton}" VerticalAlignment="Bottom" />
+                                <Button Grid.Column="1" Content="{Binding Texts[DiskBrowse]}" Click="DiskBrowse_Click" Style="{StaticResource SecondaryButton}" VerticalAlignment="Bottom" Height="42" Margin="0,0,8,0" />
+                                <Button Grid.Column="2" Content="{Binding Texts[DiskRefreshDrives]}" Click="DiskRefreshRoots_Click" Style="{StaticResource SecondaryButton}" VerticalAlignment="Bottom" Height="42" Margin="0,0,8,0" />
+                                <Button Grid.Column="3" Content="{Binding Texts[DiskScan]}" Click="DiskScan_Click" IsEnabled="{Binding CanScanDisk}" Style="{StaticResource PrimaryButton}" VerticalAlignment="Bottom" Height="42" />
                             </Grid>
                         </Grid>
                     </Border>
@@ -474,14 +491,14 @@
                             </Border>
                         </Grid>
                     </Border>
-                    <Grid Grid.Row="2" Margin="0,0,0,14">
+                    <Grid Grid.Row="2" Margin="0,0,0,14" Visibility="{Binding DiskResultsVisibility}">
                         <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="12" /><ColumnDefinition Width="*" /><ColumnDefinition Width="12" /><ColumnDefinition Width="*" /><ColumnDefinition Width="12" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
                         <Border Grid.Column="0" Background="White" BorderBrush="{StaticResource LineBrush}" BorderThickness="1" CornerRadius="12" Padding="0"><Grid><Grid.ColumnDefinitions><ColumnDefinition Width="4" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions><Border Background="{StaticResource BlueBrush}" CornerRadius="12,0,0,12" /><StackPanel Grid.Column="1" Margin="12,9"><TextBlock Text="{Binding Texts[DiskTotalMeasured]}" FontSize="9" Foreground="{StaticResource MutedBrush}" FontWeight="Bold" /><TextBlock Text="{Binding DiskSummarySizeText}" FontSize="19" FontWeight="SemiBold" Margin="0,5,0,0" /></StackPanel></Grid></Border>
                         <Border Grid.Column="2" Background="White" BorderBrush="{StaticResource LineBrush}" BorderThickness="1" CornerRadius="12" Padding="0"><Grid><Grid.ColumnDefinitions><ColumnDefinition Width="4" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions><Border Background="#17A79D" CornerRadius="12,0,0,12" /><StackPanel Grid.Column="1" Margin="12,9"><TextBlock Text="{Binding Texts[DiskFileCount]}" FontSize="9" Foreground="{StaticResource MutedBrush}" FontWeight="Bold" /><TextBlock Text="{Binding DiskFileCountText}" FontSize="19" FontWeight="SemiBold" Margin="0,5,0,0" /></StackPanel></Grid></Border>
                         <Border Grid.Column="4" Background="White" BorderBrush="{StaticResource LineBrush}" BorderThickness="1" CornerRadius="12" Padding="0"><Grid><Grid.ColumnDefinitions><ColumnDefinition Width="4" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions><Border Background="#7764D8" CornerRadius="12,0,0,12" /><StackPanel Grid.Column="1" Margin="12,9"><TextBlock Text="{Binding Texts[DiskFolderCount]}" FontSize="9" Foreground="{StaticResource MutedBrush}" FontWeight="Bold" /><TextBlock Text="{Binding DiskFolderCountText}" FontSize="19" FontWeight="SemiBold" Margin="0,5,0,0" /></StackPanel></Grid></Border>
                         <Border Grid.Column="6" Background="#FFFBF5" BorderBrush="#F0D5AB" BorderThickness="1" CornerRadius="12" Padding="0"><Grid><Grid.ColumnDefinitions><ColumnDefinition Width="4" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions><Border Background="#E49B32" CornerRadius="12,0,0,12" /><StackPanel Grid.Column="1" Margin="12,9"><TextBlock Text="{Binding Texts[DiskSkippedCount]}" FontSize="9" Foreground="{StaticResource MutedBrush}" FontWeight="Bold" /><TextBlock Text="{Binding DiskSkippedCountText}" FontSize="19" FontWeight="SemiBold" Margin="0,5,0,0" /></StackPanel></Grid></Border>
                     </Grid>
-                    <Grid Grid.Row="3">
+                    <Grid Grid.Row="3" Visibility="{Binding DiskResultsVisibility}">
                         <Grid.ColumnDefinitions><ColumnDefinition Width="3*" /><ColumnDefinition Width="14" /><ColumnDefinition Width="1*" /></Grid.ColumnDefinitions>
                         <Border Grid.Column="0" Background="White" BorderBrush="{StaticResource LineBrush}" BorderThickness="1" CornerRadius="13" Padding="10">
                             <Grid>
@@ -500,11 +517,10 @@
                                     </ComboBox>
                                 </Grid>
                                 <Grid Grid.Row="1" Margin="0,0,0,9">
-                                    <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /><ColumnDefinition Width="Auto" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+                                    <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
                                     <TextBox x:Name="DiskSearchBox" Grid.Column="0" Text="{Binding DiskSearchText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Height="36" Padding="11,0" VerticalContentAlignment="Center" ToolTip="{Binding Texts[DiskSearchTooltip]}" TextChanged="DiskSearch_Changed" Margin="0,0,7,0" />
                                     <Button Grid.Column="1" Content="{Binding Texts[DiskOpenFolder]}" Click="DiskOpenSelectedFolder_Click" IsEnabled="{Binding CanOpenSelectedDiskFolder}" Style="{StaticResource SecondaryButton}" Padding="11,8" Margin="0,0,7,0" />
                                     <TextBlock Grid.Column="2" Text="{Binding DiskSelectionCountText}" VerticalAlignment="Center" Foreground="{StaticResource MutedBrush}" FontSize="10" Margin="0,0,9,0" />
-                                    <Button x:Name="DiskDeleteButton" Grid.Column="3" Content="{Binding Texts[DiskDeleteSelectedText]}" Click="DiskDeleteSelected_Click" IsEnabled="{Binding CanDeleteDiskEntries}" Style="{StaticResource SecondaryButton}" Background="#B4233D" BorderBrush="#B4233D" Foreground="White" Padding="12,8" />
                                 </Grid>
                                 <DataGrid x:Name="DiskEntriesGrid" Grid.Row="2" ItemsSource="{Binding DiskEntries}" SelectedItem="{Binding SelectedDiskEntry, Mode=TwoWay}" AutoGenerateColumns="False" IsReadOnly="True" CanUserAddRows="False" CanUserSortColumns="True" SelectionMode="Extended" SelectionUnit="FullRow" SelectionChanged="DiskEntries_SelectionChanged" MouseDoubleClick="DiskEntry_DoubleClick" RowHeight="66" AlternationCount="2" ColumnHeaderHeight="42" VirtualizingPanel.IsVirtualizing="True" VirtualizingPanel.VirtualizationMode="Recycling">
                                     <DataGrid.Columns>
@@ -544,11 +560,10 @@
                                         <DataGridTextColumn Header="MODIFIED" SortMemberPath="LastWriteUtcTicks" Binding="{Binding LastWriteText}" ElementStyle="{StaticResource PublisherCell}" Width="145" />
                                     </DataGrid.Columns>
                                 </DataGrid>
-                                <DockPanel Grid.Row="3" Margin="0,8,0,0">
-                                    <Button Content="{Binding Texts[DiskPreviousPage]}" Click="DiskPreviousPage_Click" IsEnabled="{Binding CanPageDiskBackward}" Style="{StaticResource SecondaryButton}" Padding="10,6" Margin="0,0,7,0" />
-                                    <Button Content="{Binding Texts[DiskNextPage]}" Click="DiskNextPage_Click" IsEnabled="{Binding CanPageDiskForward}" Style="{StaticResource SecondaryButton}" Padding="10,6" />
-                                    <TextBlock Text="{Binding DiskPageIndicatorText}" Foreground="{StaticResource MutedBrush}" FontSize="10" VerticalAlignment="Center" Margin="10,0,0,0" />
-                                </DockPanel>
+                                <Grid Grid.Row="3" Margin="0,10,0,0"><Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+                                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center"><Button Content="{Binding Texts[DiskPreviousPage]}" Click="DiskPreviousPage_Click" IsEnabled="{Binding CanPageDiskBackward}" Style="{StaticResource SecondaryButton}" Padding="10,6" Margin="0,0,7,0" /><Button Content="{Binding Texts[DiskNextPage]}" Click="DiskNextPage_Click" IsEnabled="{Binding CanPageDiskForward}" Style="{StaticResource SecondaryButton}" Padding="10,6" /><TextBlock Text="{Binding DiskPageIndicatorText}" Foreground="{StaticResource MutedBrush}" FontSize="10" VerticalAlignment="Center" Margin="10,0,0,0" /></StackPanel>
+                                    <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center"><Button Content="{Binding Texts[SavePlan]}" Click="SavePlan_Click" IsEnabled="{Binding CanDeleteDiskEntries}" Style="{StaticResource SecondaryButton}" Margin="0,0,7,0" Padding="12,8" /><Button x:Name="DiskDeleteButton" Content="{Binding Texts[DiskDeleteSelectedText]}" Click="DiskDeleteSelected_Click" IsEnabled="{Binding CanDeleteDiskEntries}" Style="{StaticResource SecondaryButton}" Background="#B4233D" BorderBrush="#B4233D" Foreground="White" Padding="12,8" /></StackPanel>
+                                </Grid>
                             </Grid>
                         </Border>
                         <Border Grid.Column="2" Background="#F8FAFD" BorderBrush="{StaticResource LineBrush}" BorderThickness="1" CornerRadius="13" Padding="10">
@@ -617,11 +632,95 @@
                             </Grid>
                         </Border>
                     </Grid>
+                    <Border Grid.Row="2" Grid.RowSpan="2" Visibility="{Binding DiskEmptyVisibility}" Background="#F7FAFF" BorderBrush="#D8E4F5" BorderThickness="1" CornerRadius="18" Padding="28">
+                        <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="260" /></Grid.ColumnDefinitions>
+                            <StackPanel VerticalAlignment="Center" Margin="25,0,35,0">
+                                <Border Width="60" Height="60" CornerRadius="19" Background="#E5EEFF" HorizontalAlignment="Left"><TextBlock Text="&#xE9D2;" FontFamily="Segoe MDL2 Assets" FontSize="27" Foreground="{StaticResource BlueBrush}" HorizontalAlignment="Center" VerticalAlignment="Center" /></Border>
+                                <TextBlock Text="{Binding Texts[DiskEmptyTitle]}" FontSize="24" FontWeight="Bold" Margin="0,20,0,0" />
+                                <TextBlock Text="{Binding DiskStatusText}" Foreground="{StaticResource MutedBrush}" FontSize="13" TextWrapping="Wrap" LineHeight="20" MaxWidth="520" Margin="0,9,0,0" />
+                                <Button Content="{Binding Texts[DiskScan]}" Click="DiskScan_Click" IsEnabled="{Binding CanScanDisk}" Style="{StaticResource PrimaryButton}" HorizontalAlignment="Left" Margin="0,22,0,0" Padding="22,12" />
+                            </StackPanel>
+                            <Border Grid.Column="1" Background="White" BorderBrush="{StaticResource LineBrush}" BorderThickness="1" CornerRadius="15" Padding="20" VerticalAlignment="Center">
+                                <StackPanel><TextBlock Text="01" Foreground="{StaticResource BlueBrush}" FontSize="17" FontWeight="Bold" /><TextBlock Text="{Binding Texts[DiskEmptyStep1]}" FontSize="12" FontWeight="SemiBold" TextWrapping="Wrap" Margin="0,3,0,17" /><TextBlock Text="02" Foreground="{StaticResource TealBrush}" FontSize="17" FontWeight="Bold" /><TextBlock Text="{Binding Texts[DiskEmptyStep2]}" FontSize="12" FontWeight="SemiBold" TextWrapping="Wrap" Margin="0,3,0,17" /><TextBlock Text="03" Foreground="{StaticResource BlueBrush}" FontSize="17" FontWeight="Bold" /><TextBlock Text="{Binding Texts[DiskEmptyStep3]}" FontSize="12" FontWeight="SemiBold" TextWrapping="Wrap" Margin="0,3,0,0" /></StackPanel>
+                            </Border>
+                        </Grid>
+                    </Border>
                 </Grid>
             </Border>
-            <Border Grid.Row="2" x:Name="SettingsWorkspace" Style="{StaticResource Card}" Visibility="Collapsed">
+            <Border Grid.Row="2" x:Name="AnalysisWorkspace" Style="{StaticResource Card}" Visibility="Collapsed" Padding="22">
+                <Grid>
+                    <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="*" /></Grid.RowDefinitions>
+                    <Border Background="{StaticResource AccentSoft}" BorderBrush="{StaticResource LineBrush}" BorderThickness="1" CornerRadius="13" Padding="16,12" Margin="0,0,0,16">
+                        <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="Auto" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
+                            <Border Width="35" Height="35" CornerRadius="10" Background="White" Margin="0,0,12,0"><TextBlock Text="&#xE9D9;" FontFamily="Segoe MDL2 Assets" Foreground="{StaticResource BlueBrush}" FontSize="18" HorizontalAlignment="Center" VerticalAlignment="Center" /></Border>
+                            <TextBlock Grid.Column="1" Text="{Binding AnalysisStatusText}" VerticalAlignment="Center" TextWrapping="Wrap" FontSize="12" FontWeight="SemiBold" />
+                        </Grid>
+                    </Border>
+                    <Grid Grid.Row="1" x:Name="AnalysisTabs">
+                        <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="*" /></Grid.RowDefinitions>
+                        <Border Background="#F0F4FA" BorderBrush="{StaticResource LineBrush}" BorderThickness="1" CornerRadius="16" Padding="5" Margin="0,0,0,5" HorizontalAlignment="Left">
+                            <StackPanel Orientation="Horizontal">
+                                <Button x:Name="DuplicateTabButton" Click="AnalysisDuplicatesTab_Click" Style="{StaticResource SecondaryButton}" MinHeight="48" Padding="17,10" Margin="0,0,6,0"><StackPanel Orientation="Horizontal"><TextBlock Text="&#xE8A9;" FontFamily="Segoe MDL2 Assets" FontSize="17" Foreground="{StaticResource BlueBrush}" VerticalAlignment="Center" Margin="0,0,9,0" /><TextBlock Text="{Binding Texts[DuplicatesTab]}" VerticalAlignment="Center" /></StackPanel></Button>
+                                <Button x:Name="SnapshotsTabButton" Click="AnalysisSnapshotsTab_Click" Style="{StaticResource SecondaryButton}" MinHeight="48" Padding="17,10" Margin="0,0,6,0"><StackPanel Orientation="Horizontal"><TextBlock Text="&#xE81C;" FontFamily="Segoe MDL2 Assets" FontSize="17" Foreground="{StaticResource TealBrush}" VerticalAlignment="Center" Margin="0,0,9,0" /><TextBlock Text="{Binding Texts[SnapshotsTab]}" VerticalAlignment="Center" /></StackPanel></Button>
+                                <Button x:Name="PlansTabButton" Click="AnalysisPlansTab_Click" Style="{StaticResource SecondaryButton}" MinHeight="48" Padding="17,10"><StackPanel Orientation="Horizontal"><TextBlock Text="&#xE8A5;" FontFamily="Segoe MDL2 Assets" FontSize="17" Foreground="{StaticResource BlueBrush}" VerticalAlignment="Center" Margin="0,0,9,0" /><TextBlock Text="{Binding Texts[PlansTab]}" VerticalAlignment="Center" /></StackPanel></Button>
+                            </StackPanel>
+                        </Border>
+                            <Grid Grid.Row="1" x:Name="DuplicateAnalysisPanel" Margin="0,11,0,0">
+                                <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition Height="*" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
+                                <TextBlock Text="{Binding Texts[DuplicateNotice]}" Foreground="{StaticResource MutedBrush}" FontSize="12" TextWrapping="Wrap" Margin="0,0,0,14" />
+                                <StackPanel Grid.Row="1" Orientation="Horizontal" Margin="0,0,0,14">
+                                    <Button Content="{Binding Texts[FindSameSize]}" Click="DuplicateSize_Click" IsEnabled="{Binding CanAnalyzeDisk}" Style="{StaticResource SecondaryButton}" />
+                                    <Button Content="{Binding Texts[VerifyHashes]}" Click="DuplicateHash_Click" IsEnabled="{Binding CanAnalyzeDisk}" Style="{StaticResource PrimaryButton}" Margin="9,0,0,0" />
+                                </StackPanel>
+                                <Grid Grid.Row="2"><DataGrid x:Name="DuplicatesGrid" ItemsSource="{Binding DuplicateFiles}" SelectedItem="{Binding SelectedDuplicate, Mode=TwoWay}" SelectionChanged="DuplicatesGrid_SelectionChanged" SelectionMode="Extended" AutoGenerateColumns="False" CanUserAddRows="False" IsReadOnly="True" RowHeight="52" ColumnHeaderHeight="42">
+                                    <DataGrid.Columns>
+                                        <DataGridTextColumn Header="GROUP" Binding="{Binding GroupKey}" Width="120" />
+                                        <DataGridTextColumn Header="PATH" Binding="{Binding Path}" Width="*" />
+                                        <DataGridTextColumn Header="SIZE" Binding="{Binding SizeText}" Width="95" />
+                                        <DataGridTextColumn Header="STATUS" Binding="{Binding VerificationText}" Width="125" />
+                                    </DataGrid.Columns>
+                                </DataGrid><Border Style="{StaticResource AnalysisEmptySurface}" Visibility="{Binding DuplicateEmptyVisibility}"><StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" MaxWidth="410"><TextBlock Text="&#xE9D9;" FontFamily="Segoe MDL2 Assets" FontSize="28" Foreground="{StaticResource BlueBrush}" HorizontalAlignment="Center" /><TextBlock Text="{Binding Texts[EmptyDuplicates]}" Foreground="{StaticResource MutedBrush}" FontSize="13" TextAlignment="Center" TextWrapping="Wrap" Margin="0,14,0,0" /></StackPanel></Border></Grid>
+                                <Button Grid.Row="3" Content="{Binding Texts[DiskDeleteSelectedText]}" Click="DuplicateDelete_Click" IsEnabled="{Binding CanDeleteDuplicates}" Style="{StaticResource SecondaryButton}" Background="#B4233D" BorderBrush="#B4233D" Foreground="White" HorizontalAlignment="Right" Margin="0,14,0,0" />
+                            </Grid>
+                            <Grid Grid.Row="1" x:Name="SnapshotsAnalysisPanel" Margin="0,11,0,0" Visibility="Collapsed">
+                                <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition Height="*" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
+                                <TextBlock Text="{Binding Texts[SnapshotNotice]}" Foreground="{StaticResource MutedBrush}" FontSize="12" TextWrapping="Wrap" Margin="0,0,0,14" />
+                                <StackPanel Grid.Row="1" Orientation="Horizontal" Margin="0,0,0,15"><Button Content="{Binding Texts[SaveSnapshot]}" Click="SaveSnapshot_Click" IsEnabled="{Binding CanAnalyzeDisk}" Style="{StaticResource PrimaryButton}" /><Button Content="{Binding Texts[DeleteSnapshot]}" Click="DeleteSnapshot_Click" Style="{StaticResource SecondaryButton}" Margin="9,0,0,0" /></StackPanel>
+                                <Grid Grid.Row="2" Margin="0,0,0,15"><Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="12" /><ColumnDefinition Width="*" /><ColumnDefinition Width="12" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+                                    <StackPanel Grid.Column="0"><TextBlock Text="{Binding Texts[BeforeScan]}" Style="{StaticResource SectionEyebrow}" /><ComboBox ItemsSource="{Binding DiskSnapshots}" SelectedItem="{Binding SelectedSnapshotBefore, Mode=TwoWay}" DisplayMemberPath="DisplayName" MinHeight="42" /></StackPanel>
+                                    <StackPanel Grid.Column="2"><TextBlock Text="{Binding Texts[AfterScan]}" Style="{StaticResource SectionEyebrow}" /><ComboBox ItemsSource="{Binding DiskSnapshots}" SelectedItem="{Binding SelectedSnapshotAfter, Mode=TwoWay}" DisplayMemberPath="DisplayName" MinHeight="42" /></StackPanel>
+                                    <Button Grid.Column="4" Content="{Binding Texts[CompareSnapshots]}" Click="CompareSnapshots_Click" Style="{StaticResource PrimaryButton}" VerticalAlignment="Bottom" />
+                                </Grid>
+                                <Grid Grid.Row="3"><DataGrid ItemsSource="{Binding SnapshotChanges}" AutoGenerateColumns="False" CanUserAddRows="False" IsReadOnly="True" RowHeight="48" ColumnHeaderHeight="42">
+                                    <DataGrid.Columns><DataGridTextColumn Header="CHANGE" Binding="{Binding Kind}" Width="95" /><DataGridTextColumn Header="PATH" Binding="{Binding Path}" Width="*" /><DataGridTextColumn Header="DELTA" Binding="{Binding DifferenceText}" Width="110" /></DataGrid.Columns>
+                                </DataGrid><Border Style="{StaticResource AnalysisEmptySurface}" Visibility="{Binding SnapshotChangeEmptyVisibility}"><StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" MaxWidth="410"><TextBlock Text="&#xE81C;" FontFamily="Segoe MDL2 Assets" FontSize="28" Foreground="{StaticResource BlueBrush}" HorizontalAlignment="Center" /><TextBlock Text="{Binding Texts[EmptySnapshotChanges]}" Foreground="{StaticResource MutedBrush}" FontSize="13" TextAlignment="Center" TextWrapping="Wrap" Margin="0,14,0,0" /></StackPanel></Border></Grid>
+                                <Grid Grid.Row="4" Margin="0,10,0,0"><Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+                                    <StackPanel Orientation="Horizontal"><Button Content="{Binding Texts[DiskPreviousPage]}" Click="PreviousSnapshotPage_Click" IsEnabled="{Binding CanPageSnapshotChangesBackward}" Style="{StaticResource SecondaryButton}" Padding="10,6" Margin="0,0,7,0" /><Button Content="{Binding Texts[DiskNextPage]}" Click="NextSnapshotPage_Click" IsEnabled="{Binding CanPageSnapshotChangesForward}" Style="{StaticResource SecondaryButton}" Padding="10,6" /><TextBlock Text="{Binding SnapshotChangePageText}" VerticalAlignment="Center" Foreground="{StaticResource MutedBrush}" FontSize="10" Margin="10,0,0,0" /></StackPanel>
+                                    <Button Grid.Column="1" Content="{Binding Texts[ExportReport]}" Click="ExportReport_Click" Style="{StaticResource SecondaryButton}" Padding="11,8" />
+                                </Grid>
+                            </Grid>
+                            <Grid Grid.Row="1" x:Name="PlansAnalysisPanel" Margin="0,11,0,0" Visibility="Collapsed"><Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="*" /></Grid.RowDefinitions>
+                                <TextBlock Text="{Binding Texts[PlanNotice]}" Foreground="{StaticResource MutedBrush}" FontSize="12" TextWrapping="Wrap" Margin="0,0,0,16" />
+                                <Grid Grid.Row="1"><Grid.ColumnDefinitions><ColumnDefinition Width="300" /><ColumnDefinition Width="16" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
+                                    <ListBox Grid.Column="0" ItemsSource="{Binding CleanupPlans}" SelectedItem="{Binding SelectedCleanupPlan, Mode=TwoWay}" BorderBrush="{StaticResource LineBrush}" BorderThickness="1" Padding="6">
+                                        <ListBox.ItemTemplate><DataTemplate><StackPanel Margin="6,7"><TextBlock Text="{Binding Name}" FontWeight="SemiBold" FontSize="13" /><TextBlock Text="{Binding Summary}" TextWrapping="Wrap" Foreground="{StaticResource MutedBrush}" FontSize="10" Margin="0,5,0,0" /><TextBlock Text="{Binding SizeText}" FontSize="12" Foreground="{StaticResource BlueBrush}" Margin="0,5,0,0" /></StackPanel></DataTemplate></ListBox.ItemTemplate>
+                                    </ListBox>
+                                    <Border Grid.Column="0" Style="{StaticResource AnalysisEmptySurface}" Visibility="{Binding PlanEmptyVisibility}"><StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" MaxWidth="240"><TextBlock Text="&#xE8A5;" FontFamily="Segoe MDL2 Assets" FontSize="28" Foreground="{StaticResource BlueBrush}" HorizontalAlignment="Center" /><TextBlock Text="{Binding Texts[EmptyPlans]}" Foreground="{StaticResource MutedBrush}" FontSize="12" TextAlignment="Center" TextWrapping="Wrap" Margin="0,13,0,0" /></StackPanel></Border>
+                                    <Grid Grid.Column="2"><Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="*" /></Grid.RowDefinitions>
+                                        <StackPanel Orientation="Horizontal" Margin="0,0,0,12"><Button Content="{Binding Texts[ApplyPlan]}" Click="ApplyPlan_Click" IsEnabled="{Binding HasSelectedCleanupPlan}" Style="{StaticResource PrimaryButton}" /><Button Content="{Binding Texts[DeletePlan]}" Click="DeletePlan_Click" IsEnabled="{Binding HasSelectedCleanupPlan}" Style="{StaticResource SecondaryButton}" Margin="9,0,0,0" /></StackPanel>
+                                        <DataGrid Grid.Row="1" ItemsSource="{Binding SelectedCleanupPlan.Items}" AutoGenerateColumns="False" CanUserAddRows="False" IsReadOnly="True" RowHeight="50" ColumnHeaderHeight="42">
+                                            <DataGrid.Columns><DataGridTextColumn Header="PATH" Binding="{Binding Path}" Width="*" /><DataGridTextColumn Header="SIZE" Binding="{Binding SizeBytes}" Width="100" /><DataGridTextColumn Header="RISK" Binding="{Binding Risk}" Width="155" /></DataGrid.Columns>
+                                        </DataGrid>
+                                    </Grid>
+                                </Grid>
+                            </Grid>
+                        </Grid>
+                    </Grid>
+            </Border>
+            <Border Grid.Row="2" x:Name="SettingsWorkspace" Style="{StaticResource Card}" Visibility="Collapsed" Padding="30">
                 <ScrollViewer VerticalScrollBarVisibility="Auto">
-                    <StackPanel MaxWidth="840" HorizontalAlignment="Left">
+                    <StackPanel MaxWidth="920" HorizontalAlignment="Center">
+                        <Border Style="{StaticResource SettingsPanel}"><StackPanel>
                         <TextBlock Text="{Binding Texts[PreferencesHeading]}" FontSize="10" Foreground="{StaticResource BlueBrush}" FontWeight="Bold" />
                         <Grid Margin="0,9,0,4" MinHeight="60">
                             <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="190" /></Grid.ColumnDefinitions>
@@ -636,21 +735,30 @@
                                 <ComboBoxItem Content="Français" Tag="fr" />
                             </ComboBox>
                         </Grid>
-                        <Border Height="1" Background="{StaticResource LineBrush}" Margin="0,24,0,22" />
+                        </StackPanel></Border>
+                        <Border Style="{StaticResource SettingsPanel}"><StackPanel>
                         <TextBlock Text="{Binding Texts[InstallMonitorHeading]}" FontSize="10" Foreground="{StaticResource BlueBrush}" FontWeight="Bold" />
                         <TextBlock Text="{Binding Texts[InstallMonitorDescription]}" FontSize="12" Foreground="{StaticResource MutedBrush}" TextWrapping="Wrap" Margin="0,7,0,12" />
+                        <Border Background="{StaticResource AccentSoft}" BorderBrush="{StaticResource LineBrush}" BorderThickness="1" CornerRadius="10" Padding="11,7" Margin="0,0,0,10" HorizontalAlignment="Left"><StackPanel Orientation="Horizontal"><TextBlock Text="{Binding Texts[ApplicationDetails]}" Foreground="{StaticResource MutedBrush}" FontSize="10" FontWeight="Bold" /><TextBlock Text="{Binding MonitorTargetText}" FontSize="11" FontWeight="SemiBold" Margin="9,0,0,0" /></StackPanel></Border>
                         <StackPanel Orientation="Horizontal">
                             <Button Content="{Binding Texts[StartMonitor]}" Click="StartMonitor_Click" IsEnabled="{Binding CanStartInstallMonitor}" Style="{StaticResource PrimaryButton}" />
                             <Button Content="{Binding Texts[StopMonitor]}" Click="StopMonitor_Click" IsEnabled="{Binding CanStopInstallMonitor}" Style="{StaticResource SecondaryButton}" Margin="8,0,0,0" />
                         </StackPanel>
-                        <ItemsControl ItemsSource="{Binding InstallMonitorResults}" MaxHeight="260" Margin="0,10,0,0">
-                            <ItemsControl.ItemTemplate><DataTemplate><TextBlock Text="{Binding}" TextWrapping="Wrap" FontSize="11" Margin="0,3" /></DataTemplate></ItemsControl.ItemTemplate>
-                        </ItemsControl>
-                        <Border Height="1" Background="{StaticResource LineBrush}" Margin="0,24,0,22" />
+                        <ListBox ItemsSource="{Binding InstallMonitorResults}" MaxHeight="180" Margin="0,10,0,0" VirtualizingPanel.IsVirtualizing="True" VirtualizingPanel.VirtualizationMode="Recycling">
+                            <ListBox.ItemTemplate><DataTemplate><TextBlock Text="{Binding}" TextWrapping="Wrap" FontSize="11" Margin="0,3" /></DataTemplate></ListBox.ItemTemplate>
+                        </ListBox>
+                        <TextBlock Text="{Binding Texts[MonitorHistory]}" Style="{StaticResource SectionEyebrow}" Margin="0,18,0,6" />
+                        <ComboBox ItemsSource="{Binding InstallReports}" SelectedItem="{Binding SelectedInstallReport, Mode=TwoWay}" DisplayMemberPath="DisplayName" MinHeight="40" />
+                        <ListBox ItemsSource="{Binding SelectedInstallReportDetails}" MaxHeight="260" Margin="0,9,0,0" VirtualizingPanel.IsVirtualizing="True" VirtualizingPanel.VirtualizationMode="Recycling">
+                            <ListBox.ItemTemplate><DataTemplate><Border Background="White" BorderBrush="{StaticResource LineBrush}" BorderThickness="1" CornerRadius="8" Padding="10,7" Margin="0,2"><TextBlock Text="{Binding}" TextWrapping="Wrap" FontSize="11" /></Border></DataTemplate></ListBox.ItemTemplate>
+                        </ListBox>
+                        </StackPanel></Border>
+                        <Border Style="{StaticResource SettingsPanel}"><StackPanel>
                         <TextBlock Text="{Binding Texts[DataStorageHeading]}" FontSize="10" Foreground="{StaticResource BlueBrush}" FontWeight="Bold" />
                         <TextBlock Text="{Binding Texts[DataStorageDescription]}" FontSize="12" Foreground="{StaticResource MutedBrush}" TextWrapping="Wrap" Margin="0,7,0,8" />
                         <TextBlock Text="{Binding LocalDataPath}" FontSize="12" FontFamily="Cascadia Code" TextWrapping="Wrap" />
-                        <Border Height="1" Background="{StaticResource LineBrush}" Margin="0,24,0,22" />
+                        </StackPanel></Border>
+                        <Border Style="{StaticResource SettingsPanel}"><StackPanel>
                         <TextBlock Text="{Binding Texts[CustomSearchRootsHeading]}" FontSize="10" Foreground="{StaticResource BlueBrush}" FontWeight="Bold" />
                         <TextBlock Text="{Binding Texts[CustomSearchRootsDescription]}" FontSize="12" Foreground="{StaticResource MutedBrush}" TextWrapping="Wrap" Margin="0,7,0,12" />
                         <Button Content="{Binding Texts[AddSearchRoot]}" Click="AddSearchRoot_Click" Style="{StaticResource SecondaryButton}" HorizontalAlignment="Left" />
@@ -667,17 +775,21 @@
                                 </DataTemplate>
                             </ItemsControl.ItemTemplate>
                         </ItemsControl>
-                        <Border Height="1" Background="{StaticResource LineBrush}" Margin="0,24,0,22" />
+                        </StackPanel></Border>
+                        <Border Style="{StaticResource SettingsPanel}"><StackPanel>
                         <TextBlock Text="{Binding Texts[LocalPrivacyHeading]}" FontSize="10" Foreground="{StaticResource BlueBrush}" FontWeight="Bold" />
                         <TextBlock Text="{Binding Texts[LocalPrivacyDescription]}" FontSize="12" Foreground="{StaticResource MutedBrush}" TextWrapping="Wrap" Margin="0,7,0,0" />
-                        <Border Height="1" Background="{StaticResource LineBrush}" Margin="0,24,0,22" />
+                        </StackPanel></Border>
+                        <Border Style="{StaticResource SettingsPanel}"><StackPanel>
                         <TextBlock Text="{Binding Texts[SafetySettingsHeading]}" FontSize="10" Foreground="{StaticResource BlueBrush}" FontWeight="Bold" />
                         <TextBlock Text="{Binding Texts[SafetySettingsDescription]}" FontSize="12" Foreground="{StaticResource MutedBrush}" TextWrapping="Wrap" Margin="0,7,0,12" />
                         <Button Content="{Binding Texts[ReviewSafetyNotice]}" Command="{Binding ReviewSafetyNoticeCommand}" Style="{StaticResource SecondaryButton}" HorizontalAlignment="Left" />
-                        <Border Height="1" Background="{StaticResource LineBrush}" Margin="0,24,0,22" />
+                        </StackPanel></Border>
+                        <Border Style="{StaticResource SettingsPanel}"><StackPanel>
                         <TextBlock Text="{Binding Texts[AboutHeading]}" FontSize="10" Foreground="{StaticResource BlueBrush}" FontWeight="Bold" />
                         <TextBlock Text="{Binding Texts[ProjectVersion]}" FontSize="12" Margin="0,7,0,3" />
                         <TextBlock Text="{Binding Texts[LicenseDescription]}" FontSize="11" Foreground="{StaticResource MutedBrush}" />
+                        </StackPanel></Border>
                     </StackPanel>
                 </ScrollViewer>
             </Border>

@@ -12,7 +12,13 @@ Roadmap entries are plans, not implemented features.
 - Local install-monitor sessions with before/after app inventory and file system event review.
 - Locally saved manual search roots that can be enabled, disabled or removed.
 - On-demand disk scans with paged folder browsing, largest-item views, extension totals, and explicit permanent deletion.
+- Same-size duplicate discovery, optional SHA-256 content verification, and guarded deletion of selected copies.
+- Locally saved full metadata snapshots and same-root added/removed/changed comparison.
+- Saved cleanup plans with path/risk review, same-root rescan matching and explicit confirmation.
+- Local HTML and CSV exports for inventory, leftovers, Disk scans, duplicate findings, snapshot comparisons, quarantine and history.
 - Selected-folder quarantine move and restore to an unoccupied original path.
+- Quarantine status review and multi-item restore.
+- Per-candidate match explanations and saved, app-associated Install Monitor reports.
 - Local SQLite operation and quarantine history.
 
 ## Next safety work
@@ -28,8 +34,8 @@ Roadmap entries are plans, not implemented features.
 - AppX package management across user profiles, where Windows permissions and package deployment support it.
 - Separate personal-data discovery and explicit warnings, only after safe evidence and recovery are designed.
 - Batch uninstall, history details, retention settings and safe permanent-quarantine removal.
-- More complete installation snapshots, root coverage and saved-session comparison without invasive process hooking.
-- Deeper treemap navigation, scan export/reopen, allocated-space measurement, and optional NTFS-specific acceleration after compatibility and performance evaluation.
+- Broader Install Monitor root coverage and more complete saved-session comparison without invasive process hooking.
+- Deeper treemap navigation, allocated-space measurement, and optional NTFS-specific acceleration after compatibility and performance evaluation.
 - System, light and dark themes; accessibility and DPI validation.
 - Windows version matrix, signing and portable package automation.
 

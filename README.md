@@ -16,7 +16,7 @@
   <img src="https://img.shields.io/badge/platform-Windows-0b6cff" alt="Windows">
   <img src="https://img.shields.io/badge/UI-WPF-1677ff" alt="WPF">
   <img src="https://img.shields.io/badge/runtime-.NET%2010-512bd4" alt=".NET 10">
-  <a href="https://github.com/LoxyyIT/CleanLens/releases/tag/v0.2.1"><img src="https://img.shields.io/badge/release-v0.2.1-396be8" alt="CleanLens 0.2.1 release"></a>
+  <a href="https://github.com/LoxyyIT/CleanLens/releases/tag/v0.3.0"><img src="https://img.shields.io/badge/release-v0.3.0-396be8" alt="CleanLens 0.3.0 release"></a>
   <img src="https://img.shields.io/badge/license-MIT-18a06f" alt="MIT">
   <img src="https://img.shields.io/badge/status-early%20development-c78b2f" alt="Early development">
 </p>
@@ -63,9 +63,13 @@ The ZIP includes the .NET runtime. CleanLens is unsigned and has no installer or
 - **Measured disk usage:** on request, sum file lengths across matched install, application-data, cache and other candidate locations. This can include user data; unreadable paths are counted and marked as a partial measurement. The result is not allocated disk space.
 - **Install Monitor:** start a local session before an installation, run the installer yourself, then stop the session to compare the registered-app inventory, selected service/startup Registry entries, and file system events under Program Files, the current profile's AppData, ProgramData, scheduled-task files and enabled custom roots. It does not read file contents. Reports are saved locally and flag watcher overflow or inaccessible paths.
 - **Disk explorer:** explicitly scan a selected drive or folder, browse folders with Back and Parent navigation, view the largest items or files, inspect extension totals and explore a size-weighted treemap. ZIP files are measured as stored files and are never opened. A temporary SQLite index keeps scan results pageable without holding every path in RAM; it is removed when CleanLens closes.
+- **Duplicate review:** find same-size file candidates, then optionally verify contents with SHA-256. Only verified groups can be cleaned; review every path, keep at least one copy per group, and confirm permanent deletion after CleanLens checks the selected files again.
+- **Saved disk scans:** keep local metadata snapshots and compare scans of the same drive or folder to find paths added, removed or changed. Snapshots contain scan metadata, not file contents; delete snapshots you no longer need to reclaim local storage.
+- **Saved cleanup plans:** save selected disk paths with measured sizes and risk labels, then resume after a fresh scan of the same root. CleanLens checks exact paths against the new scan and asks for confirmation; plans never delete by themselves.
+- **Local reports:** export the visible app inventory, leftover reasons, full indexed Disk scan, duplicate results, snapshot differences, quarantine or history as HTML or CSV. Reports are generated on the PC and are not uploaded.
 - **Disk cleanup:** select exact file or folder paths and review them before permanent deletion. CleanLens lists the paths again in a separate confirmation. Disk deletion bypasses the Recycle Bin and cannot be undone.
 - **Quarantine or permanent deletion:** from the manual path list, move selected files and folders into local quarantine for later restore, or permanently delete them after a separate confirmation. If Windows denies a move, CleanLens asks you to restart it as administrator; it does not elevate itself.
-- **Local records and settings:** browse operation history and quarantined items, restore items when their original paths are available, and keep the selected interface language and safety acknowledgement locally.
+- **Local records and settings:** browse operation history and quarantined items, check whether each saved payload and original path is available, and restore one or several items when the original paths are free. Install Monitor sessions can be associated with the selected app and reviewed later. Settings and safety acknowledgements stay local.
 
 ## Using CleanLens
 
@@ -80,6 +84,12 @@ After uninstalling an app and scanning the inventory again, open Leftover review
 ### Explore a drive or folder
 
 Open **Disco**, choose a drive or use **Sfoglia cartelle**, and start the scan. Double-click a folder or use **Apri cartella** to inspect its contents; **Indietro** returns to the previous folder and **Su** opens its parent. Sort the list by size, switch to largest-item views, or open the treemap. Scanning reads metadata, not file contents, and measures logical file lengths rather than allocated disk space.
+
+### Compare scans and prepare cleanup
+
+After a Disk scan completes, save a snapshot before scanning the same root again. In **Analisi → Cronologia scansioni**, compare the snapshots. In **Analisi → Piani di pulizia**, save exact selected paths for later review. In **Analisi → File duplicati**, run SHA-256 verification before choosing copies to remove. Each destructive action shows the paths and asks for confirmation.
+
+Use **Esporta report** to save the current inventory or report as HTML or CSV. Exports stay local. CSV values that could be evaluated as formulas are prefixed before writing.
 
 ## Safety boundaries
 
@@ -99,13 +109,13 @@ CleanLens starts only an existing, fully qualified executable path, apart from M
 
 ## Interface
 
-The WPF application and static website support English, Italian, Spanish and French. The desktop language choice is saved locally. The app includes custom window controls, native Windows file icons and checkbox selection for application lists. Appearance themes and accessibility validation are still planned.
+The WPF application and static website support English, Italian, Spanish and French. The desktop language choice is saved locally. The app uses custom window controls and a shared visual system, with native Windows file icons and multi-selection. Appearance themes and a full accessibility validation are still planned.
 
 ## Download
 
 The current self-contained Windows x64 build is available from [GitHub Releases](https://github.com/LoxyyIT/CleanLens/releases/latest). Download the portable ZIP, extract it and run `CleanLens.exe`. The build is unsigned and does not include an installer or updater; Windows SmartScreen may show a warning.
 
-The v0.2.1 portable ZIP includes the features described above. Review the release notes for its exact scope and known boundaries.
+The v0.3.0 portable ZIP includes the features described above. Review the release notes for its exact scope and known boundaries.
 
 ## Build
 
@@ -134,7 +144,7 @@ The publish directory includes the .NET runtime and is suitable for packaging as
 
 ## Roadmap
 
-See ROADMAP.md for planned work and current boundaries. Per-user AppX removal, measured on-disk file usage, install monitoring, custom search roots and read-only service/task/startup detection are available in the current source. Cleanup support for those system artifacts, all-user package management, complete desktop localization, appearance themes and broader validation remain future work.
+See ROADMAP.md for planned work and current boundaries. Current source includes per-user AppX removal, measured app usage, Install Monitor, configurable manual search roots, read-only service/task/startup detection, duplicate review, saved disk snapshots, cleanup plans and local reports. Cleanup support for system artifacts, all-user package management, allocated-space measurement, themes and broader compatibility validation remain future work.
 
 ## Privacy
 

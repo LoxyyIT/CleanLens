@@ -24,10 +24,10 @@ internal sealed record ManualDeleteSelectionResult(IReadOnlyList<string> Paths, 
 
 internal static class CleanLensDialogService
 {
-    private static readonly Brush Ink = Brush("#14243A");
-    private static readonly Brush Muted = Brush("#61758D");
-    private static readonly Brush Line = Brush("#DFE8F1");
-    private static readonly Brush Blue = Brush("#396BE8");
+    private static readonly Brush Ink = Brush("#101F35");
+    private static readonly Brush Muted = Brush("#60738B");
+    private static readonly Brush Line = Brush("#DCE6F1");
+    private static readonly Brush Blue = Brush("#315FF4");
     private static readonly Brush Red = Brush("#B4233D");
 
     public static void ShowMessage(Window owner, string title, string message, CleanLensDialogTone tone = CleanLensDialogTone.Information, string okText = "OK")
@@ -203,14 +203,14 @@ internal static class CleanLensDialogService
             Background = Brushes.White,
             BorderBrush = Line,
             BorderThickness = new Thickness(1),
-            CornerRadius = new CornerRadius(18),
-            Effect = new DropShadowEffect { BlurRadius = 28, ShadowDepth = 8, Direction = 270, Opacity = 0.17, Color = Color.FromRgb(14, 31, 52) }
+            CornerRadius = new CornerRadius(22),
+            Effect = new DropShadowEffect { BlurRadius = 36, ShadowDepth = 10, Direction = 270, Opacity = 0.19, Color = Color.FromRgb(14, 31, 52) }
         };
         var layout = new Grid();
         layout.RowDefinitions.Add(new RowDefinition { Height = new GridLength(72) });
         layout.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) });
         layout.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
-        var header = new Grid { Background = Brush("#FBFCFE"), Margin = new Thickness(1) };
+        var header = new Grid { Background = Brush("#F5F8FC"), Margin = new Thickness(1) };
         header.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(52) });
         header.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
         header.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(56) });
@@ -218,16 +218,16 @@ internal static class CleanLensDialogService
         var glyph = tone == CleanLensDialogTone.Danger ? "!" : tone == CleanLensDialogTone.Warning ? "!" : "i";
         var icon = new Border
         {
-            Width = 34,
-            Height = 34,
-            CornerRadius = new CornerRadius(11),
+            Width = 38,
+            Height = 38,
+            CornerRadius = new CornerRadius(12),
             Background = Brush(tone == CleanLensDialogTone.Danger ? "#FFF0F2" : tone == CleanLensDialogTone.Warning ? "#FFF7E8" : "#EEF4FF"),
             Child = new TextBlock { Text = glyph, Foreground = accent, FontSize = 17, FontWeight = FontWeights.Bold, HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center }
         };
         icon.Margin = new Thickness(18, 0, 0, 0);
         icon.VerticalAlignment = VerticalAlignment.Center;
         header.Children.Add(icon);
-        var titleBlock = new TextBlock { Text = title, FontSize = 16, FontWeight = FontWeights.SemiBold, Foreground = Ink, VerticalAlignment = VerticalAlignment.Center, TextTrimming = TextTrimming.CharacterEllipsis };
+        var titleBlock = new TextBlock { Text = title, FontSize = 17, FontWeight = FontWeights.Bold, Foreground = Ink, VerticalAlignment = VerticalAlignment.Center, TextTrimming = TextTrimming.CharacterEllipsis };
         titleBlock.Margin = new Thickness(14, 0, 8, 0);
         Grid.SetColumn(titleBlock, 1);
         header.Children.Add(titleBlock);
@@ -270,11 +270,11 @@ internal static class CleanLensDialogService
         var separator = new Border { Height = 1, Background = Line, VerticalAlignment = VerticalAlignment.Bottom };
         Grid.SetRow(separator, 0);
         layout.Children.Add(separator);
-        var bodyHost = new Border { Padding = new Thickness(22, 18, 22, 18), ClipToBounds = true };
+        var bodyHost = new Border { Padding = new Thickness(26, 21, 26, 21), ClipToBounds = true };
         Grid.SetRow(bodyHost, 1);
         layout.Children.Add(bodyHost);
-        var footer = new StackPanel { Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Right, VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(18, 10, 20, 16) };
-        var footerHost = new Border { Background = Brush("#FBFCFE"), BorderBrush = Line, BorderThickness = new Thickness(0, 1, 0, 0), Child = footer };
+        var footer = new StackPanel { Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Right, VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(18, 13, 22, 17) };
+        var footerHost = new Border { Background = Brush("#F7F9FD"), BorderBrush = Line, BorderThickness = new Thickness(0, 1, 0, 0), Child = footer };
         Grid.SetRow(footerHost, 2);
         layout.Children.Add(footerHost);
         surface.Child = layout;
@@ -324,7 +324,7 @@ internal static class CleanLensDialogService
         {
             Content = text,
             MinWidth = 108,
-            Height = 40,
+            Height = 44,
             Margin = new Thickness(8, 0, 0, 0),
             Padding = new Thickness(16, 8, 16, 8),
             Background = background,
@@ -345,7 +345,7 @@ internal static class CleanLensDialogService
         var template = new ControlTemplate(typeof(Button));
         var border = new FrameworkElementFactory(typeof(Border));
         border.Name = "ButtonSurface";
-        border.SetValue(Border.CornerRadiusProperty, new CornerRadius(10));
+        border.SetValue(Border.CornerRadiusProperty, new CornerRadius(11));
         border.SetBinding(Border.BackgroundProperty, new System.Windows.Data.Binding("Background") { RelativeSource = System.Windows.Data.RelativeSource.TemplatedParent });
         border.SetBinding(Border.BorderBrushProperty, new System.Windows.Data.Binding("BorderBrush") { RelativeSource = System.Windows.Data.RelativeSource.TemplatedParent });
         border.SetBinding(Border.BorderThicknessProperty, new System.Windows.Data.Binding("BorderThickness") { RelativeSource = System.Windows.Data.RelativeSource.TemplatedParent });

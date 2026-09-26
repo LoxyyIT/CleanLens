@@ -17,6 +17,7 @@ public partial class MainWindow : Window
     public MainWindow()
     {
         InitializeComponent();
+        SelectAnalysisTab(0);
         DataContextChanged += MainWindow_DataContextChanged;
         Loaded += Window_Loaded;
         Closed += (_, _) =>
@@ -267,14 +268,16 @@ public partial class MainWindow : Window
         HistoryNav.Tag = page == "History" ? "Active" : null;
         QuarantineNav.Tag = page == "Quarantine" ? "Active" : null;
         DiskNav.Tag = page == "Disk" ? "Active" : null;
+        AnalysisNav.Tag = page == "Analysis" ? "Active" : null;
         SettingsNav.Tag = page == "Settings" ? "Active" : null;
         ApplicationWorkspace.Visibility = page == "Applications" ? Visibility.Visible : Visibility.Collapsed;
         LeftoverWorkspace.Visibility = page == "Leftover review" ? Visibility.Visible : Visibility.Collapsed;
         HistoryWorkspace.Visibility = page == "History" ? Visibility.Visible : Visibility.Collapsed;
         QuarantineWorkspace.Visibility = page == "Quarantine" ? Visibility.Visible : Visibility.Collapsed;
         DiskWorkspace.Visibility = page == "Disk" ? Visibility.Visible : Visibility.Collapsed;
+        AnalysisWorkspace.Visibility = page == "Analysis" ? Visibility.Visible : Visibility.Collapsed;
         SettingsWorkspace.Visibility = page == "Settings" ? Visibility.Visible : Visibility.Collapsed;
-        HeaderScanButton.Visibility = page == "Disk" ? Visibility.Collapsed : Visibility.Visible;
+        HeaderScanButton.Visibility = page is "Disk" or "Analysis" ? Visibility.Collapsed : Visibility.Visible;
         SummaryMetrics.Visibility = page is "Applications" or "Leftover review" ? Visibility.Visible : Visibility.Collapsed;
         ViewModel.SetPage(page);
         if (page is "History" or "Quarantine")

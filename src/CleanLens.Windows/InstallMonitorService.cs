@@ -8,7 +8,11 @@ using Microsoft.Win32;
 
 namespace CleanLens.Windows;
 
-public sealed record InstallMonitorReport(DateTimeOffset StartedAt, DateTimeOffset FinishedAt, IReadOnlyList<string> AddedApplications, IReadOnlyList<string> RemovedApplications, IReadOnlyList<string> SystemEntryChanges, IReadOnlyList<string> FileEvents, bool IsIncomplete);
+public sealed record InstallMonitorReport(DateTimeOffset StartedAt, DateTimeOffset FinishedAt, IReadOnlyList<string> AddedApplications, IReadOnlyList<string> RemovedApplications, IReadOnlyList<string> SystemEntryChanges, IReadOnlyList<string> FileEvents, bool IsIncomplete, string? ApplicationId = null, string? ApplicationName = null)
+{
+    public string DisplayName => $"{FinishedAt.ToLocalTime():g} · {ApplicationName ?? "General installation"}";
+    public override string ToString() => DisplayName;
+}
 
 public sealed class InstallMonitorService : IDisposable
 {
@@ -20,6 +24,8 @@ public sealed class InstallMonitorService : IDisposable
     private Dictionary<string, string> baselineApps = new(StringComparer.OrdinalIgnoreCase);
     private Dictionary<string, string> baselineSystemEntries = new(StringComparer.OrdinalIgnoreCase);
     private DateTimeOffset startedAt;
+    private string? monitoredApplicationId;
+    private string? monitoredApplicationName;
     private int overflowed;
     private bool inventoryIncomplete;
     private bool systemSnapshotIncomplete;
@@ -31,7 +37,7 @@ public sealed class InstallMonitorService : IDisposable
         historyPath = Path.Combine(localDataPath, "install-monitor-history.json");
     }
 
-    public async Task StartAsync(IEnumerable<string> additionalRoots, CancellationToken cancellationToken = default)
+    public async Task StartAsync(IEnumerable<string> additionalRoots, CancellationToken cancellationToken = default, string? applicationId = null, string? applicationName = null)
     {
         if (IsRunning) throw new InvalidOperationException("An install-monitor session is already running.");
         var inventoryBefore = await inventory.ScanAsync(cancellationToken);
@@ -43,6 +49,8 @@ public sealed class InstallMonitorService : IDisposable
         events.Clear();
         overflowed = 0;
         startedAt = DateTimeOffset.Now;
+        monitoredApplicationId = applicationId;
+        monitoredApplicationName = applicationName;
         var roots = new[]
         {
             Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles),
@@ -97,7 +105,7 @@ public sealed class InstallMonitorService : IDisposable
             .Select(pair => $"Removed or changed: {pair.Key}")
             .Concat(systemEntriesAfter.Where(pair => !baselineSystemEntries.TryGetValue(pair.Key, out var oldValue) || !pair.Value.Equals(oldValue, StringComparison.Ordinal)).Select(pair => $"Added or changed: {pair.Key}"))
             .OrderBy(value => value, StringComparer.OrdinalIgnoreCase).ToArray();
-        var report = new InstallMonitorReport(startedAt, DateTimeOffset.Now, added, removed, systemChanges, events.Keys.OrderBy(value => value, StringComparer.OrdinalIgnoreCase).ToArray(), Volatile.Read(ref overflowed) != 0 || inventoryIncomplete || systemSnapshotIncomplete || finalSystemSnapshot.IsIncomplete);
+        var report = new InstallMonitorReport(startedAt, DateTimeOffset.Now, added, removed, systemChanges, events.Keys.OrderBy(value => value, StringComparer.OrdinalIgnoreCase).ToArray(), Volatile.Read(ref overflowed) != 0 || inventoryIncomplete || systemSnapshotIncomplete || finalSystemSnapshot.IsIncomplete, monitoredApplicationId, monitoredApplicationName);
         Directory.CreateDirectory(Path.GetDirectoryName(historyPath)!);
         var history = File.Exists(historyPath) ? await File.ReadAllTextAsync(historyPath, cancellationToken) : "[]";
         var previous = System.Text.Json.JsonSerializer.Deserialize<List<InstallMonitorReport>>(history) ?? [];
@@ -106,6 +114,14 @@ public sealed class InstallMonitorService : IDisposable
         IsRunning = false;
         DisposeWatchers();
         return report;
+    }
+
+    public async Task<IReadOnlyList<InstallMonitorReport>> GetReportsAsync(CancellationToken cancellationToken = default)
+    {
+        if (!File.Exists(historyPath)) return [];
+        var json = await File.ReadAllTextAsync(historyPath, cancellationToken);
+        return (System.Text.Json.JsonSerializer.Deserialize<List<InstallMonitorReport>>(json) ?? [])
+            .OrderByDescending(report => report.FinishedAt).ToArray();
     }
 
     private void AddEvent(string kind, string path)

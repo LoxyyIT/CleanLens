@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.3.0 — Disk analysis and app-wide interface refresh
+
+- Added same-size duplicate discovery with optional SHA-256 verification and guarded selection.
+- Added saved Disk snapshots with same-root change comparison.
+- Added locally saved cleanup plans that require a fresh scan and explicit confirmation before deletion.
+- Added HTML and CSV report exports, with spreadsheet formula prefixes escaped in CSV values.
+- Added multi-item quarantine restore and clear status for missing payloads or occupied original paths.
+- Associated Install Monitor sessions with the selected app and made saved sessions reviewable in Settings.
+- Added candidate match explanations and counts for read-only system leftovers.
+- Refreshed shared desktop styling, app inventory rows, Disk empty state, analysis controls, Settings sections and dialog surfaces.
+- Updated the README and four-language project website to document the new workflows.
+- Distributed as an unsigned self-contained Windows x64 portable ZIP. No installer or updater is included.
+
 ## 0.2.1 — Feature guide refresh
 
 - Expanded the README quick start, app selection, cleanup safety and Disk usage guidance.

@@ -108,4 +108,11 @@ public sealed class CleanLensDatabase
 
 public sealed record HistoryEntry(long Id, string ApplicationName, string Operation, string Result, DateTimeOffset CreatedAt);
 
-public sealed record QuarantineEntry(string OperationId, string ApplicationName, string OriginalPath, string QuarantinePath, DateTimeOffset CreatedAt);
+public sealed record QuarantineEntry(string OperationId, string ApplicationName, string OriginalPath, string QuarantinePath, DateTimeOffset CreatedAt)
+{
+    public bool PayloadPresent => File.Exists(QuarantinePath) || Directory.Exists(QuarantinePath);
+    public bool OriginalOccupied => File.Exists(OriginalPath) || Directory.Exists(OriginalPath);
+    public string RestoreStatusKey => !PayloadPresent ? "PayloadMissing" : OriginalOccupied ? "PathOccupied" : !Directory.Exists(Path.GetDirectoryName(OriginalPath)) ? "ParentMissing" : "Ready";
+    public string RestoreStatus => !PayloadPresent ? "Payload missing" : OriginalOccupied ? "Original path occupied" : !Directory.Exists(Path.GetDirectoryName(OriginalPath)) ? "Original parent missing" : "Ready to restore";
+    public bool CanRestore => PayloadPresent && !OriginalOccupied && Directory.Exists(Path.GetDirectoryName(OriginalPath));
+}

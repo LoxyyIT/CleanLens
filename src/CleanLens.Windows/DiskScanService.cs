@@ -1,5 +1,6 @@
 using System.IO.Enumeration;
 using System.Security;
+using System.Security.Cryptography;
 using System.Text;
 using CleanLens.Core.Safety;
 using Microsoft.Data.Sqlite;
@@ -76,6 +77,28 @@ public sealed record DiskDeletionFailure(string Path, string Error);
 
 public sealed record DiskDeletionReport(int DeletedItems, IReadOnlyList<DiskDeletionFailure> Failures, DiskScanSummary? UpdatedSummary, bool RequiresRescan);
 
+public sealed record DuplicateFile(string Path, long SizeBytes, string GroupKey, int GroupCount, bool HashVerified)
+{
+    public string SizeText => DiskScanSummaryFormatter.Format(SizeBytes);
+    public string VerificationText => HashVerified ? "SHA-256" : "Same size only";
+}
+
+public sealed record DuplicateScanProgress(long Candidates, long FilesHashed, long BytesHashed);
+
+public sealed record DiskSnapshot(string Id, string RootPath, DateTimeOffset CreatedAt, long FileCount, long FolderCount, long TotalBytes)
+{
+    public string DisplayName => $"{CreatedAt.ToLocalTime():g} · {RootPath} · {DiskScanSummaryFormatter.Format(TotalBytes)}";
+    public override string ToString() => DisplayName;
+}
+
+public sealed record DiskSnapshotChange(string Path, string Kind, bool IsDirectory, long? PreviousBytes, long? CurrentBytes)
+{
+    public long DifferenceBytes => (CurrentBytes ?? 0) - (PreviousBytes ?? 0);
+    public string DifferenceText => $"{(DifferenceBytes > 0 ? "+" : DifferenceBytes < 0 ? "−" : "")}{DiskScanSummaryFormatter.Format(Math.Abs(DifferenceBytes))}";
+}
+
+public sealed record DiskSnapshotChangePage(IReadOnlyList<DiskSnapshotChange> Entries, long TotalCount, long Offset, int PageSize);
+
 internal static class DiskScanSummaryFormatter
 {
     public static string Format(long bytes)
@@ -93,6 +116,7 @@ public sealed class DiskScanService : IDisposable
     private const int TransactionBatchSize = 4000;
     private const int MaximumTreeDepth = 256;
     private readonly string cacheRoot;
+    private readonly string snapshotRoot;
     private readonly string connectionString;
     private readonly string cacheExclusionPath;
     private readonly Dictionary<string, IReadOnlyList<DiskExtensionStat>> extensionStatsCache = new(StringComparer.OrdinalIgnoreCase);
@@ -110,8 +134,10 @@ public sealed class DiskScanService : IDisposable
     public DiskScanService(string localDataPath)
     {
         cacheRoot = Path.GetFullPath(Path.Combine(localDataPath, "DiskScanCache"));
+        snapshotRoot = Path.GetFullPath(Path.Combine(localDataPath, "DiskSnapshots"));
         cacheExclusionPath = cacheRoot.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
         Directory.CreateDirectory(cacheRoot);
+        Directory.CreateDirectory(snapshotRoot);
         connectionString = new SqliteConnectionStringBuilder
         {
             Mode = SqliteOpenMode.ReadWriteCreate,
@@ -212,6 +238,118 @@ public sealed class DiskScanService : IDisposable
         var cache = cacheExclusionPath;
         var indexPath = currentIndexPath!;
         return await Task.Run(() => DeleteSelectedCore(indexPath, root, cache, selected, cancellationToken), cancellationToken);
+    }
+
+    public async Task<IReadOnlyList<DuplicateFile>> FindDuplicatesAsync(bool verifyHashes, IProgress<DuplicateScanProgress>? progress = null, CancellationToken cancellationToken = default)
+    {
+        EnsureCurrentIndex();
+        var indexPath = currentIndexPath!;
+        return await Task.Run(() => FindDuplicatesCore(indexPath, verifyHashes, progress, cancellationToken), cancellationToken);
+    }
+
+    public async Task<IReadOnlyList<DiskScanEntry>> ResolveCurrentEntriesAsync(IEnumerable<string> paths, CancellationToken cancellationToken = default)
+    {
+        EnsureCurrentIndex();
+        if (currentScanIsStale) throw new InvalidOperationException("Scan again before using a saved plan.");
+        var requested = paths.Select(Path.GetFullPath).Distinct(StringComparer.OrdinalIgnoreCase).ToArray();
+        var root = currentRootPath!;
+        if (requested.Any(path => !IsPathWithinOrEqual(path, root) || path.Equals(root, StringComparison.OrdinalIgnoreCase)))
+            throw new InvalidOperationException("A path is outside the current scan root.");
+        return await Task.Run(() =>
+        {
+            using var connection = OpenIndex(currentIndexPath!);
+            var entries = new List<DiskScanEntry>();
+            foreach (var path in requested)
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                var entry = FindEntry(connection, path);
+                if (entry is not null) entries.Add(entry);
+            }
+            return (IReadOnlyList<DiskScanEntry>)entries;
+        }, cancellationToken);
+    }
+
+    public IEnumerable<DiskScanEntry> EnumerateCurrentEntries(CancellationToken cancellationToken = default)
+    {
+        EnsureCurrentIndex();
+        using var connection = OpenIndex(currentIndexPath!);
+        using var command = connection.CreateCommand();
+        command.CommandText = "SELECT name,path,parent_path,is_directory,is_reparse,size_bytes,extension,attributes,last_write_ticks,file_count,folder_count,skipped_count,is_incomplete FROM disk_entries ORDER BY path COLLATE NOCASE";
+        using var reader = command.ExecuteReader();
+        while (reader.Read())
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            yield return ReadEntry(reader);
+        }
+    }
+
+    public async Task<DiskSnapshot> SaveSnapshotAsync(CancellationToken cancellationToken = default)
+    {
+        EnsureCurrentIndex();
+        var summary = currentSummary!;
+        var snapshot = new DiskSnapshot(Guid.NewGuid().ToString("N"), summary.RootPath, DateTimeOffset.UtcNow,
+            summary.FileCount, summary.FolderCount, summary.TotalBytes);
+        var destination = Path.Combine(snapshotRoot, snapshot.Id + ".db");
+        try
+        {
+            await Task.Run(() =>
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                using var source = OpenIndex(currentIndexPath!);
+                using var target = new SqliteConnection(new SqliteConnectionStringBuilder(connectionString) { DataSource = destination }.ToString());
+                target.Open();
+                source.BackupDatabase(target);
+                using var metadata = target.CreateCommand();
+                metadata.CommandText = "CREATE TABLE snapshot_metadata(id TEXT NOT NULL,root_path TEXT NOT NULL,created_utc TEXT NOT NULL,file_count INTEGER NOT NULL,folder_count INTEGER NOT NULL,total_bytes INTEGER NOT NULL); INSERT INTO snapshot_metadata VALUES($id,$root,$created,$files,$folders,$bytes)";
+                metadata.Parameters.AddWithValue("$id", snapshot.Id);
+                metadata.Parameters.AddWithValue("$root", snapshot.RootPath);
+                metadata.Parameters.AddWithValue("$created", snapshot.CreatedAt.ToString("O"));
+                metadata.Parameters.AddWithValue("$files", snapshot.FileCount);
+                metadata.Parameters.AddWithValue("$folders", snapshot.FolderCount);
+                metadata.Parameters.AddWithValue("$bytes", snapshot.TotalBytes);
+                metadata.ExecuteNonQuery();
+            }, cancellationToken);
+            return snapshot;
+        }
+        catch
+        {
+            TryDelete(destination);
+            throw;
+        }
+    }
+
+    public IReadOnlyList<DiskSnapshot> GetSnapshots()
+    {
+        var snapshots = new List<DiskSnapshot>();
+        foreach (var path in Directory.EnumerateFiles(snapshotRoot, "*.db", SearchOption.TopDirectoryOnly))
+        {
+            try
+            {
+                using var connection = OpenIndex(path);
+                using var command = connection.CreateCommand();
+                command.CommandText = "SELECT id,root_path,created_utc,file_count,folder_count,total_bytes FROM snapshot_metadata LIMIT 1";
+                using var reader = command.ExecuteReader();
+                if (reader.Read() && Path.GetFileNameWithoutExtension(path).Equals(reader.GetString(0), StringComparison.OrdinalIgnoreCase))
+                    snapshots.Add(new DiskSnapshot(reader.GetString(0), reader.GetString(1), DateTimeOffset.Parse(reader.GetString(2)), reader.GetInt64(3), reader.GetInt64(4), reader.GetInt64(5)));
+            }
+            catch (Exception ex) when (ex is SqliteException or IOException or UnauthorizedAccessException or FormatException) { }
+        }
+        return snapshots.OrderByDescending(item => item.CreatedAt).ToArray();
+    }
+
+    public void DeleteSnapshot(DiskSnapshot snapshot)
+    {
+        if (!Guid.TryParseExact(snapshot.Id, "N", out _)) throw new ArgumentException("Invalid snapshot id.");
+        var path = Path.Combine(snapshotRoot, snapshot.Id + ".db");
+        if (File.Exists(path)) File.Delete(path);
+    }
+
+    public async Task<DiskSnapshotChangePage> CompareSnapshotsAsync(DiskSnapshot before, DiskSnapshot after, long offset = 0, int pageSize = 500, CancellationToken cancellationToken = default)
+    {
+        if (!before.RootPath.Equals(after.RootPath, StringComparison.OrdinalIgnoreCase)) throw new InvalidOperationException("Select scans of the same root.");
+        if (!Guid.TryParseExact(before.Id, "N", out _) || !Guid.TryParseExact(after.Id, "N", out _)) throw new ArgumentException("Invalid snapshot id.");
+        return await Task.Run(() => CompareSnapshotsCore(Path.Combine(snapshotRoot, before.Id + ".db"), Path.Combine(snapshotRoot, after.Id + ".db"),
+            Math.Max(0, offset), Math.Clamp(pageSize, 1, 5000), cancellationToken), cancellationToken);
     }
 
     public void Dispose()
@@ -781,6 +919,104 @@ public sealed class DiskScanService : IDisposable
         var connection = new SqliteConnection(builder.ToString());
         connection.Open();
         return connection;
+    }
+
+    private static IReadOnlyList<DuplicateFile> FindDuplicatesCore(string indexPath, bool verifyHashes, IProgress<DuplicateScanProgress>? progress, CancellationToken cancellationToken)
+    {
+        using var connection = OpenIndex(indexPath);
+        using var command = connection.CreateCommand();
+        command.CommandText = """
+            SELECT path,size_bytes FROM disk_entries
+            WHERE is_directory=0 AND is_reparse=0 AND size_bytes>0
+              AND size_bytes IN (SELECT size_bytes FROM disk_entries WHERE is_directory=0 AND is_reparse=0 AND size_bytes>0 GROUP BY size_bytes HAVING COUNT(*)>1)
+            ORDER BY size_bytes DESC,path COLLATE NOCASE
+            """;
+        using var reader = command.ExecuteReader();
+        var result = new List<DuplicateFile>();
+        var group = new List<string>();
+        long groupSize = -1, candidates = 0, hashed = 0, bytes = 0;
+        void FlushGroup()
+        {
+            if (group.Count < 2) { group.Clear(); return; }
+            if (!verifyHashes)
+            {
+                foreach (var path in group) result.Add(new DuplicateFile(path, groupSize, "size:" + groupSize, group.Count, false));
+            }
+            else
+            {
+                var hashes = new Dictionary<string, List<string>>(StringComparer.Ordinal);
+                foreach (var path in group)
+                {
+                    cancellationToken.ThrowIfCancellationRequested();
+                    try
+                    {
+                        var info = new FileInfo(path);
+                        if (!info.Exists || info.Length != groupSize || (info.Attributes & FileAttributes.ReparsePoint) != 0) continue;
+                        using var stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read, 1024 * 1024, FileOptions.SequentialScan);
+                        var hash = Convert.ToHexString(SHA256.HashData(stream));
+                        if (new FileInfo(path).Length != groupSize) continue;
+                        if (!hashes.TryGetValue(hash, out var paths)) hashes[hash] = paths = [];
+                        paths.Add(path);
+                        hashed++;
+                        bytes = SafeAdd(bytes, groupSize);
+                        if (hashed % 8 == 0) progress?.Report(new DuplicateScanProgress(candidates, hashed, bytes));
+                    }
+                    catch (Exception ex) when (IsScanAccessException(ex)) { }
+                }
+                foreach (var (hash, paths) in hashes.Where(pair => pair.Value.Count > 1))
+                    foreach (var path in paths) result.Add(new DuplicateFile(path, groupSize, hash, paths.Count, true));
+            }
+            group.Clear();
+        }
+        while (reader.Read())
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            var size = reader.GetInt64(1);
+            if (groupSize != size) { FlushGroup(); groupSize = size; }
+            group.Add(reader.GetString(0));
+            candidates++;
+            if (candidates % 2000 == 0) progress?.Report(new DuplicateScanProgress(candidates, hashed, bytes));
+        }
+        FlushGroup();
+        progress?.Report(new DuplicateScanProgress(candidates, hashed, bytes));
+        return result;
+    }
+
+    private static DiskSnapshotChangePage CompareSnapshotsCore(string beforePath, string afterPath, long offset, int pageSize, CancellationToken cancellationToken)
+    {
+        if (!File.Exists(beforePath) || !File.Exists(afterPath)) throw new FileNotFoundException("A saved scan is missing.");
+        using var connection = OpenIndex(beforePath);
+        using var attach = connection.CreateCommand();
+        attach.CommandText = "ATTACH DATABASE $path AS newer";
+        attach.Parameters.AddWithValue("$path", afterPath);
+        attach.ExecuteNonQuery();
+        const string changesQuery = """
+            WITH changes AS (
+                SELECT old.path AS path, CASE WHEN current.path IS NULL THEN 'Removed' ELSE 'Changed' END AS kind,
+                  old.is_directory AS is_directory,old.size_bytes AS old_size,current.size_bytes AS new_size
+                FROM main.disk_entries AS old LEFT JOIN newer.disk_entries AS current ON old.path=current.path
+                WHERE current.path IS NULL OR old.size_bytes IS NOT current.size_bytes
+                UNION ALL
+                SELECT current.path,'Added',current.is_directory,NULL,current.size_bytes
+                FROM newer.disk_entries AS current LEFT JOIN main.disk_entries AS old ON old.path=current.path WHERE old.path IS NULL
+            )
+            """;
+        using var countCommand = connection.CreateCommand();
+        countCommand.CommandText = changesQuery + " SELECT COUNT(*) FROM changes";
+        var totalCount = Convert.ToInt64(countCommand.ExecuteScalar(), System.Globalization.CultureInfo.InvariantCulture);
+        using var command = connection.CreateCommand();
+        command.CommandText = changesQuery + " SELECT path,kind,is_directory,old_size,new_size FROM changes ORDER BY ABS(COALESCE(new_size,0)-COALESCE(old_size,0)) DESC,path COLLATE NOCASE LIMIT $limit OFFSET $offset";
+        command.Parameters.AddWithValue("$limit", pageSize);
+        command.Parameters.AddWithValue("$offset", offset);
+        using var reader = command.ExecuteReader();
+        var changes = new List<DiskSnapshotChange>();
+        while (reader.Read())
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            changes.Add(new DiskSnapshotChange(reader.GetString(0), reader.GetString(1), reader.GetInt64(2) != 0,
+                reader.IsDBNull(3) ? null : reader.GetInt64(3), reader.IsDBNull(4) ? null : reader.GetInt64(4)));
+        }
+        return new DiskSnapshotChangePage(changes, totalCount, offset, pageSize);
     }
 
     private void EnsureCurrentIndex()

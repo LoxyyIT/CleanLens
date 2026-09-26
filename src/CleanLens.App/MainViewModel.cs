@@ -24,6 +24,7 @@ public partial class MainViewModel : ObservableObject
     private readonly QuarantineService quarantineService;
     private readonly InstallMonitorService installMonitorService;
     private readonly DiskScanService diskScanService;
+    private readonly CleanupPlanStore cleanupPlanStore;
     private readonly string settingsPath;
     private readonly string localDataPath;
     private readonly Stack<string> diskNavigationHistory = new();
@@ -36,12 +37,14 @@ public partial class MainViewModel : ObservableObject
     private int searchScope;
     private int filterIndex;
     private int diskSelectedItemCount;
+    private int duplicateSelectionCount;
     private string? applicationSortField;
     private ListSortDirection applicationSortDirection = ListSortDirection.Ascending;
     private CancellationTokenSource? diskQueryCancellation;
     private double diskTreemapWidth;
     private double diskTreemapHeight;
     private const int DiskPageSize = 1000;
+    private const int SnapshotChangePageSize = 500;
 
     [ObservableProperty]
     private InstalledApplication? selectedApplication;
@@ -114,12 +117,32 @@ public partial class MainViewModel : ObservableObject
 
     [ObservableProperty]
     private long diskEntryTotalCount;
+    private long snapshotChangeTotalCount;
+    private long snapshotChangeOffset;
 
     [ObservableProperty]
     private DiskScanEntry? selectedDiskEntry;
 
     [ObservableProperty]
     private int diskSidePanelMode;
+
+    [ObservableProperty]
+    private DuplicateFile? selectedDuplicate;
+
+    [ObservableProperty]
+    private DiskSnapshot? selectedSnapshotBefore;
+
+    [ObservableProperty]
+    private DiskSnapshot? selectedSnapshotAfter;
+
+    [ObservableProperty]
+    private CleanupPlan? selectedCleanupPlan;
+
+    [ObservableProperty]
+    private InstallMonitorReport? selectedInstallReport;
+
+    [ObservableProperty]
+    private string analysisStatusText = string.Empty;
 
     public ObservableCollection<InstalledApplication> Applications { get; } = [];
     public ObservableCollection<LeftoverCandidate> Leftovers { get; } = [];
@@ -133,6 +156,37 @@ public partial class MainViewModel : ObservableObject
     public ObservableCollection<DiskScanEntry> DiskEntries { get; } = [];
     public ObservableCollection<DiskExtensionStat> DiskExtensionStats { get; } = [];
     public ObservableCollection<DiskTreemapBlock> DiskTreemapItems { get; } = [];
+    public ObservableCollection<DuplicateFile> DuplicateFiles { get; } = [];
+    public ObservableCollection<DiskSnapshot> DiskSnapshots { get; } = [];
+    public ObservableCollection<DiskSnapshotChange> SnapshotChanges { get; } = [];
+    public ObservableCollection<CleanupPlan> CleanupPlans { get; } = [];
+    public ObservableCollection<InstallMonitorReport> InstallReports { get; } = [];
+    public ObservableCollection<string> SelectedInstallReportDetails { get; } = [];
+    public int SystemLeftoversCount => Leftovers.Count(item => item.Category is CandidateCategory.Service or CandidateCategory.ScheduledTask or CandidateCategory.StartupEntry);
+    public int FolderLeftoversCount => Leftovers.Count - SystemLeftoversCount;
+    public string SelectedLeftoverExplanation => SelectedLeftover is null ? Texts["SelectDetailsHint"] :
+        $"{SelectedLeftover.Path}\n\n{LocalizationCatalog.Translate(Texts.Language, SelectedLeftover.ReasonKey)}\n\n{(SelectedLeftover.Category is CandidateCategory.Service or CandidateCategory.ScheduledTask or CandidateCategory.StartupEntry ? "Read-only system artifact" : SelectedLeftover.IsUserData ? "Personal data · manual review only" : "Application data · quarantine available after confirmation")}";
+    public string MonitorTargetText => SelectedApplication is null ? Texts["HistoryAllApps"] : SelectedApplication.Name;
+    public bool HasVerifiedDuplicates => DuplicateFiles.Any(file => file.HashVerified);
+    public bool CanDeleteDuplicates => SafetyAccepted && HasVerifiedDuplicates && duplicateSelectionCount > 0;
+
+    public void UpdateDuplicateSelectionCount(int count)
+    {
+        duplicateSelectionCount = count;
+        OnPropertyChanged(nameof(CanDeleteDuplicates));
+    }
+    public Visibility DuplicateEmptyVisibility => DuplicateFiles.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
+    public Visibility SnapshotChangeEmptyVisibility => SnapshotChanges.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
+    public bool CanPageSnapshotChangesBackward => snapshotChangeOffset > 0;
+    public bool CanPageSnapshotChangesForward => snapshotChangeOffset + SnapshotChanges.Count < snapshotChangeTotalCount;
+    public string SnapshotChangePageText => snapshotChangeTotalCount == 0 ? Texts["DiskNoItems"] :
+        Texts.Format("DiskPageIndicator", (snapshotChangeOffset + 1).ToString("N0", CultureInfo.GetCultureInfo(Texts.Language)),
+            Math.Min(snapshotChangeOffset + SnapshotChanges.Count, snapshotChangeTotalCount).ToString("N0", CultureInfo.GetCultureInfo(Texts.Language)),
+            snapshotChangeTotalCount.ToString("N0", CultureInfo.GetCultureInfo(Texts.Language)));
+    public Visibility PlanEmptyVisibility => CleanupPlans.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
+    public bool HasSelectedCleanupPlan => SelectedCleanupPlan is not null;
+
+    partial void OnSelectedCleanupPlanChanged(CleanupPlan? value) => OnPropertyChanged(nameof(HasSelectedCleanupPlan));
     public int SelectedApplicationCount => SelectedApplications.Count;
     public bool HasMultipleApplicationsSelected => SelectedApplicationCount > 1;
     public Visibility MultiSelectionVisibility => HasMultipleApplicationsSelected ? Visibility.Visible : Visibility.Collapsed;
@@ -149,7 +203,7 @@ public partial class MainViewModel : ObservableObject
         (SelectedApplication is null || SelectedApplication.Id == pendingUninstallApplicationId);
     public bool CanQuarantineSelected => SafetyAccepted && CanReviewLeftovers && SelectedLeftover is not null &&
         SelectedLeftover.Confidence != ConfidenceLevel.Low && !SelectedLeftover.IsUserData;
-    public bool CanRestoreSelected => SafetyAccepted && SelectedQuarantine is not null;
+    public bool CanRestoreSelected => SafetyAccepted && SelectedQuarantine?.CanRestore == true;
     public bool CanAcceptSafety => SafetyUninstallerAcknowledged && SafetyDamageAcknowledged && SafetyManualDeleteAcknowledged && SafetyRestoreAcknowledged;
     public LocalizationCatalog Texts { get; }
     public IReadOnlyList<string> Languages => LocalizationCatalog.Languages;
@@ -187,7 +241,11 @@ public partial class MainViewModel : ObservableObject
     public bool CanCancelDiskScan => IsDiskScanning;
     public bool CanGoBackDiskFolder => HasDiskScan && diskNavigationHistory.Count > 0 && !IsDiskScanStale && !IsDiskScanning;
     public bool CanGoUpDiskFolder => HasDiskScan && !IsDiskScanStale && !IsDiskScanning && !CurrentDiskDirectory.Equals(DiskScanSummary!.RootPath, StringComparison.OrdinalIgnoreCase);
-    public bool HasDiskScan => DiskScanSummary is not null;
+    public bool HasDiskScan => DiskScanSummary is not null && SelectedDiskScanRoot is not null &&
+        Path.GetFullPath(SelectedDiskScanRoot.Path).Equals(Path.GetFullPath(DiskScanSummary.RootPath), StringComparison.OrdinalIgnoreCase) && !IsDiskScanStale;
+    public bool CanAnalyzeDisk => HasDiskScan && !IsDiskScanning;
+    public Visibility DiskResultsVisibility => HasDiskScan ? Visibility.Visible : Visibility.Collapsed;
+    public Visibility DiskEmptyVisibility => HasDiskScan ? Visibility.Collapsed : Visibility.Visible;
     public bool CanDeleteDiskEntries => SafetyAccepted && HasDiskScan && !IsDiskScanning && !IsDiskScanStale && diskSelectedItemCount > 0;
     public string DiskSelectionCountText => Texts.Format("DiskSelectionCount", diskSelectedItemCount.ToString("N0", CultureInfo.GetCultureInfo(Texts.Language)));
     public bool CanOpenSelectedDiskFolder => SelectedDiskEntry is { IsDirectory: true, IsReparsePoint: false } && HasDiskScan && !IsDiskScanning && !IsDiskScanStale;
@@ -273,7 +331,7 @@ public partial class MainViewModel : ObservableObject
 
     public async Task StartInstallMonitorAsync()
     {
-        await installMonitorService.StartAsync(GetEnabledManualSearchRoots());
+        await installMonitorService.StartAsync(GetEnabledManualSearchRoots(), applicationId: SelectedApplication?.Id, applicationName: SelectedApplication?.Name);
         InstallMonitorResults.Clear();
         InstallMonitorResults.Add(Texts["MonitorStartedMessage"]);
         NotifyMonitorStateChanged();
@@ -291,7 +349,29 @@ public partial class MainViewModel : ObservableObject
         foreach (var item in report.FileEvents.Take(500)) InstallMonitorResults.Add(item);
         if (report.FileEvents.Count > 500) InstallMonitorResults.Add(Texts.Format("MonitorTruncated", report.FileEvents.Count - 500));
         if (report.IsIncomplete) InstallMonitorResults.Add(Texts["MonitorIncomplete"]);
+        await RefreshInstallReportsAsync();
         NotifyMonitorStateChanged();
+    }
+
+    public async Task RefreshInstallReportsAsync()
+    {
+        var reports = await installMonitorService.GetReportsAsync();
+        InstallReports.Clear();
+        foreach (var report in reports) InstallReports.Add(report);
+        SelectedInstallReport = InstallReports.FirstOrDefault();
+    }
+
+    partial void OnSelectedInstallReportChanged(InstallMonitorReport? value)
+    {
+        SelectedInstallReportDetails.Clear();
+        if (value is null) return;
+        SelectedInstallReportDetails.Add(value.DisplayName);
+        SelectedInstallReportDetails.Add(Texts.Format("MonitorReportSummary", value.AddedApplications.Count, value.RemovedApplications.Count, value.SystemEntryChanges.Count, value.FileEvents.Count));
+        foreach (var item in value.AddedApplications) SelectedInstallReportDetails.Add($"{Texts["MonitorAppAdded"]}: {item}");
+        foreach (var item in value.RemovedApplications) SelectedInstallReportDetails.Add($"{Texts["MonitorAppRemoved"]}: {item}");
+        foreach (var item in value.SystemEntryChanges) SelectedInstallReportDetails.Add($"{Texts["MonitorSystemEntryChanges"]}: {item}");
+        foreach (var item in value.FileEvents) SelectedInstallReportDetails.Add(item);
+        if (value.IsIncomplete) SelectedInstallReportDetails.Add(Texts["MonitorIncomplete"]);
     }
 
     public void DisposeInstallMonitor() => installMonitorService.Dispose();
@@ -606,15 +686,141 @@ public partial class MainViewModel : ObservableObject
         return report;
     }
 
+    public async Task FindDuplicatesAsync(bool verifyHashes, IProgress<DuplicateScanProgress>? progress = null, CancellationToken cancellationToken = default)
+    {
+        if (!HasDiskScan || IsDiskScanning) throw new InvalidOperationException(Texts["DiskChooseRoot"]);
+        DuplicateFiles.Clear();
+        UpdateDuplicateSelectionCount(0);
+        var result = await diskScanService.FindDuplicatesAsync(verifyHashes, progress, cancellationToken);
+        foreach (var file in result) DuplicateFiles.Add(file);
+        OnPropertyChanged(nameof(DuplicateEmptyVisibility));
+        AnalysisStatusText = verifyHashes
+            ? $"{DuplicateFiles.Count:N0} files in verified duplicate groups. Review each copy before deleting."
+            : $"{DuplicateFiles.Count:N0} files share a size. Run SHA-256 verification before deleting duplicates.";
+        OnPropertyChanged(nameof(HasVerifiedDuplicates));
+        OnPropertyChanged(nameof(CanDeleteDuplicates));
+    }
+
+    public async Task<DiskSnapshot> SaveDiskSnapshotAsync(CancellationToken cancellationToken = default)
+    {
+        if (!HasDiskScan || IsDiskScanning) throw new InvalidOperationException(Texts["DiskChooseRoot"]);
+        var snapshot = await diskScanService.SaveSnapshotAsync(cancellationToken);
+        RefreshDiskSnapshots();
+        AnalysisStatusText = $"Scan saved: {snapshot.DisplayName}";
+        return snapshot;
+    }
+
+    public void RefreshDiskSnapshots()
+    {
+        DiskSnapshots.Clear();
+        foreach (var snapshot in diskScanService.GetSnapshots()) DiskSnapshots.Add(snapshot);
+    }
+
+    public async Task CompareDiskSnapshotsAsync(long? offset = null, CancellationToken cancellationToken = default)
+    {
+        if (SelectedSnapshotBefore is null || SelectedSnapshotAfter is null) throw new InvalidOperationException("Select two saved scans.");
+        var page = await diskScanService.CompareSnapshotsAsync(SelectedSnapshotBefore, SelectedSnapshotAfter, offset ?? 0, SnapshotChangePageSize, cancellationToken);
+        SnapshotChanges.Clear();
+        foreach (var change in page.Entries) SnapshotChanges.Add(change);
+        snapshotChangeTotalCount = page.TotalCount;
+        snapshotChangeOffset = page.Offset;
+        OnPropertyChanged(nameof(SnapshotChangeEmptyVisibility));
+        OnPropertyChanged(nameof(SnapshotChangePageText));
+        OnPropertyChanged(nameof(CanPageSnapshotChangesBackward));
+        OnPropertyChanged(nameof(CanPageSnapshotChangesForward));
+        AnalysisStatusText = $"{page.TotalCount:N0} paths added, removed or changed between the two scans.";
+    }
+
+    public Task PageSnapshotChangesAsync(int direction, CancellationToken cancellationToken = default)
+    {
+        var nextOffset = Math.Max(0, snapshotChangeOffset + direction * SnapshotChangePageSize);
+        return CompareDiskSnapshotsAsync(nextOffset, cancellationToken);
+    }
+
+    public void DeleteSelectedDiskSnapshot()
+    {
+        if (SelectedSnapshotBefore is null) return;
+        diskScanService.DeleteSnapshot(SelectedSnapshotBefore);
+        SnapshotChanges.Clear();
+        snapshotChangeTotalCount = 0;
+        snapshotChangeOffset = 0;
+        OnPropertyChanged(nameof(SnapshotChangeEmptyVisibility));
+        OnPropertyChanged(nameof(SnapshotChangePageText));
+        OnPropertyChanged(nameof(CanPageSnapshotChangesBackward));
+        OnPropertyChanged(nameof(CanPageSnapshotChangesForward));
+        RefreshDiskSnapshots();
+    }
+
+    public CleanupPlan SaveCleanupPlan(string name, IReadOnlyList<DiskScanEntry> entries)
+    {
+        if (!HasDiskScan || IsDiskScanning || DiskScanSummary is null) throw new InvalidOperationException("Scan the selected disk or folder first.");
+        var plan = cleanupPlanStore.Save(name, DiskScanSummary, entries);
+        RefreshCleanupPlans();
+        AnalysisStatusText = $"Plan saved: {plan.Name}";
+        return plan;
+    }
+
+    public void RefreshCleanupPlans()
+    {
+        CleanupPlans.Clear();
+        foreach (var plan in cleanupPlanStore.Load()) CleanupPlans.Add(plan);
+        OnPropertyChanged(nameof(PlanEmptyVisibility));
+    }
+
+    public async Task<IReadOnlyList<DiskScanEntry>> ResolveSelectedCleanupPlanAsync(CancellationToken cancellationToken = default)
+    {
+        var plan = SelectedCleanupPlan ?? throw new InvalidOperationException("Select a saved plan.");
+        if (!HasDiskScan || DiskScanSummary is null || !DiskScanSummary.RootPath.Equals(plan.RootPath, StringComparison.OrdinalIgnoreCase))
+            throw new InvalidOperationException($"Scan {plan.RootPath} before applying this plan. Saved paths are rechecked against the current scan.");
+        var entries = await diskScanService.ResolveCurrentEntriesAsync(plan.Items.Select(item => item.Path), cancellationToken);
+        if (entries.Count != plan.Items.Count) throw new InvalidOperationException("Some planned paths no longer exist in the current scan. Review and update the plan before deleting.");
+        return entries;
+    }
+
+    public Task<IReadOnlyList<DiskScanEntry>> ResolveDiskPathsAsync(IEnumerable<string> paths, CancellationToken cancellationToken = default) =>
+        diskScanService.ResolveCurrentEntriesAsync(paths, cancellationToken);
+
+    public IEnumerable<DiskScanEntry> EnumerateDiskReportEntries(CancellationToken cancellationToken = default) =>
+        HasDiskScan ? diskScanService.EnumerateCurrentEntries(cancellationToken) : throw new InvalidOperationException(Texts["DiskChooseRoot"]);
+
+    public void DeleteSelectedCleanupPlan()
+    {
+        if (SelectedCleanupPlan is null) return;
+        cleanupPlanStore.Delete(SelectedCleanupPlan);
+        RefreshCleanupPlans();
+    }
+
+    public async Task<IReadOnlyList<(QuarantineEntry Entry, string? Error)>> RestoreQuarantineEntriesAsync(IReadOnlyList<QuarantineEntry> entries)
+    {
+        if (!SafetyAccepted) throw new InvalidOperationException(Texts["StatusSafetyRequired"]);
+        var outcomes = new List<(QuarantineEntry, string?)>();
+        foreach (var entry in entries)
+        {
+            try
+            {
+                if (!entry.CanRestore) throw new InvalidOperationException(entry.RestoreStatus);
+                await quarantineService.RestoreAsync(entry, Texts["HistoryRestore"], Texts["HistoryRestored"]);
+                outcomes.Add((entry, null));
+            }
+            catch (Exception ex) { outcomes.Add((entry, ex.Message)); }
+        }
+        await RefreshLocalRecordsAsync();
+        return outcomes;
+    }
+
     private void NotifyDiskStateChanged()
     {
         OnPropertyChanged(nameof(CanScanDisk));
+        OnPropertyChanged(nameof(CanAnalyzeDisk));
         OnPropertyChanged(nameof(CanCancelDiskScan));
         OnPropertyChanged(nameof(DiskScanProgressVisibility));
         OnPropertyChanged(nameof(CanGoUpDiskFolder));
         OnPropertyChanged(nameof(CanGoBackDiskFolder));
         OnPropertyChanged(nameof(HasDiskScan));
+        OnPropertyChanged(nameof(DiskResultsVisibility));
+        OnPropertyChanged(nameof(DiskEmptyVisibility));
         OnPropertyChanged(nameof(CanDeleteDiskEntries));
+        OnPropertyChanged(nameof(CanDeleteDuplicates));
         OnPropertyChanged(nameof(CanOpenSelectedDiskFolder));
         OnPropertyChanged(nameof(CanPageDiskBackward));
         OnPropertyChanged(nameof(CanPageDiskForward));
@@ -642,11 +848,15 @@ public partial class MainViewModel : ObservableObject
         installMonitorService = new InstallMonitorService(inventory, Path.GetFullPath(localDataPath));
         this.localDataPath = Path.GetFullPath(localDataPath);
         diskScanService = new DiskScanService(this.localDataPath);
+        cleanupPlanStore = new CleanupPlanStore(this.localDataPath);
+        RefreshDiskSnapshots();
+        RefreshCleanupPlans();
         RefreshDiskRoots();
         settingsPath = Path.Combine(this.localDataPath, "settings.json");
         var settings = LoadUserSettings();
         var language = LocalizationCatalog.Languages.Contains(settings.Language ?? string.Empty, StringComparer.OrdinalIgnoreCase) ? settings.Language! : "en";
         Texts = new LocalizationCatalog { Language = language };
+        AnalysisStatusText = Texts["AnalysisReady"];
         DiskStatusText = Texts["DiskReadyMessage"];
         SafetyAccepted = settings.SafetyAccepted && settings.SafetyNoticeVersion >= CurrentSafetyNoticeVersion;
         SafetyNoticeAcknowledged = SafetyAccepted;
@@ -684,10 +894,12 @@ public partial class MainViewModel : ObservableObject
         PageSubtitle = Texts["ApplicationsSubtitle"];
         DisclaimerVisibility = SafetyNoticeAcknowledged ? Visibility.Collapsed : Visibility.Visible;
         _ = LoadLocalRecordsAsync();
+        _ = RefreshInstallReportsAsync();
     }
 
     partial void OnSelectedApplicationChanged(InstalledApplication? value)
     {
+        OnPropertyChanged(nameof(MonitorTargetText));
         Leftovers.Clear();
         leftoversScanned = false;
         OnPropertyChanged(nameof(LeftoversText));
@@ -706,7 +918,11 @@ public partial class MainViewModel : ObservableObject
         ScanLeftoversCommand.NotifyCanExecuteChanged();
     }
 
-    partial void OnSelectedDiskScanRootChanged(DiskScanRootOption? value) => OnPropertyChanged(nameof(CanScanDisk));
+    partial void OnSelectedDiskScanRootChanged(DiskScanRootOption? value)
+    {
+        OnPropertyChanged(nameof(CanScanDisk));
+        NotifyDiskStateChanged();
+    }
     partial void OnSelectedDiskEntryChanged(DiskScanEntry? value) => OnPropertyChanged(nameof(CanOpenSelectedDiskFolder));
 
     partial void OnCurrentDiskDirectoryChanged(string value)
@@ -719,6 +935,7 @@ public partial class MainViewModel : ObservableObject
     partial void OnSelectedLeftoverChanged(LeftoverCandidate? value)
     {
         OnPropertyChanged(nameof(CanQuarantineSelected));
+        OnPropertyChanged(nameof(SelectedLeftoverExplanation));
     }
 
     partial void OnSelectedQuarantineChanged(QuarantineEntry? value)
@@ -733,6 +950,7 @@ public partial class MainViewModel : ObservableObject
         OnPropertyChanged(nameof(CanQuarantineSelected));
         OnPropertyChanged(nameof(CanRestoreSelected));
         OnPropertyChanged(nameof(CanDeleteDiskEntries));
+        OnPropertyChanged(nameof(CanDeleteDuplicates));
         OnPropertyChanged(nameof(CanOpenSelectedDiskFolder));
         if (!value)
         {
@@ -823,6 +1041,7 @@ public partial class MainViewModel : ObservableObject
             "Quarantine" => "Quarantine",
             "Settings" => "Settings",
             "Disk" => "Disk",
+            "Analysis" => "Analysis",
             _ => "Applications"
         };
         PageTitle = Texts[CurrentPageKey];
@@ -836,6 +1055,7 @@ public partial class MainViewModel : ObservableObject
             "Quarantine" => Texts["QuarantinePage"],
             "Settings" => Texts["SettingsSubtitle"],
             "Disk" => Texts["DiskSubtitle"],
+            "Analysis" => Texts["AnalysisSubtitle"],
             _ => Texts["ApplicationsSubtitle"]
         };
     }
@@ -911,6 +1131,8 @@ public partial class MainViewModel : ObservableObject
             {
                 Leftovers.Add(candidate);
             }
+            OnPropertyChanged(nameof(SystemLeftoversCount));
+            OnPropertyChanged(nameof(FolderLeftoversCount));
             leftoversScanned = true;
             OnPropertyChanged(nameof(LeftoversText));
             OnPropertyChanged(nameof(LeftoversEmptyStateVisibility));
