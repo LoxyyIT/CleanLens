@@ -12,6 +12,7 @@ Roadmap entries are plans, not implemented features.
 - Local install-monitor sessions with before/after app inventory and file system event review.
 - Locally saved manual search roots that can be enabled, disabled or removed.
 - On-demand disk scans with paged folder browsing, largest-item views, size-range filters, extension totals, proportional size indicators, and explicit permanent deletion.
+- Focused, read-only Microsoft Defender custom scans for common user risk folders and an optional selected folder; this does not replace full-device antivirus protection.
 - Same-size duplicate discovery, optional SHA-256 content verification, and guarded deletion of selected copies.
 - Locally saved full metadata snapshots and same-root added/removed/changed comparison.
 - Saved cleanup plans with path/risk review, same-root rescan matching and explicit confirmation.

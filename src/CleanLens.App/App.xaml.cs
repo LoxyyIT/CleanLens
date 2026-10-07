@@ -65,6 +65,14 @@ public partial class App : Application
         var window = new MainWindow { DataContext = Services.GetRequiredService<MainViewModel>() };
         MainWindow = window;
         window.Show();
+        if (e.Args.Contains("--cleanlens-defender-scan", StringComparer.OrdinalIgnoreCase))
+        {
+            var folderArgumentIndex = Array.FindIndex(e.Args, argument => argument.Equals("--cleanlens-defender-folder", StringComparison.OrdinalIgnoreCase));
+            var extraFolder = folderArgumentIndex >= 0 && folderArgumentIndex + 1 < e.Args.Length
+                ? e.Args[folderArgumentIndex + 1]
+                : null;
+            window.StartQuickScanAfterElevation(extraFolder);
+        }
     }
 
     protected override void OnExit(ExitEventArgs e)

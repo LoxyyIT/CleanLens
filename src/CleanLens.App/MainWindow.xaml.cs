@@ -4,6 +4,7 @@ using System.Windows.Media;
 using System.ComponentModel;
 using System.Diagnostics;
 using System.IO;
+using System.Security.Principal;
 using Microsoft.Win32;
 using CleanLens.Core.Models;
 using CleanLens.Core.Safety;
@@ -14,6 +15,9 @@ namespace CleanLens.App;
 public partial class MainWindow : Window
 {
     private CancellationTokenSource? diskSearchDebounce;
+    private readonly DefenderQuickScanService defenderQuickScanService = new();
+    private CancellationTokenSource? securityScanCancellation;
+    private string? securityScanCustomFolder;
     public MainWindow()
     {
         InitializeComponent();
@@ -24,6 +28,7 @@ public partial class MainWindow : Window
         {
             diskSearchDebounce?.Cancel();
             diskSearchDebounce?.Dispose();
+            securityScanCancellation?.Cancel();
             ViewModel.DisposeInstallMonitor();
             ViewModel.DisposeDiskScan();
         };
@@ -185,6 +190,180 @@ public partial class MainWindow : Window
         await ShowPageAsync("Disk");
     }
 
+    private async void SecurityScanNav_Click(object sender, RoutedEventArgs e) => await ShowPageAsync("SecurityScan");
+
+    private void SecurityScanStart_Click(object sender, RoutedEventArgs e)
+    {
+        if (IsRunningElevated())
+        {
+            _ = RunSecurityScanAsync();
+            return;
+        }
+
+        if (!CleanLensDialogService.Confirm(this, ViewModel.Texts["SecurityScanElevationTitle"],
+                ViewModel.Texts["SecurityScanElevationBody"], ViewModel.Texts["SecurityScanElevationAccept"], ViewModel.Texts["Cancel"]))
+        {
+            return;
+        }
+
+        try
+        {
+            var executable = Path.Combine(AppContext.BaseDirectory, "CleanLens.exe");
+            Process.Start(new ProcessStartInfo(executable)
+            {
+                UseShellExecute = true,
+                Verb = "runas",
+                WorkingDirectory = AppContext.BaseDirectory,
+                Arguments = "--cleanlens-defender-scan" + (string.IsNullOrWhiteSpace(securityScanCustomFolder)
+                    ? string.Empty
+                    : " --cleanlens-defender-folder " + QuoteWindowsArgument(securityScanCustomFolder))
+            });
+            Close();
+        }
+        catch (System.ComponentModel.Win32Exception ex) when (ex.NativeErrorCode == 1223)
+        {
+            // The user dismissed the Windows elevation prompt.
+        }
+        catch (Exception ex)
+        {
+            ShowLocalizedMessage(ViewModel.Texts["SecurityScan"], ViewModel.Texts.Format("ActionFailed", ex.Message), CleanLensDialogTone.Warning);
+        }
+    }
+
+    public void StartQuickScanAfterElevation(string? extraFolder = null)
+    {
+        if (!string.IsNullOrWhiteSpace(extraFolder) && Directory.Exists(extraFolder))
+        {
+            securityScanCustomFolder = Path.GetFullPath(extraFolder);
+            SecurityScanCustomFolderText.Text = ViewModel.Texts.Format("SecurityScanCustomFolderSelected", securityScanCustomFolder);
+            SecurityScanCustomFolderText.Visibility = Visibility.Visible;
+        }
+        Dispatcher.BeginInvoke(new Action(async () =>
+        {
+            await ShowPageAsync("SecurityScan");
+            await RunSecurityScanAsync();
+        }), System.Windows.Threading.DispatcherPriority.Loaded);
+    }
+
+    private async Task RunSecurityScanAsync()
+    {
+        if (securityScanCancellation is not null) return;
+        securityScanCancellation = new CancellationTokenSource();
+        var cancellationToken = securityScanCancellation.Token;
+        SecurityScanStartButton.IsEnabled = false;
+        SecurityScanCancelButton.IsEnabled = true;
+        SecurityScanResultsTextBox.Clear();
+        SecurityScanStatusText.Text = ViewModel.Texts["SecurityScanWorking"];
+
+        try
+        {
+            var localAppData = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
+            var profile = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+            var targets = new List<DefenderScanTarget>
+            {
+                new(ViewModel.Texts["SecurityDownloads"], Path.Combine(profile, "Downloads")),
+                new(ViewModel.Texts["SecurityDesktop"], Environment.GetFolderPath(Environment.SpecialFolder.DesktopDirectory)),
+                new(ViewModel.Texts["SecurityTemp"], Path.Combine(localAppData, "Temp"))
+            };
+            if (!string.IsNullOrWhiteSpace(securityScanCustomFolder))
+            {
+                targets.Add(new DefenderScanTarget(ViewModel.Texts["SecurityScanCustomFolder"], securityScanCustomFolder));
+            }
+
+            var progress = new Progress<string>(update =>
+            {
+                var parts = update.Split('|', 2);
+                if (parts.Length == 2)
+                {
+                    SecurityScanStatusText.Text = ViewModel.Texts.Format("SecurityScanProgress", parts[0], parts[1]);
+                }
+            });
+            var results = await defenderQuickScanService.ScanAsync(targets, progress, cancellationToken);
+            var output = new System.Text.StringBuilder();
+            foreach (var result in results)
+            {
+                output.AppendLine($"{result.TargetPath}  ·  {ViewModel.Texts.Format("SecurityScanExitCode", result.ExitCode)}");
+                output.AppendLine(string.IsNullOrWhiteSpace(result.Output) ? ViewModel.Texts["SecurityScanNoOutput"] : result.Output);
+                output.AppendLine();
+            }
+            SecurityScanResultsTextBox.Text = output.ToString().TrimEnd();
+            SecurityScanStatusText.Text = results.Any(result => !result.Succeeded || result.NeedsReview)
+                ? ViewModel.Texts["SecurityScanReview"]
+                : ViewModel.Texts["SecurityScanClear"];
+        }
+        catch (OperationCanceledException)
+        {
+            SecurityScanStatusText.Text = ViewModel.Texts["SecurityScanCancelled"];
+        }
+        catch (Exception ex)
+        {
+            SecurityScanStatusText.Text = ViewModel.Texts.Format("ActionFailed", ex.Message);
+            SecurityScanResultsTextBox.Text = ex.Message;
+        }
+        finally
+        {
+            SecurityScanStartButton.IsEnabled = true;
+            SecurityScanCancelButton.IsEnabled = false;
+            securityScanCancellation?.Dispose();
+            securityScanCancellation = null;
+        }
+    }
+
+    private void SecurityScanCancel_Click(object sender, RoutedEventArgs e) => securityScanCancellation?.Cancel();
+
+    private void SecurityScanBrowse_Click(object sender, RoutedEventArgs e)
+    {
+        var picker = new OpenFolderDialog { Title = ViewModel.Texts["SecurityScanChooseFolder"], Multiselect = false };
+        if (picker.ShowDialog(this) != true) return;
+        securityScanCustomFolder = picker.FolderName;
+        SecurityScanCustomFolderText.Text = ViewModel.Texts.Format("SecurityScanCustomFolderSelected", securityScanCustomFolder);
+        SecurityScanCustomFolderText.Visibility = Visibility.Visible;
+    }
+
+    private void SecurityScanCopy_Click(object sender, RoutedEventArgs e)
+    {
+        if (string.IsNullOrWhiteSpace(SecurityScanResultsTextBox.Text)) return;
+        try
+        {
+            Clipboard.SetText(SecurityScanResultsTextBox.Text);
+            SecurityScanStatusText.Text = ViewModel.Texts["SecurityScanCopied"];
+        }
+        catch (Exception ex)
+        {
+            ShowLocalizedMessage(ViewModel.Texts["SecurityScan"], ViewModel.Texts.Format("ActionFailed", ex.Message), CleanLensDialogTone.Warning);
+        }
+    }
+
+    private static bool IsRunningElevated()
+    {
+        using var identity = WindowsIdentity.GetCurrent();
+        return new WindowsPrincipal(identity).IsInRole(WindowsBuiltInRole.Administrator);
+    }
+
+    private static string QuoteWindowsArgument(string value)
+    {
+        var result = new System.Text.StringBuilder("\"");
+        var backslashes = 0;
+        foreach (var character in value)
+        {
+            if (character == '\\')
+            {
+                backslashes++;
+                continue;
+            }
+            if (character == '"')
+            {
+                result.Append('\\', backslashes * 2 + 1).Append('"');
+                backslashes = 0;
+                continue;
+            }
+            result.Append('\\', backslashes).Append(character);
+            backslashes = 0;
+        }
+        result.Append('\\', backslashes * 2).Append('"');
+        return result.ToString();
+    }
+
     private async void Quarantine_Click(object sender, RoutedEventArgs e) => await ShowPageAsync("Quarantine");
 
     private async void Settings_Click(object sender, RoutedEventArgs e) => await ShowPageAsync("Settings");
@@ -268,6 +447,7 @@ public partial class MainWindow : Window
         HistoryNav.Tag = page == "History" ? "Active" : null;
         QuarantineNav.Tag = page == "Quarantine" ? "Active" : null;
         DiskNav.Tag = page == "Disk" ? "Active" : null;
+        SecurityScanNav.Tag = page == "SecurityScan" ? "Active" : null;
         AnalysisNav.Tag = page == "Analysis" ? "Active" : null;
         SettingsNav.Tag = page == "Settings" ? "Active" : null;
         ApplicationWorkspace.Visibility = page == "Applications" ? Visibility.Visible : Visibility.Collapsed;
@@ -275,9 +455,11 @@ public partial class MainWindow : Window
         HistoryWorkspace.Visibility = page == "History" ? Visibility.Visible : Visibility.Collapsed;
         QuarantineWorkspace.Visibility = page == "Quarantine" ? Visibility.Visible : Visibility.Collapsed;
         DiskWorkspace.Visibility = page == "Disk" ? Visibility.Visible : Visibility.Collapsed;
+        SecurityScanWorkspace.Visibility = page == "SecurityScan" ? Visibility.Visible : Visibility.Collapsed;
         AnalysisWorkspace.Visibility = page == "Analysis" ? Visibility.Visible : Visibility.Collapsed;
         SettingsWorkspace.Visibility = page == "Settings" ? Visibility.Visible : Visibility.Collapsed;
-        HeaderScanButton.Visibility = page is "Disk" or "Analysis" ? Visibility.Collapsed : Visibility.Visible;
+        HeaderScanButton.Visibility = page is "Disk" or "Analysis" or "SecurityScan" ? Visibility.Collapsed : Visibility.Visible;
+        HeaderExportButton.Visibility = page == "SecurityScan" ? Visibility.Collapsed : Visibility.Visible;
         SummaryMetrics.Visibility = page is "Applications" or "Leftover review" ? Visibility.Visible : Visibility.Collapsed;
         ViewModel.SetPage(page);
         if (page is "History" or "Quarantine")
@@ -760,7 +942,12 @@ public partial class MainWindow : Window
         if (DataContext is MainViewModel viewModel)
         {
             LanguageSelector.SelectedValue = viewModel.SelectedLanguage;
-            if (viewModel.SafetyAccepted)
+            if (!string.IsNullOrWhiteSpace(securityScanCustomFolder))
+            {
+                SecurityScanCustomFolderText.Text = ViewModel.Texts.Format("SecurityScanCustomFolderSelected", securityScanCustomFolder);
+                SecurityScanCustomFolderText.Visibility = Visibility.Visible;
+            }
+            if (viewModel.SafetyAccepted && !Environment.GetCommandLineArgs().Contains("--cleanlens-defender-scan", StringComparer.OrdinalIgnoreCase))
             {
                 _ = viewModel.ScanCommand.ExecuteAsync(null);
             }

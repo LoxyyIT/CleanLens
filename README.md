@@ -16,7 +16,7 @@
   <img src="https://img.shields.io/badge/platform-Windows-0b6cff" alt="Windows">
   <img src="https://img.shields.io/badge/UI-WPF-1677ff" alt="WPF">
   <img src="https://img.shields.io/badge/runtime-.NET%2010-512bd4" alt=".NET 10">
-  <a href="https://github.com/LoxyyIT/CleanLens/releases/tag/v0.3.0"><img src="https://img.shields.io/badge/release-v0.3.0-396be8" alt="CleanLens 0.3.0 release"></a>
+  <a href="https://github.com/LoxyyIT/CleanLens/releases/tag/v0.4.0"><img src="https://img.shields.io/badge/release-v0.4.0-396be8" alt="CleanLens 0.4.0 release"></a>
   <img src="https://img.shields.io/badge/license-MIT-18a06f" alt="MIT">
   <img src="https://img.shields.io/badge/status-early%20development-c78b2f" alt="Early development">
 </p>
@@ -49,9 +49,9 @@ CleanLens combines an installed-app inventory, reviewed cleanup paths and an on-
 
 1. Download the [latest Windows x64 portable ZIP](https://github.com/LoxyyIT/CleanLens/releases/latest).
 2. Extract the ZIP to a folder and run `CleanLens.exe`.
-3. Review the safety notice, then scan installed applications or open **Disco** and choose a drive or folder to scan.
+3. Review the safety notice, then scan installed applications or open **Scansione rapida** to check common risk folders with Microsoft Defender. You can also use **Disco** to inspect a chosen drive or folder.
 
-The ZIP includes the .NET runtime. CleanLens is unsigned and has no installer or updater; Windows SmartScreen may show a warning. CleanLens does not elevate itself. If a quarantine move is denied, it explains how to restart with administrator permissions and retry.
+The ZIP includes the .NET runtime. CleanLens is unsigned and has no installer or updater; Windows SmartScreen may show a warning. It does not request administrator access at startup. The focused Defender scan asks for UAC approval only when you start it; a denied quarantine move still explains how to restart with administrator permissions and retry.
 
 ## Features
 
@@ -63,6 +63,7 @@ The ZIP includes the .NET runtime. CleanLens is unsigned and has no installer or
 - **Measured disk usage:** on request, sum file lengths across matched install, application-data, cache and other candidate locations. This can include user data; unreadable paths are counted and marked as a partial measurement. The result is not allocated disk space.
 - **Install Monitor:** start a local session before an installation, run the installer yourself, then stop the session to compare the registered-app inventory, selected service/startup Registry entries, and file system events under Program Files, the current profile's AppData, ProgramData, scheduled-task files and enabled custom roots. It does not read file contents. Reports are saved locally and flag watcher overflow or inaccessible paths.
 - **Disk explorer:** explicitly scan a selected drive or folder, browse folders with Back and Parent navigation, filter by measured size, spot the largest results with proportional bars, inspect extension totals and explore a size-weighted treemap. ZIP files are measured as stored files and are never opened. A temporary SQLite index keeps scan results pageable without holding every path in RAM; it is removed when CleanLens closes.
+- **Quick security scan:** run a Microsoft Defender custom scan against Downloads, Desktop, local temporary files and one optional folder. It uses Defender's installed engine and definitions, requires an administrator-approved UAC prompt, scans only these locations, and passes `-DisableRemediation` so detections are reported without automatic cleanup. CleanLens shows the Defender output and never deletes or quarantines a finding.
 - **Duplicate review:** find same-size file candidates, then optionally verify contents with SHA-256. Only verified groups can be cleaned; review every path, keep at least one copy per group, and confirm permanent deletion after CleanLens checks the selected files again.
 - **Saved disk scans:** keep local metadata snapshots and compare scans of the same drive or folder to find paths added, removed or changed. Snapshots contain scan metadata, not file contents; delete snapshots you no longer need to reclaim local storage.
 - **Saved cleanup plans:** save selected disk paths with measured sizes and risk labels, then resume after a fresh scan of the same root. CleanLens checks exact paths against the new scan and asks for confirmation; plans never delete by themselves.
@@ -85,6 +86,10 @@ After uninstalling an app and scanning the inventory again, open Leftover review
 
 Open **Disco**, choose a drive or use **Sfoglia cartelle**, and start the scan. Double-click a folder or use **Apri cartella** to inspect its contents; **Indietro** returns to the previous folder and **Su** opens its parent. Sort the list by size, use the size filter to narrow results, switch to largest-item views, or open the treemap. In the size column, short bars compare each result with the total measured size of the scan. Scanning reads metadata, not file contents, and measures logical file lengths rather than allocated disk space.
 
+### Run a quick security scan
+
+Open **Scansione rapida** and start the scan. CleanLens asks Windows for administrator approval, then asks Defender to check Downloads, Desktop, local temporary files and any folder you add. The scan is limited to those locations and is not a full-device antivirus scan. Review Defender's output in CleanLens; the app does not take action on detected files. Defender's own cloud-protection and sample-submission settings still apply, so Windows may send samples to Microsoft according to those settings.
+
 ### Compare scans and prepare cleanup
 
 After a Disk scan completes, save a snapshot before scanning the same root again. In **Analisi → Cronologia scansioni**, compare the snapshots. In **Analisi → Piani di pulizia**, save exact selected paths for later review. In **Analisi → File duplicati**, run SHA-256 verification before choosing copies to remove. Each destructive action shows the paths and asks for confirmation.
@@ -95,7 +100,7 @@ Use **Esporta report** to save the current inventory or report as HTML or CSV. E
 
 The standard leftover scan checks exact product-named folders in the current user's AppData and shared ProgramData only after an uninstall is confirmed. It also reports service, scheduled-task and startup matches as read-only entries. Manual delete checks the additional locations listed above, including user-configured search roots. It uses exact folder-name or publisher/product matches; a matching name is not proof that a path belongs to the app. Every result starts unchecked. Moving to quarantine is reversible when the original path is free; permanent deletion has a separate confirmation and may remove program or personal files.
 
-CleanLens scans drives or folders only after you explicitly start a Disk scan. It does not read file contents or cover every Windows app type and every leftover location. AppX inventory and removal apply to the current user; they do not provision or remove packages for other user profiles. Install Monitor observes only selected Registry areas and file system events under roots it can watch; it can lose events when Windows buffers overflow. Junctions and symbolic links are not followed by disk scan, and path checks cannot eliminate every race with other software.
+The Disk page scans drives or folders only after you explicitly start a scan and reads file metadata, not file contents. The separate Quick security scan invokes Microsoft Defender on Downloads, Desktop, local temporary files and an optional folder. It is not a full-device antivirus scan and does not cover every Windows app type or every leftover location. The Defender custom scan ignores Defender file exclusions and checks archive contents. CleanLens displays the command output without deleting, quarantining or changing findings. Defender's cloud-protection and sample-submission behavior follows the settings already configured in Windows, which may send file samples to Microsoft. AppX inventory and removal apply to the current user; they do not provision or remove packages for other user profiles. Install Monitor observes only selected Registry areas and file system events under roots it can watch; it can lose events when Windows buffers overflow. Junctions and symbolic links are not followed by disk scan, and path checks cannot eliminate every race with other software.
 
 The Disk page scans only after you start it. It skips junctions and symbolic-link targets, reports inaccessible entries, and measures logical file lengths rather than allocated disk space. Disk deletion bypasses the Recycle Bin and cannot be undone; it requires selecting and confirming each displayed path. A selected scan root cannot itself be deleted.
 
@@ -115,7 +120,7 @@ The WPF application and static website support English, Italian, Spanish and Fre
 
 The current self-contained Windows x64 build is available from [GitHub Releases](https://github.com/LoxyyIT/CleanLens/releases/latest). Download the portable ZIP, extract it and run `CleanLens.exe`. The build is unsigned and does not include an installer or updater; Windows SmartScreen may show a warning.
 
-The latest published portable ZIP is v0.3.0. Newer updates on the main branch are available as source; check the changelog before expecting them in the download.
+The latest published portable ZIP is v0.4.0. The release page also includes a SHA-256 checksum for the download.
 
 ## Build
 
@@ -148,7 +153,7 @@ See ROADMAP.md for planned work and current boundaries. Current source includes 
 
 ## Privacy
 
-The desktop application has no telemetry, analytics, account or cloud component. Inventory scans and cleanup happen locally. History and quarantine records are stored below %LOCALAPPDATA%\CleanLens. The Disk page's temporary metadata index is also stored there and removed when CleanLens closes.
+CleanLens itself has no telemetry, analytics, account or cloud service, and does not upload scan reports. Inventory scans and cleanup happen locally. The optional Microsoft Defender scan follows Defender's existing cloud-protection and sample-submission settings; depending on those settings, Windows may send file samples to Microsoft. History and quarantine records are stored below %LOCALAPPDATA%\CleanLens. The Disk page's temporary metadata index is also stored there and removed when CleanLens closes.
 
 ## Contributing
 

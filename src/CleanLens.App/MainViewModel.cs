@@ -1061,6 +1061,7 @@ public partial class MainViewModel : ObservableObject
             "Settings" => "Settings",
             "Disk" => "Disk",
             "Analysis" => "Analysis",
+            "SecurityScan" => "SecurityScan",
             _ => "Applications"
         };
         PageTitle = Texts[CurrentPageKey];
@@ -1075,6 +1076,7 @@ public partial class MainViewModel : ObservableObject
             "Settings" => Texts["SettingsSubtitle"],
             "Disk" => Texts["DiskSubtitle"],
             "Analysis" => Texts["AnalysisSubtitle"],
+            "SecurityScan" => Texts["SecurityScanSubtitle"],
             _ => Texts["ApplicationsSubtitle"]
         };
     }

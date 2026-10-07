@@ -1,10 +1,14 @@
 # Changelog
 
-## Unreleased — Disk size filters and clearer scan results
+## 0.4.0 — Focused Defender scan
 
 - Filter disk results into useful size ranges while keeping search, folder navigation and paging in sync.
 - Show a small proportional bar against the full scan so large space users stand out at a glance.
 - Add disk size controls and labels in English, Italian, Spanish and French.
+- Add a focused Microsoft Defender custom scan for Downloads, Desktop, local temporary files and an optional folder.
+- Require explicit UAC approval, pass Defender's no-remediation option, show scan output, and leave all findings for the user to review.
+- Explain the limited scan coverage and follow the existing Windows Defender cloud and sample-submission settings.
+- Update the four-language website, safety documentation and portable release links.
 
 ## 0.3.0 — Disk analysis and app-wide interface refresh
 

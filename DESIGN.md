@@ -26,6 +26,7 @@ These resources flow from `App.xaml` into the window chrome, workspace cards, na
 - Use Segoe UI for the application and Cascadia Code for full filesystem paths when they benefit from fixed-width alignment.
 - Prioritize readable names and sizes in the main list; secondary paths and timestamps can be smaller and muted.
 - Keep disk measurements honest: they are logical file lengths. A size indicator compares a result with the completed scan total, not with other rows.
+- Present the Defender scan as a bounded security check, clearly separated from full-device antivirus protection. Keep the read-only outcome visible and make UAC approval explicit.
 - Preserve the existing grouped workspace, moderately rounded cards and clear column alignment. Reserve the strongest contrast for navigation, the selected row, active scanning and final destructive confirmations.
 - Use short, restrained interaction feedback. Preserve normal mouse, keyboard and Windows high-contrast behavior.
 

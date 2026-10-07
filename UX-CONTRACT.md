@@ -15,6 +15,17 @@ This document records shared desktop behavior. `DESIGN.md` describes the visual 
 
 Disk size filters use half-open byte ranges: under 100 MB, 100 MB to 1 GB, and over 1 GB. These thresholds use the same 1024-based units as CleanLens's existing size formatter. No selection means any size. Folder rows use their measured subtree size; a largest-files view contains files only.
 
+## Focused Defender scan
+
+| User operation | Required behavior |
+| --- | --- |
+| Start a quick scan | Explain the bounded scope and request explicit Windows UAC approval before invoking Microsoft Defender. Scan Downloads, Desktop and local temporary files, plus an optional selected folder. |
+| Review results | Show Defender's command output and distinguish a clean exit from a finding-or-error result. Keep paths readable and allow copying the report. |
+| Handle detections | Use Defender's custom-scan no-remediation option. CleanLens never deletes, quarantines, restores or otherwise changes detected files as part of this workflow. |
+| Cancel | Stop the active MpCmdRun child process and report cancellation without interpreting it as a clean result. |
+
+This is not full-device antivirus coverage. Defender exclusions are ignored for the custom scan and archives are scanned. Existing Windows cloud-protection and sample-submission settings apply.
+
 ## Shared interaction and localization rules
 
 - Keep actions discoverable by keyboard and mouse, with visible labels and focus.

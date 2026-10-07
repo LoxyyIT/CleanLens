@@ -132,6 +132,12 @@
                         <TextBlock Text="{Binding Texts[Protection]}" Foreground="#7890A8" FontSize="9" FontWeight="Bold" Margin="10,0,10,0" VerticalAlignment="Center" />
                         <Border Grid.Column="1" Height="1" Background="#1C354A" VerticalAlignment="Center" Margin="5,0,4,0" />
                     </Grid>
+                    <Button x:Name="SecurityScanNav" Style="{StaticResource NavButton}" Click="SecurityScanNav_Click" Margin="0,2">
+                        <StackPanel Orientation="Horizontal">
+                            <Border Width="34" Height="34" CornerRadius="11" Background="#122B41" Margin="0,0,12,0"><TextBlock Text="&#xE83D;" FontFamily="Segoe MDL2 Assets" FontSize="16" HorizontalAlignment="Center" VerticalAlignment="Center" /></Border>
+                            <TextBlock Text="{Binding Texts[SecurityScan]}" VerticalAlignment="Center" />
+                        </StackPanel>
+                    </Button>
                     <Button x:Name="QuarantineNav" Style="{StaticResource NavButton}" Click="Quarantine_Click" Margin="0,2">
                         <StackPanel Orientation="Horizontal">
                             <Border Width="34" Height="34" CornerRadius="11" Background="#122B41" Margin="0,0,12,0"><TextBlock Text="&#xE8D7;" FontFamily="Segoe MDL2 Assets" FontSize="16" HorizontalAlignment="Center" VerticalAlignment="Center" /></Border>
@@ -149,7 +155,7 @@
             </Grid.RowDefinitions>
             <DockPanel Grid.Row="0" Margin="0,0,0,23">
                 <Button x:Name="HeaderScanButton" DockPanel.Dock="Right" Content="{Binding Texts[ScanApplications]}" Command="{Binding ScanCommand}" Style="{StaticResource PrimaryButton}" />
-                <Button DockPanel.Dock="Right" Content="{Binding Texts[ExportReport]}" Click="ExportReport_Click" Style="{StaticResource SecondaryButton}" Margin="0,0,10,0" />
+                <Button x:Name="HeaderExportButton" DockPanel.Dock="Right" Content="{Binding Texts[ExportReport]}" Click="ExportReport_Click" Style="{StaticResource SecondaryButton}" Margin="0,0,10,0" />
                 <StackPanel>
                     <TextBlock Text="{Binding PageTitle}" FontSize="31" FontWeight="Bold" />
                     <TextBlock Text="{Binding PageSubtitle}" Foreground="{StaticResource MutedBrush}" FontSize="13" Margin="1,5,0,0" />
@@ -812,6 +818,43 @@
                         </StackPanel></Border>
                     </StackPanel>
                 </ScrollViewer>
+            </Border>
+            <Border Grid.Row="2" x:Name="SecurityScanWorkspace" Style="{StaticResource Card}" Visibility="Collapsed" Padding="24">
+                <Grid>
+                    <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition Height="*" /></Grid.RowDefinitions>
+                    <Border Grid.Row="0" Background="#F0F5FF" BorderBrush="#DCE7FA" BorderThickness="1" CornerRadius="16" Padding="19" Margin="0,0,0,14">
+                        <Grid>
+                            <Grid.ColumnDefinitions><ColumnDefinition Width="52" /><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+                            <Border Width="42" Height="42" CornerRadius="13" Background="#DCE8FF" VerticalAlignment="Top"><TextBlock Text="&#xE83D;" FontFamily="Segoe MDL2 Assets" FontSize="20" Foreground="{StaticResource BlueBrush}" HorizontalAlignment="Center" VerticalAlignment="Center" /></Border>
+                            <StackPanel Grid.Column="1" Margin="4,0,18,0">
+                                <TextBlock Text="{Binding Texts[SecurityScanIntroTitle]}" FontSize="17" FontWeight="SemiBold" />
+                                <TextBlock Text="{Binding Texts[SecurityScanIntro]}" Foreground="{StaticResource MutedBrush}" FontSize="12" TextWrapping="Wrap" Margin="0,6,0,0" />
+                            </StackPanel>
+                            <Button Grid.Column="2" x:Name="SecurityScanStartButton" Content="{Binding Texts[SecurityScanStart]}" Click="SecurityScanStart_Click" Style="{StaticResource PrimaryButton}" VerticalAlignment="Top" />
+                        </Grid>
+                    </Border>
+                    <Border Grid.Row="1" Background="#FFF9EC" BorderBrush="#F0DDB8" BorderThickness="1" CornerRadius="12" Padding="13" Margin="0,0,0,13">
+                        <TextBlock Text="{Binding Texts[SecurityScanNotice]}" Foreground="#755316" FontSize="11" TextWrapping="Wrap" />
+                    </Border>
+                    <Grid Grid.Row="2" Margin="1,1,1,12">
+                        <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+                        <StackPanel>
+                            <TextBlock Text="{Binding Texts[SecurityScanTargets]}" FontSize="11" FontWeight="Bold" />
+                            <TextBlock Text="{Binding Texts[SecurityScanDefaultTargets]}" Foreground="{StaticResource MutedBrush}" FontSize="11" TextWrapping="Wrap" Margin="0,4,10,0" />
+                            <TextBlock x:Name="SecurityScanCustomFolderText" Foreground="{StaticResource BlueBrush}" FontSize="10" TextTrimming="CharacterEllipsis" Margin="0,4,10,0" Visibility="Collapsed" />
+                        </StackPanel>
+                        <Button Grid.Column="1" Content="{Binding Texts[SecurityScanBrowse]}" Click="SecurityScanBrowse_Click" Style="{StaticResource SecondaryButton}" Margin="0,0,8,0" VerticalAlignment="Center" />
+                        <Button Grid.Column="2" x:Name="SecurityScanCancelButton" Content="{Binding Texts[Cancel]}" Click="SecurityScanCancel_Click" Style="{StaticResource SecondaryButton}" IsEnabled="False" VerticalAlignment="Center" />
+                    </Grid>
+                    <Grid Grid.Row="3">
+                        <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="*" /></Grid.RowDefinitions>
+                        <DockPanel Grid.Row="0" Margin="0,0,0,8">
+                            <Button DockPanel.Dock="Right" Content="{Binding Texts[SecurityScanCopy]}" Click="SecurityScanCopy_Click" Style="{StaticResource SecondaryButton}" Padding="12,7" />
+                            <TextBlock x:Name="SecurityScanStatusText" Text="{Binding Texts[SecurityScanReady]}" Foreground="{StaticResource MutedBrush}" FontSize="11" VerticalAlignment="Center" TextWrapping="Wrap" Margin="0,0,12,0" />
+                        </DockPanel>
+                        <TextBox Grid.Row="1" x:Name="SecurityScanResultsTextBox" Text="" IsReadOnly="True" AcceptsReturn="True" TextWrapping="NoWrap" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto" FontFamily="Consolas" FontSize="11" Padding="14" Background="#F8FAFD" BorderBrush="#E2EAF4" BorderThickness="1" />
+                    </Grid>
+                </Grid>
             </Border>
             <Border Grid.RowSpan="3" Background="#99081A2C" Visibility="{Binding DisclaimerVisibility}">
                 <Border Width="680" Padding="30" Background="White" CornerRadius="22" HorizontalAlignment="Center" VerticalAlignment="Center">
