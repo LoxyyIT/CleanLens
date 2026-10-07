@@ -71,7 +71,15 @@ public partial class App : Application
             var extraFolder = folderArgumentIndex >= 0 && folderArgumentIndex + 1 < e.Args.Length
                 ? e.Args[folderArgumentIndex + 1]
                 : null;
-            window.StartQuickScanAfterElevation(extraFolder);
+            var defaultRoots = new List<string>();
+            for (var argumentIndex = 0; argumentIndex < e.Args.Length - 1; argumentIndex++)
+            {
+                if (e.Args[argumentIndex].Equals("--cleanlens-defender-root", StringComparison.OrdinalIgnoreCase))
+                {
+                    defaultRoots.Add(e.Args[++argumentIndex]);
+                }
+            }
+            window.StartQuickScanAfterElevation(extraFolder, defaultRoots);
         }
     }
 

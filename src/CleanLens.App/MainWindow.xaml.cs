@@ -5,6 +5,7 @@ using System.ComponentModel;
 using System.Diagnostics;
 using System.IO;
 using System.Security.Principal;
+using System.Runtime.InteropServices;
 using Microsoft.Win32;
 using CleanLens.Core.Models;
 using CleanLens.Core.Safety;
@@ -18,6 +19,7 @@ public partial class MainWindow : Window
     private readonly DefenderQuickScanService defenderQuickScanService = new();
     private CancellationTokenSource? securityScanCancellation;
     private string? securityScanCustomFolder;
+    private IReadOnlyList<string>? securityScanDefaultRootsFromLauncher;
     public MainWindow()
     {
         InitializeComponent();
@@ -209,14 +211,21 @@ public partial class MainWindow : Window
         try
         {
             var executable = Path.Combine(AppContext.BaseDirectory, "CleanLens.exe");
+            var arguments = new System.Text.StringBuilder("--cleanlens-defender-scan");
+            foreach (var target in CreateDefaultSecurityScanTargets())
+            {
+                arguments.Append(" --cleanlens-defender-root ").Append(QuoteWindowsArgument(target.Path));
+            }
+            if (!string.IsNullOrWhiteSpace(securityScanCustomFolder))
+            {
+                arguments.Append(" --cleanlens-defender-folder ").Append(QuoteWindowsArgument(securityScanCustomFolder));
+            }
             Process.Start(new ProcessStartInfo(executable)
             {
                 UseShellExecute = true,
                 Verb = "runas",
                 WorkingDirectory = AppContext.BaseDirectory,
-                Arguments = "--cleanlens-defender-scan" + (string.IsNullOrWhiteSpace(securityScanCustomFolder)
-                    ? string.Empty
-                    : " --cleanlens-defender-folder " + QuoteWindowsArgument(securityScanCustomFolder))
+                Arguments = arguments.ToString()
             });
             Close();
         }
@@ -230,8 +239,12 @@ public partial class MainWindow : Window
         }
     }
 
-    public void StartQuickScanAfterElevation(string? extraFolder = null)
+    public void StartQuickScanAfterElevation(string? extraFolder = null, IReadOnlyList<string>? defaultRoots = null)
     {
+        if (defaultRoots is { Count: > 0 })
+        {
+            securityScanDefaultRootsFromLauncher = defaultRoots;
+        }
         if (!string.IsNullOrWhiteSpace(extraFolder) && Directory.Exists(extraFolder))
         {
             securityScanCustomFolder = Path.GetFullPath(extraFolder);
@@ -257,14 +270,14 @@ public partial class MainWindow : Window
 
         try
         {
-            var localAppData = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
-            var profile = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
-            var targets = new List<DefenderScanTarget>
+            var targets = CreateDefaultSecurityScanTargets();
+            if (securityScanDefaultRootsFromLauncher is { Count: > 0 })
             {
-                new(ViewModel.Texts["SecurityDownloads"], Path.Combine(profile, "Downloads")),
-                new(ViewModel.Texts["SecurityDesktop"], Environment.GetFolderPath(Environment.SpecialFolder.DesktopDirectory)),
-                new(ViewModel.Texts["SecurityTemp"], Path.Combine(localAppData, "Temp"))
-            };
+                for (var index = 0; index < Math.Min(targets.Count, securityScanDefaultRootsFromLauncher.Count); index++)
+                {
+                    targets[index] = targets[index] with { Path = securityScanDefaultRootsFromLauncher[index] };
+                }
+            }
             if (!string.IsNullOrWhiteSpace(securityScanCustomFolder))
             {
                 targets.Add(new DefenderScanTarget(ViewModel.Texts["SecurityScanCustomFolder"], securityScanCustomFolder));
@@ -308,6 +321,37 @@ public partial class MainWindow : Window
             securityScanCancellation = null;
         }
     }
+
+    private List<DefenderScanTarget> CreateDefaultSecurityScanTargets()
+    {
+        var localAppData = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
+        var profile = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+        return
+        [
+            new(ViewModel.Texts["SecurityDownloads"], GetDownloadsFolder(profile)),
+            new(ViewModel.Texts["SecurityDesktop"], Environment.GetFolderPath(Environment.SpecialFolder.DesktopDirectory)),
+            new(ViewModel.Texts["SecurityTemp"], Path.Combine(localAppData, "Temp"))
+        ];
+    }
+
+    private static string GetDownloadsFolder(string userProfile)
+    {
+        var folderId = new Guid("374DE290-123F-4565-9164-39C4925E467B");
+        var result = SHGetKnownFolderPath(ref folderId, 0, IntPtr.Zero, out var pathPointer);
+        try
+        {
+            return result == 0 && Marshal.PtrToStringUni(pathPointer) is { Length: > 0 } path
+                ? path
+                : Path.Combine(userProfile, "Downloads");
+        }
+        finally
+        {
+            if (pathPointer != IntPtr.Zero) Marshal.FreeCoTaskMem(pathPointer);
+        }
+    }
+
+    [System.Runtime.InteropServices.DllImport("shell32.dll")]
+    private static extern int SHGetKnownFolderPath(ref Guid rfid, uint dwFlags, IntPtr hToken, out IntPtr ppszPath);
 
     private void SecurityScanCancel_Click(object sender, RoutedEventArgs e) => securityScanCancellation?.Cancel();
 

@@ -16,7 +16,7 @@
   <img src="https://img.shields.io/badge/platform-Windows-0b6cff" alt="Windows">
   <img src="https://img.shields.io/badge/UI-WPF-1677ff" alt="WPF">
   <img src="https://img.shields.io/badge/runtime-.NET%2010-512bd4" alt=".NET 10">
-  <a href="https://github.com/LoxyyIT/CleanLens/releases/tag/v0.4.0"><img src="https://img.shields.io/badge/release-v0.4.0-396be8" alt="CleanLens 0.4.0 release"></a>
+  <a href="https://github.com/LoxyyIT/CleanLens/releases/tag/v0.4.1"><img src="https://img.shields.io/badge/release-v0.4.1-396be8" alt="CleanLens 0.4.1 release"></a>
   <img src="https://img.shields.io/badge/license-MIT-18a06f" alt="MIT">
   <img src="https://img.shields.io/badge/status-early%20development-c78b2f" alt="Early development">
 </p>
@@ -120,7 +120,7 @@ The WPF application and static website support English, Italian, Spanish and Fre
 
 The current self-contained Windows x64 build is available from [GitHub Releases](https://github.com/LoxyyIT/CleanLens/releases/latest). Download the portable ZIP, extract it and run `CleanLens.exe`. The build is unsigned and does not include an installer or updater; Windows SmartScreen may show a warning.
 
-The latest published portable ZIP is v0.4.0. The release page also includes a SHA-256 checksum for the download.
+The latest published portable ZIP is v0.4.1. The release page also includes a SHA-256 checksum for the download.
 
 ## Build
 

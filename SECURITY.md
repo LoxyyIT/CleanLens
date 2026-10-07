@@ -2,7 +2,7 @@
 
 ## Supported versions
 
-CleanLens is in early development. The current published preview is v0.4.0; security fixes are made on the default development branch.
+CleanLens is in early development. The current published preview is v0.4.1; security fixes are made on the default development branch.
 
 ## Reporting a vulnerability
 

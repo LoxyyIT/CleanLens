@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.4.1 — Preserve quick-scan target paths across UAC
+
+- Pass the original Windows user's Downloads, Desktop and temporary-folder paths to the elevated scan process, including shell-redirected Downloads locations.
+- Preserve an optional user-selected folder when UAC launches the elevated process with different administrator credentials.
+- Publish the corrected Windows x64 portable build as v0.4.1.
+
 ## 0.4.0 — Focused Defender scan
 
 - Filter disk results into useful size ranges while keeping search, folder navigation and paging in sync.
