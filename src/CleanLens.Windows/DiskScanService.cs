@@ -197,14 +197,14 @@ public sealed class DiskScanService : IDisposable
         }
     }
 
-    public async Task<DiskScanPage> GetPageAsync(DiskListingMode mode, string currentDirectory, long offset, int pageSize, string search, CancellationToken cancellationToken = default)
+    public async Task<DiskScanPage> GetPageAsync(DiskListingMode mode, string currentDirectory, long offset, int pageSize, string search, CancellationToken cancellationToken = default, long? minimumSizeBytes = null, long? maximumSizeBytes = null)
     {
         EnsureCurrentIndex();
         var indexPath = currentIndexPath!;
         var root = currentRootPath!;
         var directory = Path.GetFullPath(currentDirectory);
         if (!IsPathWithinOrEqual(directory, root)) throw new InvalidOperationException("The requested folder is outside the selected scan root.");
-        return await Task.Run(() => QueryPage(indexPath, root, directory, mode, Math.Max(0, offset), Math.Clamp(pageSize, 1, 5000), search.Trim(), cancellationToken), cancellationToken);
+        return await Task.Run(() => QueryPage(indexPath, root, directory, mode, Math.Max(0, offset), Math.Clamp(pageSize, 1, 5000), search.Trim(), minimumSizeBytes, maximumSizeBytes, cancellationToken), cancellationToken);
     }
 
     public async Task<IReadOnlyList<DiskExtensionStat>> GetExtensionStatsAsync(string? directoryPath = null, CancellationToken cancellationToken = default)
@@ -589,7 +589,7 @@ public sealed class DiskScanService : IDisposable
         throw new InvalidOperationException("The disk scan ended unexpectedly.");
     }
 
-    private DiskScanPage QueryPage(string indexPath, string rootPath, string currentDirectory, DiskListingMode mode, long offset, int pageSize, string search, CancellationToken cancellationToken)
+    private DiskScanPage QueryPage(string indexPath, string rootPath, string currentDirectory, DiskListingMode mode, long offset, int pageSize, string search, long? minimumSizeBytes, long? maximumSizeBytes, CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
         using var connection = OpenIndex(indexPath);
@@ -600,11 +600,15 @@ public sealed class DiskScanService : IDisposable
             _ => "size_bytes IS NOT NULL AND path<>$root"
         };
         if (!string.IsNullOrWhiteSpace(search)) where += " AND (instr(lower(name),lower($search))>0 OR instr(lower(path),lower($search))>0)";
+        if (minimumSizeBytes is not null) where += " AND size_bytes >= $minimumBytes";
+        if (maximumSizeBytes is not null) where += " AND size_bytes < $maximumBytes";
         using var count = connection.CreateCommand();
         count.CommandText = $"SELECT COUNT(*) FROM disk_entries WHERE {where}";
         count.Parameters.AddWithValue("$location", currentDirectory);
         count.Parameters.AddWithValue("$root", rootPath);
         if (!string.IsNullOrWhiteSpace(search)) count.Parameters.AddWithValue("$search", search);
+        if (minimumSizeBytes is not null) count.Parameters.AddWithValue("$minimumBytes", minimumSizeBytes.Value);
+        if (maximumSizeBytes is not null) count.Parameters.AddWithValue("$maximumBytes", maximumSizeBytes.Value);
         var total = Convert.ToInt64(count.ExecuteScalar(), System.Globalization.CultureInfo.InvariantCulture);
 
         using var query = connection.CreateCommand();
@@ -619,6 +623,8 @@ public sealed class DiskScanService : IDisposable
         query.Parameters.AddWithValue("$limit", pageSize);
         query.Parameters.AddWithValue("$offset", offset);
         if (!string.IsNullOrWhiteSpace(search)) query.Parameters.AddWithValue("$search", search);
+        if (minimumSizeBytes is not null) query.Parameters.AddWithValue("$minimumBytes", minimumSizeBytes.Value);
+        if (maximumSizeBytes is not null) query.Parameters.AddWithValue("$maximumBytes", maximumSizeBytes.Value);
         using var reader = query.ExecuteReader();
         var entries = new List<DiskScanEntry>();
         while (reader.Read())

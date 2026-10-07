@@ -3,6 +3,7 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:models="clr-namespace:CleanLens.Core.Models;assembly=CleanLens.Core"
         xmlns:shell="clr-namespace:System.Windows.Shell;assembly=PresentationFramework"
+        xmlns:local="clr-namespace:CleanLens.App"
         Title="{Binding Texts[AppName]}" Icon="/CleanLens;component/Assets/CleanLens.ico" Width="1490" Height="940" MinWidth="1160" MinHeight="740"
         WindowStartupLocation="CenterScreen" WindowStyle="None" ResizeMode="CanResize" Background="#EDF3FA" Foreground="{StaticResource InkBrush}" FontFamily="Segoe UI" StateChanged="Window_StateChanged">
     <shell:WindowChrome.WindowChrome>
@@ -504,7 +505,7 @@
                             <Grid>
                                 <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition Height="*" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
                                 <Grid Margin="0,0,0,7">
-                                    <Grid.ColumnDefinitions><ColumnDefinition Width="Auto" /><ColumnDefinition Width="Auto" /><ColumnDefinition Width="*" /><ColumnDefinition Width="180" /></Grid.ColumnDefinitions>
+                                    <Grid.ColumnDefinitions><ColumnDefinition Width="Auto" /><ColumnDefinition Width="Auto" /><ColumnDefinition Width="*" /><ColumnDefinition Width="180" /><ColumnDefinition Width="145" /></Grid.ColumnDefinitions>
                                     <Button Grid.Column="0" Content="{Binding Texts[DiskGoBack]}" Click="DiskHistoryBack_Click" IsEnabled="{Binding CanGoBackDiskFolder}" Style="{StaticResource SecondaryButton}" Padding="11,7" Margin="0,0,7,0" />
                                     <Button Grid.Column="1" Content="{Binding Texts[DiskBack]}" Click="DiskBack_Click" IsEnabled="{Binding CanGoUpDiskFolder}" Style="{StaticResource SecondaryButton}" Padding="11,7" Margin="0,0,8,0" />
                                     <Border Grid.Column="2" Background="#F5F8FC" BorderBrush="{StaticResource LineBrush}" BorderThickness="1" CornerRadius="9" Padding="11,7" Margin="0,0,9,0">
@@ -515,12 +516,19 @@
                                         <ComboBoxItem Content="{Binding Texts[DiskLargestItems]}" />
                                         <ComboBoxItem Content="{Binding Texts[DiskLargestFiles]}" />
                                     </ComboBox>
+                                    <ComboBox x:Name="DiskSizeFilterSelector" Grid.Column="4" SelectedIndex="{Binding DiskSizeFilterIndex, Mode=OneWay}" SelectionChanged="DiskSizeFilter_Changed" Height="38" Margin="7,0,0,0" ToolTip="{Binding Texts[DiskSizeFilterHint]}">
+                                        <ComboBoxItem Content="{Binding Texts[DiskSizeAny]}" />
+                                        <ComboBoxItem Content="{Binding Texts[DiskSizeSmall]}" />
+                                        <ComboBoxItem Content="{Binding Texts[DiskSizeMedium]}" />
+                                        <ComboBoxItem Content="{Binding Texts[DiskSizeLarge]}" />
+                                    </ComboBox>
                                 </Grid>
                                 <Grid Grid.Row="1" Margin="0,0,0,9">
-                                    <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
-                                    <TextBox x:Name="DiskSearchBox" Grid.Column="0" Text="{Binding DiskSearchText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Height="36" Padding="11,0" VerticalContentAlignment="Center" ToolTip="{Binding Texts[DiskSearchTooltip]}" TextChanged="DiskSearch_Changed" Margin="0,0,7,0" />
-                                    <Button Grid.Column="1" Content="{Binding Texts[DiskOpenFolder]}" Click="DiskOpenSelectedFolder_Click" IsEnabled="{Binding CanOpenSelectedDiskFolder}" Style="{StaticResource SecondaryButton}" Padding="11,8" Margin="0,0,7,0" />
-                                    <TextBlock Grid.Column="2" Text="{Binding DiskSelectionCountText}" VerticalAlignment="Center" Foreground="{StaticResource MutedBrush}" FontSize="10" Margin="0,0,9,0" />
+                                    <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /><ColumnDefinition Width="Auto" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+                                    <TextBox x:Name="DiskSearchBox" Grid.Column="0" Grid.ColumnSpan="2" Text="{Binding DiskSearchText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Height="36" Padding="11,0" VerticalContentAlignment="Center" ToolTip="{Binding Texts[DiskSearchTooltip]}" TextChanged="DiskSearch_Changed" Margin="0,0,7,0" />
+                                    <Button Grid.Column="1" Content="×" Click="ClearDiskSearch_Click" Height="32" Width="34" Padding="0" FontSize="17" Visibility="{Binding DiskSearchClearVisibility}" ToolTip="{Binding Texts[DiskClearSearch]}" AutomationProperties.Name="{Binding Texts[DiskClearSearch]}" Style="{StaticResource SecondaryButton}" Margin="0,0,7,0" />
+                                    <Button Grid.Column="2" Content="{Binding Texts[DiskOpenFolder]}" Click="DiskOpenSelectedFolder_Click" IsEnabled="{Binding CanOpenSelectedDiskFolder}" Style="{StaticResource SecondaryButton}" Padding="11,8" Margin="0,0,7,0" />
+                                    <TextBlock Grid.Column="3" Text="{Binding DiskSelectionCountText}" VerticalAlignment="Center" Foreground="{StaticResource MutedBrush}" FontSize="10" Margin="0,0,9,0" />
                                 </Grid>
                                 <DataGrid x:Name="DiskEntriesGrid" Grid.Row="2" ItemsSource="{Binding DiskEntries}" SelectedItem="{Binding SelectedDiskEntry, Mode=TwoWay}" AutoGenerateColumns="False" IsReadOnly="True" CanUserAddRows="False" CanUserSortColumns="True" SelectionMode="Extended" SelectionUnit="FullRow" SelectionChanged="DiskEntries_SelectionChanged" MouseDoubleClick="DiskEntry_DoubleClick" RowHeight="66" AlternationCount="2" ColumnHeaderHeight="42" VirtualizingPanel.IsVirtualizing="True" VirtualizingPanel.VirtualizationMode="Recycling">
                                     <DataGrid.Columns>
@@ -552,9 +560,21 @@
                                                 </DataTemplate>
                                             </DataGridTemplateColumn.CellTemplate>
                                         </DataGridTemplateColumn>
-                                        <DataGridTemplateColumn Header="SIZE" SortMemberPath="SizeBytes" Width="125">
+                                        <DataGridTemplateColumn Header="{Binding DataContext.Texts[DiskSizeHeader], RelativeSource={RelativeSource AncestorType={x:Type Window}}}" SortMemberPath="SizeBytes" Width="140">
                                             <DataGridTemplateColumn.CellTemplate>
-                                                <DataTemplate><Border Background="#F3F6FA" BorderBrush="#E8EDF4" BorderThickness="1" CornerRadius="7" Padding="7,4" Height="26" VerticalAlignment="Center" HorizontalAlignment="Right" Margin="0,0,7,0"><TextBlock Text="{Binding SizeText}" FontSize="10" FontWeight="SemiBold" TextAlignment="Right" VerticalAlignment="Center" /></Border></DataTemplate>
+                                                <DataTemplate>
+                                                    <StackPanel VerticalAlignment="Center" HorizontalAlignment="Stretch">
+                                                        <TextBlock Text="{Binding SizeText}" FontSize="10" FontWeight="SemiBold" TextAlignment="Right" Margin="0,0,2,3" />
+                                                        <ProgressBar Height="3" Minimum="0" Maximum="100" IsHitTestVisible="False">
+                                                            <ProgressBar.Value>
+                                                                <MultiBinding Converter="{StaticResource DiskSizeShareConverter}">
+                                                                    <Binding Path="SizeBytes" />
+                                                                    <Binding Path="DataContext.DiskScanSummary.TotalBytes" RelativeSource="{RelativeSource AncestorType={x:Type Window}}" />
+                                                                </MultiBinding>
+                                                            </ProgressBar.Value>
+                                                        </ProgressBar>
+                                                    </StackPanel>
+                                                </DataTemplate>
                                             </DataGridTemplateColumn.CellTemplate>
                                         </DataGridTemplateColumn>
                                         <DataGridTextColumn Header="MODIFIED" SortMemberPath="LastWriteUtcTicks" Binding="{Binding LastWriteText}" ElementStyle="{StaticResource PublisherCell}" Width="145" />

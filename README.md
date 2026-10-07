@@ -62,7 +62,7 @@ The ZIP includes the .NET runtime. CleanLens is unsigned and has no installer or
 - **Manual delete scan:** separately review registered install and Windows Installer locations, Program Files and Program Files (x86), app-data folders in accessible Windows profiles, Steam app-ID paths and exact-name matches in supported personal libraries. Settings lists the default scan roots, lets you disable them individually, and lets you add or remove extra roots.
 - **Measured disk usage:** on request, sum file lengths across matched install, application-data, cache and other candidate locations. This can include user data; unreadable paths are counted and marked as a partial measurement. The result is not allocated disk space.
 - **Install Monitor:** start a local session before an installation, run the installer yourself, then stop the session to compare the registered-app inventory, selected service/startup Registry entries, and file system events under Program Files, the current profile's AppData, ProgramData, scheduled-task files and enabled custom roots. It does not read file contents. Reports are saved locally and flag watcher overflow or inaccessible paths.
-- **Disk explorer:** explicitly scan a selected drive or folder, browse folders with Back and Parent navigation, view the largest items or files, inspect extension totals and explore a size-weighted treemap. ZIP files are measured as stored files and are never opened. A temporary SQLite index keeps scan results pageable without holding every path in RAM; it is removed when CleanLens closes.
+- **Disk explorer:** explicitly scan a selected drive or folder, browse folders with Back and Parent navigation, filter by measured size, spot the largest results with proportional bars, inspect extension totals and explore a size-weighted treemap. ZIP files are measured as stored files and are never opened. A temporary SQLite index keeps scan results pageable without holding every path in RAM; it is removed when CleanLens closes.
 - **Duplicate review:** find same-size file candidates, then optionally verify contents with SHA-256. Only verified groups can be cleaned; review every path, keep at least one copy per group, and confirm permanent deletion after CleanLens checks the selected files again.
 - **Saved disk scans:** keep local metadata snapshots and compare scans of the same drive or folder to find paths added, removed or changed. Snapshots contain scan metadata, not file contents; delete snapshots you no longer need to reclaim local storage.
 - **Saved cleanup plans:** save selected disk paths with measured sizes and risk labels, then resume after a fresh scan of the same root. CleanLens checks exact paths against the new scan and asks for confirmation; plans never delete by themselves.
@@ -83,7 +83,7 @@ After uninstalling an app and scanning the inventory again, open Leftover review
 
 ### Explore a drive or folder
 
-Open **Disco**, choose a drive or use **Sfoglia cartelle**, and start the scan. Double-click a folder or use **Apri cartella** to inspect its contents; **Indietro** returns to the previous folder and **Su** opens its parent. Sort the list by size, switch to largest-item views, or open the treemap. Scanning reads metadata, not file contents, and measures logical file lengths rather than allocated disk space.
+Open **Disco**, choose a drive or use **Sfoglia cartelle**, and start the scan. Double-click a folder or use **Apri cartella** to inspect its contents; **Indietro** returns to the previous folder and **Su** opens its parent. Sort the list by size, use the size filter to narrow results, switch to largest-item views, or open the treemap. In the size column, short bars compare each result with the total measured size of the scan. Scanning reads metadata, not file contents, and measures logical file lengths rather than allocated disk space.
 
 ### Compare scans and prepare cleanup
 
@@ -115,7 +115,7 @@ The WPF application and static website support English, Italian, Spanish and Fre
 
 The current self-contained Windows x64 build is available from [GitHub Releases](https://github.com/LoxyyIT/CleanLens/releases/latest). Download the portable ZIP, extract it and run `CleanLens.exe`. The build is unsigned and does not include an installer or updater; Windows SmartScreen may show a warning.
 
-The v0.3.0 portable ZIP includes the features described above. Review the release notes for its exact scope and known boundaries.
+The latest published portable ZIP is v0.3.0. Newer updates on the main branch are available as source; check the changelog before expecting them in the download.
 
 ## Build
 

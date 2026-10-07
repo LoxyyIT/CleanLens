@@ -8,6 +8,7 @@
             <local:ApplicationMonogramConverter x:Key="ApplicationMonogramConverter" />
             <local:ApplicationIconConverter x:Key="ApplicationIconConverter" />
             <local:DiskEntryIconConverter x:Key="DiskEntryIconConverter" />
+            <local:DiskSizeShareConverter x:Key="DiskSizeShareConverter" />
             <Color x:Key="Ink">#101F35</Color>
             <Color x:Key="Muted">#60738B</Color>
             <Color x:Key="Line">#DCE6F1</Color>

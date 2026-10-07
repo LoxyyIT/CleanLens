@@ -11,7 +11,7 @@ Roadmap entries are plans, not implemented features.
 - On-demand measured file-length totals across matched application install and data folders.
 - Local install-monitor sessions with before/after app inventory and file system event review.
 - Locally saved manual search roots that can be enabled, disabled or removed.
-- On-demand disk scans with paged folder browsing, largest-item views, extension totals, and explicit permanent deletion.
+- On-demand disk scans with paged folder browsing, largest-item views, size-range filters, extension totals, proportional size indicators, and explicit permanent deletion.
 - Same-size duplicate discovery, optional SHA-256 content verification, and guarded deletion of selected copies.
 - Locally saved full metadata snapshots and same-root added/removed/changed comparison.
 - Saved cleanup plans with path/risk review, same-root rescan matching and explicit confirmation.

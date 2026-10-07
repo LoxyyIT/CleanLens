@@ -104,6 +104,9 @@ public partial class MainViewModel : ObservableObject
     private string diskSearchText = string.Empty;
 
     [ObservableProperty]
+    private int diskSizeFilterIndex;
+
+    [ObservableProperty]
     private bool isDiskScanning;
 
     [ObservableProperty]
@@ -249,6 +252,7 @@ public partial class MainViewModel : ObservableObject
     public bool CanDeleteDiskEntries => SafetyAccepted && HasDiskScan && !IsDiskScanning && !IsDiskScanStale && diskSelectedItemCount > 0;
     public string DiskSelectionCountText => Texts.Format("DiskSelectionCount", diskSelectedItemCount.ToString("N0", CultureInfo.GetCultureInfo(Texts.Language)));
     public bool CanOpenSelectedDiskFolder => SelectedDiskEntry is { IsDirectory: true, IsReparsePoint: false } && HasDiskScan && !IsDiskScanning && !IsDiskScanStale;
+    public Visibility DiskSearchClearVisibility => string.IsNullOrWhiteSpace(DiskSearchText) ? Visibility.Collapsed : Visibility.Visible;
     public Visibility DiskExtensionPanelVisibility => DiskSidePanelMode == 0 ? Visibility.Visible : Visibility.Collapsed;
     public Visibility DiskTreemapPanelVisibility => DiskSidePanelMode == 1 ? Visibility.Visible : Visibility.Collapsed;
     public bool CanPageDiskBackward => HasDiskScan && DiskPageOffset > 0 && !IsDiskScanning && !IsDiskScanStale;
@@ -465,7 +469,14 @@ public partial class MainViewModel : ObservableObject
         var cancellationToken = diskQueryCancellation.Token;
         try
         {
-            var page = await diskScanService.GetPageAsync(DiskListingMode, CurrentDiskDirectory, DiskPageOffset, DiskPageSize, DiskSearchText, cancellationToken);
+            var (minimumBytes, maximumBytes) = DiskSizeFilterIndex switch
+            {
+                1 => ((long?)null, (long?)(100L * 1024 * 1024)),
+                2 => ((long?)(100L * 1024 * 1024), (long?)(1024L * 1024 * 1024)),
+                3 => ((long?)(1024L * 1024 * 1024), (long?)null),
+                _ => ((long?)null, (long?)null)
+            };
+            var page = await diskScanService.GetPageAsync(DiskListingMode, CurrentDiskDirectory, DiskPageOffset, DiskPageSize, DiskSearchText, cancellationToken, minimumBytes, maximumBytes);
             if (cancellationToken.IsCancellationRequested) return;
             DiskEntries.Clear();
             SelectedDiskEntry = null;
@@ -580,6 +591,14 @@ public partial class MainViewModel : ObservableObject
         DiskSearchText = value.Trim();
         await LoadDiskPageAsync(0);
     }
+
+    public async Task SetDiskSizeFilterAsync(int filterIndex)
+    {
+        DiskSizeFilterIndex = Math.Clamp(filterIndex, 0, 3);
+        await LoadDiskPageAsync(0);
+    }
+
+    partial void OnDiskSearchTextChanged(string value) => OnPropertyChanged(nameof(DiskSearchClearVisibility));
 
     public async Task SetDiskListingModeAsync(DiskListingMode mode)
     {

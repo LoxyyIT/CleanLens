@@ -359,6 +359,22 @@ public partial class MainWindow : Window
         await viewModel.SetDiskListingModeAsync((DiskListingMode)comboBox.SelectedIndex);
     }
 
+    private async void DiskSizeFilter_Changed(object sender, SelectionChangedEventArgs e)
+    {
+        if (sender is not ComboBox comboBox || DataContext is not MainViewModel viewModel || comboBox.SelectedIndex is < 0 or > 3) return;
+        await viewModel.SetDiskSizeFilterAsync(comboBox.SelectedIndex);
+    }
+
+    private async void ClearDiskSearch_Click(object sender, RoutedEventArgs e)
+    {
+        diskSearchDebounce?.Cancel();
+        diskSearchDebounce?.Dispose();
+        diskSearchDebounce = null;
+        DiskSearchBox.Clear();
+        DiskSearchBox.Focus();
+        await ViewModel.UpdateDiskSearchAsync(string.Empty);
+    }
+
     private async void DiskSearch_Changed(object sender, TextChangedEventArgs e)
     {
         if (DataContext is not MainViewModel viewModel || sender is not TextBox box) return;

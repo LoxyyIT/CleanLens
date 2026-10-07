@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased — Disk size filters and clearer scan results
+
+- Filter disk results into useful size ranges while keeping search, folder navigation and paging in sync.
+- Show a small proportional bar against the full scan so large space users stand out at a glance.
+- Add disk size controls and labels in English, Italian, Spanish and French.
+
 ## 0.3.0 — Disk analysis and app-wide interface refresh
 
 - Added same-size duplicate discovery with optional SHA-256 verification and guarded selection.
